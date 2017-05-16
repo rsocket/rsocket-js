@@ -1,0 +1,8 @@
+{
+  "extends": "./node_modules/eslint-config-fb-strict/index.js",
+  "parser": "babel-eslint",
+  "rules": {
+    "max-len": [1, 100],
+    "no-multiple-empty-lines": 1
+  }
+}

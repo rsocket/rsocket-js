@@ -1,0 +1,33 @@
+[ignore]
+.*/__tests__/.*
+.*/build/haste/.*
+.*/packages/.*/node_modules/.*
+.*/node_modules/conventional-changelog-core/.*
+
+[include]
+./node_modules/fbjs/lib
+
+[libs]
+./node_modules/fbjs/flow/lib
+./flow/
+
+[options]
+module.system=haste
+
+esproposal.class_static_fields=enable
+esproposal.class_instance_fields=enable
+
+module.name_mapper='\(rsocket-[^/]*\)' -> '<PROJECT_ROOT>/packages/\1/src/index.js'
+
+munge_underscores=true
+
+suppress_type=$FlowIssue
+suppress_type=$FlowFixMe
+suppress_type=$FixMe
+
+suppress_comment=\\(.\\|\n\\)*\\$FlowFixMe\\($\\|[^(]\\|(\\(>=0\\.\\(4[0-1]\\|[1-3][0-9]\\|[0-9]\\).[0-9]\\)? *\\(site=[a-z,_]*relay[a-z,_]*\\)?)\\)
+suppress_comment=\\(.\\|\n\\)*\\$FlowIssue\\((\\(>=0\\.\\(4[0-1]\\|[1-3][0-9]\\|[0-9]\\).[0-9]\\)? *\\(site=[a-z,_]*relay[a-z,_]*\\)?)\\)? #[0-9]+
+suppress_comment=\\(.\\|\n\\)*\\$FlowFixedInNextDeploy
+
+[version]
+^0.43.1

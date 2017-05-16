@@ -1,0 +1,5 @@
+**/coverage/**
+**/node_modules/**
+flow/
+packages/*/build/**
+scripts/

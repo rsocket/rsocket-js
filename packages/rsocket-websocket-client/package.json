@@ -1,0 +1,17 @@
+{
+  "name": "rsocket-websocket-client",
+  "private": true,
+  "description": "RSocket WebSocket client for use in browser environments",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rsocket/rsocket-js.git"
+  },
+  "license": "BSD-3-Clause",
+  "main": "build/index.js",
+  "dependencies": {
+    "fbjs": "^0.8.12",
+    "rsocket-core": "^0.0.0",
+    "rsocket-flowable": "^0.0.0"
+  }
+}

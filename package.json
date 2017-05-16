@@ -1,0 +1,91 @@
+{
+  "name": "rsocket-js",
+  "private": true,
+  "description": "An implementation of the RSocket protocol: https://github.com/rsocket/rsocket",
+  "version": "0.0.0",
+  "keywords": [
+    "reactivesocket",
+    "rsocket"
+  ],
+  "license": "BSD-3-Clause",
+  "files": [
+    "LICENSE",
+    "PATENTS",
+    "README.md",
+    "dist/",
+    "lib/"
+  ],
+  "scripts": {
+    "build": "NODE_ENV=production node scripts/build.js",
+    "jest": "NODE_ENV=test jest \"$@\"",
+    "lint": "yarn run lint-prettier && eslint . --cache",
+    "lint-prettier": "node scripts/prettier.js lint",
+    "postinstall": "node scripts/postinstall.js",
+    "prettier": "node scripts/prettier.js write",
+    "tck": "yarn run build && node packages/rsocket-tck/build/index.js \"$@\"",
+    "test": "f() { EXIT=0; yarn run typecheck || EXIT=$?; yarn run jest \"$@\" || EXIT=$?; exit $EXIT; }; f",
+    "typecheck": "flow check packages/"
+  },
+  "dependencies": {},
+  "peerDependencies": {},
+  "devDependencies": {
+    "babel-cli": "^6.9.0",
+    "babel-core": "^6.9.0",
+    "babel-eslint": "^7.2.1",
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-plugin-transform-runtime": "^6.9.0",
+    "babel-polyfill": "^6.9.0",
+    "babel-preset-fbjs": "^2.0.0",
+    "babel-runtime": "^6.6.1",
+    "buffer": "^5.0.6",
+    "chalk": "^1.1.3",
+    "eslint": "^3.17.1",
+    "eslint-config-fb-strict": "^19.0.1",
+    "eslint-plugin-babel": "^4.1.1",
+    "eslint-plugin-flowtype": "^2.30.3",
+    "eslint-plugin-jasmine": "^2.2.0",
+    "eslint-plugin-prefer-object-spread": "^1.1.0",
+    "eslint-plugin-react": "^6.10.3",
+    "fbjs": "^0.8.1",
+    "fbjs-scripts": "^0.7.1",
+    "flow-bin": "^0.43.1",
+    "glob": "^7.1.1",
+    "jest": "^19.0.2",
+    "lerna": "^2.0.0-rc.3",
+    "object-assign": "^4.1.0",
+    "prettier": "^0.22.0",
+    "rollup": "^0.41.6",
+    "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "ws": "^2.3.1"
+  },
+  "devEngines": {
+    "node": ">=4.x"
+  },
+  "jest": {
+    "rootDir": "",
+    "roots": [
+      "<rootDir>/packages/"
+    ],
+    "setupFiles": [
+      "<rootDir>/node_modules/fbjs-scripts/jest/environment.js",
+      "<rootDir>/scripts/jest/environment.js"
+    ],
+    "transform": {
+      ".*": "<rootDir>/scripts/jest/preprocessor.js"
+    },
+    "transformIgnorePatterns": [
+      "<rootDir>/packages/.*/node_modules/"
+    ],
+    "automock": false,
+    "modulePathIgnorePatterns": [
+      "<rootDir>/packages/.*/build/haste/",
+      "<rootDir>/node_modules/(?!(fbjs/lib/|fbjs-scripts/jest))"
+    ]
+  }
+}

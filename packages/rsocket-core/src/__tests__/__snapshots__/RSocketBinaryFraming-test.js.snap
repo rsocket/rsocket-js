@@ -1,0 +1,81 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RSocketBinaryFraming ERROR serializes ERROR frames 1`] = `"0a0b0c0d2e00010203043c6572726f724d6573736167653e"`;
+
+exports[`RSocketBinaryFraming ERROR serializes ERROR frames with an empty message 1`] = `"0a0b0c0d2e0001020304"`;
+
+exports[`RSocketBinaryFraming KEEPALIVE serializes KEEPALIVE frames 1`] = `"000000000c80001fffffffffffff3c646174613e"`;
+
+exports[`RSocketBinaryFraming KEEPALIVE serializes KEEPALIVE frames with binary data 1`] = `"000000000c80001fffffffffffff0a0b0c"`;
+
+exports[`RSocketBinaryFraming KEEPALIVE serializes KEEPALIVE frames without data 1`] = `"000000000c80001fffffffffffff"`;
+
+exports[`RSocketBinaryFraming LEASE serializes LEASE frames 1`] = `"0000000008000a0b0c0d010203043c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming LEASE serializes LEASE frames with binary metadata 1`] = `"0000000008000a0b0c0d010203040a0b0c"`;
+
+exports[`RSocketBinaryFraming LEASE serializes LEASE frames without metadata 1`] = `"0000000008000a0b0c0d01020304"`;
+
+exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames 1`] = `"0a0b0c0d296000000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames with binary data 1`] = `"0a0b0c0d29600000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames without data 1`] = `"0a0b0c0d296000000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames without data/metadata 1`] = `"0a0b0c0d2860"`;
+
+exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames without metadata 1`] = `"0a0b0c0d28603c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_CHANNEL serializes REQUEST_CHANNEL frames 1`] = `"0a0b0c0d1d000102030400000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_CHANNEL serializes REQUEST_CHANNEL frames with binary data 1`] = `"0a0b0c0d1d00010203040000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming REQUEST_CHANNEL serializes REQUEST_CHANNEL frames without data 1`] = `"0a0b0c0d1d000102030400000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_CHANNEL serializes REQUEST_CHANNEL frames without data/metadata 1`] = `"0a0b0c0d1c0001020304"`;
+
+exports[`RSocketBinaryFraming REQUEST_CHANNEL serializes REQUEST_CHANNEL frames without metadata 1`] = `"0a0b0c0d1c00010203043c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_FNF serializes REQUEST_FNF frames 1`] = `"0a0b0c0d150000000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_FNF serializes REQUEST_FNF frames with binary data 1`] = `"0a0b0c0d15000000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming REQUEST_FNF serializes REQUEST_FNF frames without data 1`] = `"0a0b0c0d150000000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_FNF serializes REQUEST_FNF frames without data/metadata 1`] = `"0a0b0c0d1400"`;
+
+exports[`RSocketBinaryFraming REQUEST_FNF serializes REQUEST_FNF frames without metadata 1`] = `"0a0b0c0d14003c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_RESPONSE serializes REQUEST_RESPONSE frames 1`] = `"0a0b0c0d110000000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_RESPONSE serializes REQUEST_RESPONSE frames with binary data 1`] = `"0a0b0c0d11000000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming REQUEST_RESPONSE serializes REQUEST_RESPONSE frames without data 1`] = `"0a0b0c0d110000000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_RESPONSE serializes REQUEST_RESPONSE frames without data/metadata 1`] = `"0a0b0c0d1000"`;
+
+exports[`RSocketBinaryFraming REQUEST_RESPONSE serializes REQUEST_RESPONSE frames without metadata 1`] = `"0a0b0c0d10003c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames 1`] = `"0a0b0c0d19000102030400000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames with binary data 1`] = `"0a0b0c0d1900010203040000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames without data 1`] = `"0a0b0c0d19000102030400000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames without data/metadata 1`] = `"0a0b0c0d180001020304"`;
+
+exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames without metadata 1`] = `"0a0b0c0d1800010203043c646174613e"`;
+
+exports[`RSocketBinaryFraming SETUP serializes SETUP frames 1`] = `"000000000740002a00180000007b000001c8000d3c726573756d65546f6b656e3e123c6d657461646174614d696d65547970653e0e3c646174614d696d65547970653e00000a3c6d657461646174613e3c646174613e"`;
+
+exports[`RSocketBinaryFraming SETUP serializes SETUP frames with binary 1`] = `"000000000740002a00180000007b000001c80003a0b0c0123c6d657461646174614d696d65547970653e0e3c646174614d696d65547970653e0000030d0e0f0a0b0c"`;
+
+exports[`RSocketBinaryFraming SETUP serializes SETUP frames without data 1`] = `"000000000740002a00180000007b000001c8000d3c726573756d65546f6b656e3e123c6d657461646174614d696d65547970653e0e3c646174614d696d65547970653e00000a3c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming SETUP serializes SETUP frames without data/metadata 1`] = `"000000000640002a00180000007b000001c8000d3c726573756d65546f6b656e3e123c6d657461646174614d696d65547970653e0e3c646174614d696d65547970653e"`;
+
+exports[`RSocketBinaryFraming SETUP serializes SETUP frames without metadata 1`] = `"000000000640002a00180000007b000001c8000d3c726573756d65546f6b656e3e123c6d657461646174614d696d65547970653e0e3c646174614d696d65547970653e3c646174613e"`;
+
+exports[`RSocketBinaryFraming serializes CANCEL frames 1`] = `"0a0b0c0d2600"`;
+
+exports[`RSocketBinaryFraming serializes REQUEST_N frames 1`] = `"0a0b0c0d200001020304"`;
