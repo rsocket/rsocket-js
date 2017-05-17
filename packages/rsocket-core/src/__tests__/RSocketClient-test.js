@@ -22,7 +22,7 @@ import RSocketClient from '../RSocketClient';
 import {JsonSerializers} from '../RSocketSerialization';
 import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
-import {Future} from 'rsocket-flowable';
+import {Single} from 'rsocket-flowable';
 
 jest.useFakeTimers();
 
@@ -35,7 +35,7 @@ describe('RSocketClient', () => {
     it('calls the transport connect function', () => {
       const connection = genMockConnection();
       const transport = {
-        connect: jest.fn(() => Future.of(connection)),
+        connect: jest.fn(() => Single.of(connection)),
       };
       const client = new RSocketClient({transport});
       expect(transport.connect.mock.calls.length).toBe(0);
@@ -54,7 +54,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport: {
-          connect: () => Future.of(connection),
+          connect: () => Single.of(connection),
         },
       });
       client.connect().subscribe();
@@ -85,7 +85,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport: {
-          connect: () => Future.of(connection),
+          connect: () => Single.of(connection),
         },
       });
       let socket;
@@ -97,7 +97,7 @@ describe('RSocketClient', () => {
 
     it('rejects if the transport fails to connect', () => {
       const connectionError = new Error('wtf');
-      const future = new Future(subscriber => {
+      const single = new Single(subscriber => {
         throw connectionError;
       });
       const client = new RSocketClient({
@@ -108,7 +108,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport: {
-          connect: () => future,
+          connect: () => single,
         },
       });
       let error;
@@ -136,7 +136,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport: {
-          connect: () => Future.of(connection),
+          connect: () => Single.of(connection),
         },
       });
       client.connect().subscribe({
@@ -282,7 +282,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport: {
-          connect: () => Future.of(connection),
+          connect: () => Single.of(connection),
         },
       });
       let socket;
@@ -783,7 +783,7 @@ describe('RSocketClient', () => {
             metadataMimeType: '<metadataMimeType>',
           },
           transport: {
-            connect: () => Future.of(connection),
+            connect: () => Single.of(connection),
           },
         });
         client.connect().subscribe({
@@ -813,7 +813,7 @@ describe('RSocketClient', () => {
             metadataMimeType: '<metadataMimeType>',
           },
           transport: {
-            connect: () => Future.of(connection),
+            connect: () => Single.of(connection),
           },
         });
         client.connect().subscribe({

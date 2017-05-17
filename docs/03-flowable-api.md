@@ -1,6 +1,6 @@
 # Flowable API
 
-`rsocket-flowable` provides the `Flowable` and `Future` types:
+`rsocket-flowable` provides the `Flowable` and `Single` types:
 
 ## Flowable (class)
 
@@ -92,7 +92,7 @@ Applies a transform function to values produced by this Flowable. Similar to
 map<U>(fn: (data: T) => U): Flowable<U>
 ```
 
-## Future (class)
+## Single (class)
 
 Similar to `Flowable` but represents a single value that is produced on demand
 (when subscribed). From a practical perspective this is a lazy, cancellable
@@ -100,13 +100,13 @@ Promise that supports operators (e.g. `map()`).
 
 ### Example: Network Request
 
-Creates a `Future` that resolves to the result of an XHR request. The `fetch`
+Creates a `Single` that resolves to the result of an XHR request. The `fetch`
 API does not support cancellation, so no cancel callback is passed to
 `onSubscribe()`. The user may still call `cancel()` to ignore the fetch 
 results and stop `onComplete()` or `onError()` from being called.
 
 ```
-const future = new Future(subscriber => {
+const single = new Single(subscriber => {
   fetch('https://...').then(resp => {
     resp.json().then(
       data => subscriber.onComplete(data),
@@ -115,7 +115,7 @@ const future = new Future(subscriber => {
   });
   subscriber.onSubscribe();
 });
-future.subscribe({
+single.subscribe({
   onComplete: data => console.log(data),
   onError: error => console.error(error),
   onSubscribe: cancel => {/* call cancel() to stop onComplete/onError */},
@@ -124,11 +124,11 @@ future.subscribe({
 
 ### Example: Timer
 
-Creates a `Future` that resolves to a string after a timeout, passing a
-cancellation callback to stop the timer in case the user cancels the `Future`:
+Creates a `Single` that resolves to a string after a timeout, passing a
+cancellation callback to stop the timer in case the user cancels the `Single`:
 
 ```
-const future = new Future(subscriber => {
+const single = new Single(subscriber => {
   const id = setTimeout(
     () => subscriber.onComplete('hello!'),
     250,
@@ -136,7 +136,7 @@ const future = new Future(subscriber => {
   // Cancellation callback is optional
   subscriber.onSubscribe(() => clearTimeout(id));
 });
-future.subscribe({
+single.subscribe({
   onComplete: data => console.log(data),
   onError: error => console.error(error),
   onSubscribe: cancel => {/* call cancel() to stop onComplete/onError */},
@@ -146,7 +146,7 @@ future.subscribe({
 ### constructor (function)
 
 ```
-class Future<T> {
+class Single<T> {
   constructor(source: Source<T>)
 }
 
@@ -164,7 +164,7 @@ type CancelCallback = () => void;
 
 ### subscribe() (method)
 
-Connects the `Future` to a subscriber of values. Unlike `Flowable`, subscribe
+Connects the `Single` to a subscriber of values. Unlike `Flowable`, subscribe
 also implicitly indicates demand. `PartialSubscriber` differs from `Subscriber`
 only in that methods are optional.
 
@@ -180,9 +180,9 @@ type PartialSubscriber<T> = {
 
 ### map() (method)
 
-Applies a transform function to values produced by this Future. Similar to
+Applies a transform function to values produced by this Single. Similar to
 `Array.prototype.map`, `Observable.prototype.map`, etc.
 
 ```
-map<U>(fn: (data: T) => U): Future<U>
+map<U>(fn: (data: T) => U): Single<U>
 ```

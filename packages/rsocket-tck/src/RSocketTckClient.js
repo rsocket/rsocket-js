@@ -11,8 +11,10 @@
 
 import {RSocketClient} from 'rsocket-core';
 import RSocketTcpClient from 'rsocket-tcp-client';
-import RSocketTckRequestResponseSubscriber from './RSocketTckRequestResponseSubscriber';
-import RSocketTckRequestStreamSubscriber from './RSocketTckRequestStreamSubscriber';
+import RSocketTckRequestResponseSubscriber
+  from './RSocketTckRequestResponseSubscriber';
+import RSocketTckRequestStreamSubscriber
+  from './RSocketTckRequestStreamSubscriber';
 
 import areEqual from 'fbjs/lib/areEqual';
 import chalk from 'chalk';
@@ -170,17 +172,17 @@ async function run(options: Options): Promise<void> {
                 'Expected onError not to be called.',
               );
             } else if (type === 'error') {
-              assert(nullthrows(subscriber).hasError(), 'Expected onError to be called.');
+              assert(
+                nullthrows(subscriber).hasError(),
+                'Expected onError to be called.',
+              );
             } else if (type === 'received') {
               const expected = parsePayloads(other);
               const actual = nullthrows(subscriber).getPayloads();
               if (!areEqual(actual, expected)) {
                 log('expected: %s', util.inspect(expected));
                 log('actual: %s', util.inspect(actual));
-                assert(
-                  false,
-                  'Actual/expected payloads differed.',
-                );
+                assert(false, 'Actual/expected payloads differed.');
               }
             } else if (type === 'received_n') {
               const expected = parseInt(other, 10);
@@ -211,7 +213,10 @@ async function run(options: Options): Promise<void> {
                 'Expected onComplete not to be called.',
               );
             } else if (type === 'canceled') {
-              assert(nullthrows(subscriber).isCanceled(), 'Expected request to be canceled.');
+              assert(
+                nullthrows(subscriber).isCanceled(),
+                'Expected request to be canceled.',
+              );
             }
             break;
           }

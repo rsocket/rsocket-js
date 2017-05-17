@@ -17,7 +17,7 @@ import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
 import type {Encoders, TransportClient} from 'rsocket-core';
 
 import net from 'net';
-import {Future, Flowable} from 'rsocket-flowable';
+import {Single, Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
 import {
   createBuffer,
@@ -37,8 +37,8 @@ export default class RSocketTcpClient implements TransportClient {
     this._options = options;
   }
 
-  connect(): Future<DuplexConnection> {
-    return new Future(subscriber => {
+  connect(): Single<DuplexConnection> {
+    return new Single(subscriber => {
       const socket = net.connect(this._options);
       const onError = error => {
         socket.removeAllListeners();

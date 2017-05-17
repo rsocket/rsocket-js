@@ -37,7 +37,7 @@ type Serializer<T> = {
 type Encodable = string | Buffer | UInt8Array;
 
 type TransportClient = {
-  connect: Future<DuplexConnection>,
+  connect: Single<DuplexConnection>,
 }
 ```
 
@@ -62,7 +62,7 @@ transport client. See below for the `RSocket` interface.
 ```
 class RSocketClient {
   ...
-  connect(): Future<RSocket>
+  connect(): Single<RSocket>
 }
 ```
 
@@ -83,10 +83,10 @@ fireAndForget(payload: Payload): void
 ### requestResponse() (method)
 
 Send data/metadata to the server, returning a single response. The data is
-sent lazily when the returned `Future` is subscribed to.
+sent lazily when the returned `Single` is subscribed to.
 
 ```
-requestResponse(payload: Payload): Future<Payload>
+requestResponse(payload: Payload): Single<Payload>
 ```
 
 ### requestStream() (method)

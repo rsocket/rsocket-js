@@ -12,10 +12,10 @@
 'use strict';
 
 import Flowable from './Flowable';
-import Future from './Future';
+import Single from './Single';
 import {every} from './FlowableTimer';
 
 /**
  * The public API of the `flowable` package.
  */
-export {Flowable, Future, every};
+export {Flowable, Single, every};

@@ -47,7 +47,7 @@ export interface IFutureSubject<T> {
  * Example:
  *
  * ```
- * const value = new Future(subscriber => {
+ * const value = new Single(subscriber => {
  *   const id = setTimeout(
  *     () => subscriber.onComplete('Hello!'),
  *     250
@@ -65,11 +65,11 @@ export interface IFutureSubject<T> {
  * });
  * ```
  */
-export default class Future<T> {
+export default class Single<T> {
   _source: Source<T>;
 
-  static of<U>(value: U): Future<U> {
-    return new Future(subscriber => {
+  static of<U>(value: U): Single<U> {
+    return new Single(subscriber => {
       subscriber.onSubscribe();
       subscriber.onComplete(value);
     });
@@ -89,11 +89,11 @@ export default class Future<T> {
   }
 
   /**
-   * Return a new Future that resolves to the value of this Future applied to
+   * Return a new Single that resolves to the value of this Single applied to
    * the given mapping function.
    */
-  map<R>(fn: (data: T) => R): Future<R> {
-    return new Future(subscriber => {
+  map<R>(fn: (data: T) => R): Single<R> {
+    return new Single(subscriber => {
       return this._source({
         onComplete: value => subscriber.onComplete(fn(value)),
         onError: error => subscriber.onError(error),
@@ -121,7 +121,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
     if (!this._active) {
       warning(
         false,
-        'Future: Invalid call to onComplete(): %s.',
+        'Single: Invalid call to onComplete(): %s.',
         this._started
           ? 'onComplete/onError was already called'
           : 'onSubscribe has not been called',
@@ -145,7 +145,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
     if (this._started && !this._active) {
       warning(
         false,
-        'Future: Invalid call to onError(): %s.',
+        'Single: Invalid call to onError(): %s.',
         this._active
           ? 'onComplete/onError was already called'
           : 'onSubscribe has not been called',
@@ -159,7 +159,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
 
   onSubscribe(cancel?: ?CancelCallback): void {
     if (this._started) {
-      warning(false, 'Future: Invalid call to onSubscribe(): already called.');
+      warning(false, 'Single: Invalid call to onSubscribe(): already called.');
       return;
     }
     this._active = true;

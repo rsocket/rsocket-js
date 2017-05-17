@@ -11,49 +11,49 @@
 
 jest.mock('fbjs/lib/warning').useFakeTimers();
 
-describe('Future', () => {
+describe('Single', () => {
   const warning = require('fbjs/lib/warning');
-  const Future = require('../Future').default;
+  const Single = require('../Single').default;
 
-  it('evaluates the future lazily', () => {
+  it('evaluates the single lazily', () => {
     const builder = jest.fn();
-    const future = new Future(builder);
+    const single = new Single(builder);
     expect(builder.mock.calls.length).toBe(0);
-    future.subscribe();
+    single.subscribe();
     expect(builder.mock.calls.length).toBe(1);
   });
 
   it('calls onSubscribe when subscribed', () => {
     const builder = jest.fn(subscriber => subscriber.onSubscribe());
-    const future = new Future(builder);
+    const single = new Single(builder);
     expect(builder.mock.calls.length).toBe(0);
     const onSubscribe = jest.fn();
-    future.subscribe({onSubscribe});
+    single.subscribe({onSubscribe});
     expect(onSubscribe.mock.calls.length).toBe(1);
     expect(typeof onSubscribe.mock.calls[0][0]).toBe('function');
   });
 
   it('calls onComplete for synchronous values', () => {
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe();
       subscriber.onComplete(42);
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(1);
     expect(onComplete.mock.calls[0][0]).toBe(42);
     expect(onError.mock.calls.length).toBe(0);
   });
 
   it('calls onComplete for async values', () => {
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe();
       setTimeout(() => subscriber.onComplete(42), 1);
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(0);
     expect(onError.mock.calls.length).toBe(0);
     jest.runAllTimers();
@@ -64,12 +64,12 @@ describe('Future', () => {
 
   it('calls onError if the lambda throws', () => {
     const error = new Error('wtf');
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       throw error;
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(0);
     expect(onError.mock.calls.length).toBe(1);
     expect(onError.mock.calls[0][0]).toBe(error);
@@ -77,12 +77,12 @@ describe('Future', () => {
 
   it('calls onError for synchronous errors', () => {
     const error = new Error('wtf');
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onError(error);
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(0);
     expect(onError.mock.calls.length).toBe(1);
     expect(onError.mock.calls[0][0]).toBe(error);
@@ -90,12 +90,12 @@ describe('Future', () => {
 
   it('calls onError for asynchronous errors', () => {
     const error = new Error('wtf');
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       setTimeout(() => subscriber.onError(error), 1);
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(0);
     expect(onError.mock.calls.length).toBe(0);
     jest.runAllTimers();
@@ -105,7 +105,7 @@ describe('Future', () => {
   });
 
   it('calls onError if the onComplete callback throws', () => {
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe();
       subscriber.onComplete(42);
     });
@@ -114,7 +114,7 @@ describe('Future', () => {
       throw error;
     });
     const onError = jest.fn();
-    future.subscribe({onComplete, onError});
+    single.subscribe({onComplete, onError});
     expect(onComplete.mock.calls.length).toBe(1);
     expect(onError.mock.calls.length).toBe(1);
     expect(onError.mock.calls[0][0]).toBe(error);
@@ -122,15 +122,15 @@ describe('Future', () => {
 
   it('cancels callbacks when cancelled', () => {
     let subscriber;
-    const future = new Future(_subscriber => {
+    const single = new Single(_subscriber => {
       subscriber = _subscriber;
       subscriber.onSubscribe();
     });
     const onComplete = jest.fn();
     const onError = jest.fn();
     const onSubscribe = jest.fn();
-    future.subscribe({onComplete, onError, onSubscribe});
-    // cancel the future
+    single.subscribe({onComplete, onError, onSubscribe});
+    // cancel the single
     onSubscribe.mock.calls[0][0]();
     // completing/erroring should be ignored (warns)
     expect(warning.mock.calls.length).toBe(0);
@@ -144,11 +144,11 @@ describe('Future', () => {
 
   it('calls teardown logic when cancelled', () => {
     const cancel = jest.fn();
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe(cancel);
     });
     const onSubscribe = jest.fn();
-    future.subscribe({onSubscribe});
+    single.subscribe({onSubscribe});
     expect(cancel.mock.calls.length).toBe(0);
     onSubscribe.mock.calls[0][0](); // call cancellation
     expect(cancel.mock.calls.length).toBe(1);
@@ -158,33 +158,33 @@ describe('Future', () => {
 
   it('does not call teardown logic after completion', () => {
     const cancel = jest.fn();
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe(cancel);
       subscriber.onComplete();
     });
     const onSubscribe = jest.fn();
-    future.subscribe({onSubscribe});
+    single.subscribe({onSubscribe});
     onSubscribe.mock.calls[0][0](); // call cancellation
     expect(cancel.mock.calls.length).toBe(0);
   });
 
   it('does not call teardown logic after an error', () => {
     const cancel = jest.fn();
-    const future = new Future(subscriber => {
+    const single = new Single(subscriber => {
       subscriber.onSubscribe(cancel);
       subscriber.onError(new Error('wtf'));
     });
     const onSubscribe = jest.fn();
-    future.subscribe({onSubscribe});
+    single.subscribe({onSubscribe});
     onSubscribe.mock.calls[0][0](); // call cancellation
     expect(cancel.mock.calls.length).toBe(0);
   });
 
   describe('of()', () => {
     it('completes with the given value', () => {
-      const future = Future.of(42);
+      const single = Single.of(42);
       const onComplete = jest.fn();
-      future.subscribe({onComplete});
+      single.subscribe({onComplete});
       expect(onComplete.mock.calls.length).toBe(1);
       expect(onComplete.mock.calls[0][0]).toBe(42);
     });
@@ -192,13 +192,13 @@ describe('Future', () => {
 
   describe('map()', () => {
     it('maps values', () => {
-      const future = new Future(subscriber => {
+      const single = new Single(subscriber => {
         subscriber.onSubscribe();
         subscriber.onComplete(3);
       }).map(x => x * x);
       const onComplete = jest.fn();
       const onError = jest.fn();
-      future.subscribe({onComplete, onError});
+      single.subscribe({onComplete, onError});
       jest.runAllTimers();
       expect(onComplete.mock.calls.length).toBe(1);
       expect(onComplete.mock.calls[0][0]).toBe(9);
@@ -207,12 +207,12 @@ describe('Future', () => {
 
     it('passes through errors', () => {
       const error = new Error('wtf');
-      const future = new Future(subscriber => {
+      const single = new Single(subscriber => {
         subscriber.onError(error);
       }).map(x => x * x);
       const onComplete = jest.fn();
       const onError = jest.fn();
-      future.subscribe({onComplete, onError});
+      single.subscribe({onComplete, onError});
       jest.runAllTimers();
       expect(onComplete.mock.calls.length).toBe(0);
       expect(onError.mock.calls.length).toBe(1);
@@ -221,7 +221,7 @@ describe('Future', () => {
 
     it('calls onError if the mapping function throws', () => {
       const error = new Error('wtf');
-      const future = new Future(subscriber => {
+      const single = new Single(subscriber => {
         subscriber.onSubscribe();
         subscriber.onComplete(3);
       }).map(x => {
@@ -229,20 +229,20 @@ describe('Future', () => {
       });
       const onComplete = jest.fn();
       const onError = jest.fn();
-      future.subscribe({onComplete, onError});
+      single.subscribe({onComplete, onError});
       jest.runAllTimers();
       expect(onComplete.mock.calls.length).toBe(0);
       expect(onError.mock.calls.length).toBe(1);
       expect(onError.mock.calls[0][0]).toBe(error);
     });
 
-    it('cancels the original future', () => {
+    it('cancels the original single', () => {
       const cancel = jest.fn();
-      const future = new Future(subscriber => {
+      const single = new Single(subscriber => {
         subscriber.onSubscribe(cancel);
       }).map(x => x + x);
       const onSubscribe = jest.fn();
-      future.subscribe({onSubscribe});
+      single.subscribe({onSubscribe});
       expect(cancel.mock.calls.length).toBe(0);
       onSubscribe.mock.calls[0][0](); // call cancellation
       expect(cancel.mock.calls.length).toBe(1);

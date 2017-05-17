@@ -16,7 +16,7 @@ import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
 import type {Encoders, TransportClient} from 'rsocket-core';
 
 import sprintf from 'fbjs/lib/sprintf';
-import {Future, Flowable} from 'rsocket-flowable';
+import {Single, Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
 import {
   deserializeFrame,
@@ -45,8 +45,8 @@ export default class RSocketWebSocketClient implements TransportClient {
     this._options = options;
   }
 
-  connect(): Future<DuplexConnection> {
-    return new Future(subscriber => {
+  connect(): Single<DuplexConnection> {
+    return new Single(subscriber => {
       const socket = new WebSocket(this._options.url);
       socket.binaryType = 'arraybuffer';
 

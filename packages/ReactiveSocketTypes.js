@@ -9,7 +9,7 @@
  * @flow
  */
 
-import type {Flowable, Future} from 'rsocket-flowable';
+import type {Flowable, Single} from 'rsocket-flowable';
 
 /**
  * A contract providing different interaction models per the [ReactiveSocket protocol]
@@ -26,7 +26,7 @@ export interface ReactiveSocket<D, M> {
    * Request-Response interaction model of `ReactiveSocket`. The returned
    * Publisher resolves with the response.
    */
-  requestResponse(payload: Payload<D, M>): Future<Payload<D, M>>,
+  requestResponse(payload: Payload<D, M>): Single<Payload<D, M>>,
 
   /**
    * Request-Stream interaction model of `ReactiveSocket`. The returned
@@ -44,7 +44,7 @@ export interface ReactiveSocket<D, M> {
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(payload: Payload<D, M>): Future<void>,
+  metadataPush(payload: Payload<D, M>): Single<void>,
 
   /**
    * Close this `ReactiveSocket` and the underlying transport connection.

@@ -21,7 +21,7 @@ import type {
 import type {ISubject} from '../../ReactiveStreamTypes';
 import type {Serializer} from './RSocketSerialization';
 
-import {Flowable, Future, every} from 'rsocket-flowable';
+import {Flowable, Single, every} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
@@ -41,7 +41,7 @@ import {
 import {IdentitySerializers} from './RSocketSerialization';
 
 export interface TransportClient {
-  connect(): Future<DuplexConnection>,
+  connect(): Single<DuplexConnection>,
 }
 export type ClientConfig<D, M> = {|
   serializers?: {
@@ -72,14 +72,14 @@ const RSOCKET_MINOR_VERSION = 0;
  */
 export default class RSocketClient<D, M> {
   _config: ClientConfig<D, M>;
-  _connection: ?Future<ReactiveSocket<D, M>>;
+  _connection: ?Single<ReactiveSocket<D, M>>;
 
   constructor(config: ClientConfig<D, M>) {
     this._config = config;
     this._connection = null;
   }
 
-  connect(): Future<ReactiveSocket<D, M>> {
+  connect(): Single<ReactiveSocket<D, M>> {
     invariant(
       !this._connection,
       'RSocketClient: Unexpected call to connect(), already connected.',
@@ -167,9 +167,9 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     this._connection.sendOne(frame);
   }
 
-  requestResponse(payload: Payload<D, M>): Future<Payload<D, M>> {
+  requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
     const streamId = this._getNextStreamId();
-    return new Future(subscriber => {
+    return new Single(subscriber => {
       this._receivers.set(streamId, {
         onComplete: emptyFunction,
         onError: error => subscriber.onError(error),
@@ -266,7 +266,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     throw new Error('requestChannel() is not implemented');
   }
 
-  metadataPush(payload: Payload<D, M>): Future<void> {
+  metadataPush(payload: Payload<D, M>): Single<void> {
     // TODO #18065331: implement metadataPush
     throw new Error('metadataPush() is not implemented');
   }
