@@ -1,6 +1,5 @@
 {
   "name": "rsocket-websocket-client",
-  "private": true,
   "description": "RSocket WebSocket client for use in browser environments",
   "version": "0.0.0",
   "repository": {
