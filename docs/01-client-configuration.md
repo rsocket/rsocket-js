@@ -8,7 +8,7 @@ client.
 For browser usage, a client will typically be configured to use WebSocket as the
 transport layer and send/receive JSON objects:
 
-```
+```javascript
 import {
   RSocketClient, 
   JsonSerializers,
@@ -54,7 +54,7 @@ For Node.js, usage will typically involve the TCP client. The following example
 demonstrates the TCP client usage and sending/receiving Buffer objects. See the
 above example for how to send/receive JSOn objects instead):
 
-```
+```javascript
 import {
   RSocketClient, 
   BufferEncoders,

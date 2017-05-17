@@ -11,7 +11,7 @@ Implements the ReactiveStream `Publisher` interface with Rx-style operators.
 Creates a `Flowable` that publishes the numbers 0, 1, 2, 3 on demand and then
 completes.
 
-```
+```javascript
 const flowable = new Flowable(subscriber => {
   // lambda is not executed until `subscribe()` is called
   const values = [0, 1, 2, 3];
@@ -44,7 +44,7 @@ flowable.subscribe({
 
 ### constructor (function)
 
-```
+```javascript
 class Flowable<T> {
   constructor(source: Source<T>)
 }
@@ -72,7 +72,7 @@ the subscriber to begin expressing demand for values via a `Subscription`
 object. Note that `PartialSubscriber` differs from the above `Subscriber` only
 in that methods are optional. 
 
-```
+```javascript
 subscribe(subscriber: PartialSubscriber<T>): void
 
 type PartialSubscriber<T> = {
@@ -88,7 +88,7 @@ type PartialSubscriber<T> = {
 Applies a transform function to values produced by this Flowable. Similar to
 `Array.prototype.map`, `Observable.prototype.map`, etc.
 
-```
+```javascript
 map<U>(fn: (data: T) => U): Flowable<U>
 ```
 
@@ -105,7 +105,7 @@ API does not support cancellation, so no cancel callback is passed to
 `onSubscribe()`. The user may still call `cancel()` to ignore the fetch 
 results and stop `onComplete()` or `onError()` from being called.
 
-```
+```javascript
 const single = new Single(subscriber => {
   fetch('https://...').then(resp => {
     resp.json().then(
@@ -127,7 +127,7 @@ single.subscribe({
 Creates a `Single` that resolves to a string after a timeout, passing a
 cancellation callback to stop the timer in case the user cancels the `Single`:
 
-```
+```javascript
 const single = new Single(subscriber => {
   const id = setTimeout(
     () => subscriber.onComplete('hello!'),
@@ -145,7 +145,7 @@ single.subscribe({
 
 ### constructor (function)
 
-```
+```javascript
 class Single<T> {
   constructor(source: Source<T>)
 }
@@ -159,7 +159,6 @@ type Subscriber<T> = {
 };
 
 type CancelCallback = () => void;
-}
 ```
 
 ### subscribe() (method)
@@ -168,7 +167,7 @@ Connects the `Single` to a subscriber of values. Unlike `Flowable`, subscribe
 also implicitly indicates demand. `PartialSubscriber` differs from `Subscriber`
 only in that methods are optional.
 
-```
+```javascript
 subscribe(subscriber: PartialSubscriber<T>): void
 
 type PartialSubscriber<T> = {
@@ -183,6 +182,6 @@ type PartialSubscriber<T> = {
 Applies a transform function to values produced by this Single. Similar to
 `Array.prototype.map`, `Observable.prototype.map`, etc.
 
-```
+```javascript
 map<U>(fn: (data: T) => U): Single<U>
 ```

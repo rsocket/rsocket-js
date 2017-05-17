@@ -10,7 +10,7 @@ An instance of a client. The connection is not opened automatically; call
 
 ### constructor (function)
 
-```
+```javascript
 class RSocketClient {
   constructor(options: Options)
 }
@@ -59,7 +59,7 @@ protocol is allowed.
 Open the connection to the peer. Internally this calls `connect()` on the
 transport client. See below for the `RSocket` interface.
 
-```
+```javascript
 class RSocketClient {
   ...
   connect(): Single<RSocket>
@@ -76,7 +76,7 @@ core interactions (fire/forget, request/reponse, etc):
 Send data/metadata to the server without waiting for a response. The data is
 sent immediately.
 
-```
+```javascript
 fireAndForget(payload: Payload): void
 ```
 
@@ -85,7 +85,7 @@ fireAndForget(payload: Payload): void
 Send data/metadata to the server, returning a single response. The data is
 sent lazily when the returned `Single` is subscribed to.
 
-```
+```javascript
 requestResponse(payload: Payload): Single<Payload>
 ```
 
@@ -97,7 +97,7 @@ updates to a single conceptual value over time, items in an incrementally loaded
 list, events, etc. The data is sent to the peer lazily when the returned
 `Flowable` is subscribed to and `request(n)` is called to signal demand.
 
-```
+```javascript
 requestStream(payload: Payload): Flowable<Payload>
 ```
 
@@ -105,9 +105,17 @@ requestStream(payload: Payload): Flowable<Payload>
 
 Not yet implemented.
 
+```javascript
+requestChannel(payload: Flowable<Payload>): Flowable<Payload>
+```
+
 ### metadataPush() (method)
 
 Not yet implemented.
+
+```javascript
+metadataPush(payload: Payload): Single<Payload>
+```
 
 ## Next
 

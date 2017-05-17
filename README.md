@@ -24,10 +24,9 @@ Coming soon.
 
 See the `CONTRIBUTING.md` file for how to help out.
 
-
 ## Documentation
 
-Work in progress, see [./docs](./docs/00-index.md).
+Work in progress, see the [docs](./docs/00-index.md).
 
 ## License
 rsocket-js is BSD-licensed. We also provide an additional patent grant.
