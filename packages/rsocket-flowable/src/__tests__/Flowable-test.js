@@ -9,138 +9,440 @@
 
 'use strict';
 
-import Flowable from '../Flowable';
-import {genMockSubscriber} from '../__mocks__/MockFlowableSubscriber';
-
-jest.useFakeTimers();
+jest.mock('fbjs/lib/warning').useFakeTimers();
 
 describe('Flowable', () => {
-  let values;
-
-  class InfiniteIntegersSource implements Subscription<number> {
-    _subscriber: Subscriber<number>;
-
-    constructor(subscriber: Subscriber<number>) {
-      this._subscriber = subscriber;
-      this._subscriber.onSubscribe(this);
-    }
-
-    cancel(): void {
-      this._subscriber.onComplete();
-    }
-
-    request(n: number): void {
-      for (let ii = 0; ii < n && ii < 1000; ii++) {
-        this._subscriber.onNext(ii);
-      }
-    }
-  }
+  const Flowable = require('../Flowable').default;
+  const {genMockSubscriber} = require('../__mocks__/MockFlowableSubscriber');
+  const warning = require('fbjs/lib/warning');
 
   beforeEach(() => {
-    values = [];
+    warning.mockClear();
   });
 
-  it('runs asynchronously', () => {
-    const subscriber = genMockSubscriber({
-      onNext: value => values.push(value),
-      onSubscribe: subscription => subscription.request(1),
-    });
-
-    const publisher = new Flowable(
-      subscriber => new InfiniteIntegersSource(subscriber),
-    );
-    publisher.subscribe(subscriber);
-
-    expect(values).toEqual([0]);
+  it('evaluates the source lazily', () => {
+    const source = jest.fn();
+    new Flowable(source); // eslint-disable-line no-new
+    expect(source.mock.calls.length).toBe(0);
   });
 
-  it('requests multiple batches', () => {
-    let phase = 0;
-    let subscription;
-    const subscriber = genMockSubscriber({
-      onNext(value) {
-        values.push(value);
-        if (phase === 0) {
-          phase++;
-          // request one extra batch
-          subscription.request(2);
-        }
-      },
-      onSubscribe(_subscription) {
-        subscription = _subscription;
-        subscription.request(1);
-      },
-    });
-
-    const publisher = new Flowable(
-      subscriber => new InfiniteIntegersSource(subscriber),
-    );
-    publisher.subscribe(subscriber);
-
-    expect(values).toEqual([0]);
-    jest.runAllTimers();
-    expect(values).toEqual([0, 0, 1]);
+  it('calls onSubscribe() when subscribed', () => {
+    const source = jest.fn();
+    const flowable = new Flowable(source);
+    flowable.subscribe();
+    expect(source.mock.calls.length).toBe(1);
   });
 
-  it('cancels before request count is reached', () => {
-    let subscription;
-    const subscriber = genMockSubscriber({
-      onNext(value) {
-        values.push(value);
-        if (value === 6) {
-          subscription.cancel();
-        }
-      },
-      onSubscribe(_subscription) {
-        subscription = _subscription;
-        subscription.request(10);
-      },
-    });
-
-    const publisher = new Flowable(
-      subscriber => new InfiniteIntegersSource(subscriber),
-    );
-    publisher.subscribe(subscriber);
-
-    jest.runAllTimers();
-    expect(values).toEqual([0, 1, 2, 3, 4, 5, 6]);
-  });
-
-  it('map() maps values', () => {
-    const subscriber = genMockSubscriber({
-      onNext(value) {
-        values.push(value);
-      },
+  it('calls cancel()', () => {
+    const cancel = jest.fn();
+    const source = subscriber => subscriber.onSubscribe({cancel});
+    const flowable = new Flowable(source);
+    flowable.subscribe({
       onSubscribe(subscription) {
-        subscription.request(5);
+        subscription.cancel();
       },
     });
-
-    const publisher = new Flowable(
-      subscriber => new InfiniteIntegersSource(subscriber),
-    );
-    publisher.map(x => x * x).subscribe(subscriber);
-
-    jest.runAllTimers();
-    expect(values).toEqual([0, 1, 4, 9, 16]);
+    expect(cancel.mock.calls.length).toBe(1);
   });
 
-  it('take() takes a fixed number of values', () => {
-    const subscriber = genMockSubscriber({
-      onNext(value) {
-        values.push(value);
-      },
+  it('calls request()', () => {
+    const request = jest.fn();
+    const source = subscriber => subscriber.onSubscribe({request});
+    const flowable = new Flowable(source);
+    flowable.subscribe({
       onSubscribe(subscription) {
-        subscription.request(5);
+        subscription.request(42);
       },
     });
+    expect(request.mock.calls.length).toBe(1);
+    expect(request.mock.calls[0][0]).toBe(42);
+  });
 
-    const publisher = new Flowable(
-      subscriber => new InfiniteIntegersSource(subscriber),
-    );
-    publisher.take(5).subscribe(subscriber);
+  describe('onComplete()', () => {
+    it('ignores and warns if called before onSubscribe()', () => {
+      const source = sub => sub.onComplete();
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
 
-    jest.runAllTimers();
-    expect(values).toEqual([0, 1, 2, 3, 4]);
+    it('calls subscriber.onComplete() when completed', () => {
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onComplete();
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('calls subscriber.onError() if onComplete() throws', () => {
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onComplete();
+      };
+      const flowable = new Flowable(source);
+      const error = new Error('wtf');
+      const subscriber = genMockSubscriber({
+        onComplete() {
+          throw error;
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('does not call teardown logic if onComplete() throws', () => {
+      const cancel = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel});
+        sub.onComplete();
+      };
+      const flowable = new Flowable(source);
+      const error = new Error('wtf');
+      const subscriber = genMockSubscriber({
+        onComplete() {
+          throw error;
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+      expect(cancel.mock.calls.length).toBe(0);
+    });
+
+    it('ignores and warns if called after onError()', () => {
+      const error = new Error('wtf');
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onError(error);
+        sub.onComplete();
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+  });
+
+  describe('onError()', () => {
+    it('may be called before onSubscribe()', () => {
+      const error = new Error('wtf');
+      const source = sub => sub.onError(error);
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('calls when rejected explicitly', () => {
+      const error = new Error('wtf');
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onError(error);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('throws if onError() throws', () => {
+      const cancel = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel});
+        sub.onError(new Error('foo'));
+      };
+      const flowable = new Flowable(source);
+      const error = new Error('wtf');
+      const subscriber = genMockSubscriber({
+        onError() {
+          throw error;
+        },
+      });
+      expect(() => {
+        flowable.subscribe(subscriber);
+      }).toThrow(error.message);
+    });
+
+    it('ignores and warns if called after onComplete()', () => {
+      const error = new Error('wtf');
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onComplete();
+        sub.onError(error);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+  });
+
+  describe('onNext()', () => {
+    it('ignores and warns if called before onSubscribe()', () => {
+      const source = sub => sub.onNext(42);
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('ignores and warns if called before a value is requested', () => {
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber();
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    });
+
+    it('calls when a value is requested', () => {
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+      expect(subscriber.onNext.mock.calls[0][0]).toBe(42);
+      expect(request.mock.calls.length).toBe(1);
+      expect(request.mock.calls[0][0]).toBe(1);
+    });
+
+    it('queues calls to request() from within onNext()', () => {
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      let sub;
+      const subscriber = genMockSubscriber({
+        onNext() {
+          sub.request(2);
+        },
+        onSubscribe(_sub) {
+          sub = _sub;
+          sub.request(1);
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+      expect(subscriber.onNext.mock.calls[0][0]).toBe(42);
+      expect(request.mock.calls.length).toBe(1); // not immediately called a second time
+      expect(request.mock.calls[0][0]).toBe(1);
+      jest.runAllTimers();
+      expect(request.mock.calls.length).toBe(2); // called after timeout
+      expect(request.mock.calls[1][0]).toBe(2);
+    });
+
+    it('calls onError() if onNext() throws', () => {
+      const error = new Error('wtf');
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onNext() {
+          throw error;
+        },
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+    });
+
+    it('calls teardown logic if onNext() throws', () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onNext() {
+          throw new Error('wtf');
+        },
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+
+    it('ignores values and warns if more published than requested', () => {
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onNext(42);
+        sub.onNext(4242); // publish two values
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onSubscribe(sub) {
+          sub.request(1); // only request 1
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(1);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+    });
+
+    it('publishes unlimited values after request(max)', () => {
+      const source = sub => {
+        sub.onSubscribe();
+        sub.onNext(42);
+        sub.onNext(4242); // publish two values
+      };
+      const max = 1;
+      const flowable = new Flowable(source, max);
+      const subscriber = genMockSubscriber({
+        onSubscribe(sub) {
+          sub.request(max);
+        },
+      });
+      flowable.subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(2);
+      expect(subscriber.onNext.mock.calls[0][0]).toBe(42);
+      expect(subscriber.onNext.mock.calls[1][0]).toBe(4242);
+    });
+  });
+
+  describe('map()', () => {
+    it('transforms values', () => {
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      flowable.map(x => x * 2).subscribe(subscriber);
+      expect(warning.mock.calls.length).toBe(0);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(0);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+      expect(subscriber.onNext.mock.calls[0][0]).toBe(84);
+      expect(request.mock.calls.length).toBe(1);
+      expect(request.mock.calls[0][0]).toBe(1);
+    });
+
+    it('calls teardown logic if onNext() throws', () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const error = new Error('wtf');
+      const subscriber = genMockSubscriber({
+        onNext() {
+          throw error;
+        },
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      flowable.map(x => x * 2).subscribe(subscriber);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(1);
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+
+    it('calls onError() and teardown logic if transform function throws', () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+      const subscriber = genMockSubscriber({
+        onSubscribe(sub) {
+          sub.request(1);
+        },
+      });
+      const error = new Error('wtf');
+      const transform = () => {
+        throw error;
+      };
+      flowable.map(transform).subscribe(subscriber);
+      expect(subscriber.onComplete.mock.calls.length).toBe(0);
+      expect(subscriber.onError.mock.calls.length).toBe(1);
+      expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      expect(subscriber.onNext.mock.calls.length).toBe(0);
+      expect(cancel.mock.calls.length).toBe(1);
+    });
   });
 });

@@ -12,8 +12,8 @@
 jest.mock('fbjs/lib/warning').useFakeTimers();
 
 describe('Single', () => {
-  const warning = require('fbjs/lib/warning');
   const Single = require('../Single').default;
+  const warning = require('fbjs/lib/warning');
 
   it('evaluates the single lazily', () => {
     const builder = jest.fn();

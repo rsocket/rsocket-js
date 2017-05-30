@@ -149,6 +149,9 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
     try {
       this._subscriber.onNext && this._subscriber.onNext(data);
     } catch (error) {
+      if (this._subscription) {
+        this._subscription.cancel();
+      }
       this.onError(error);
     }
     this._emitting = false;
@@ -181,7 +184,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
       return;
     }
     this._active = false;
-    if (this._subscription && this._subscription.cancel) {
+    if (this._subscription) {
       this._subscription.cancel();
     }
   };
@@ -214,7 +217,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
           this._pending = this._max;
         }
       }
-      if (this._subscription && this._subscription.request) {
+      if (this._subscription) {
         this._subscription.request(n);
       }
     }
