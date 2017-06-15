@@ -29,7 +29,7 @@ const client = new RSocketClient({
     // format of `metadata`
     metadataMimeType: 'application/json', 
   },
-  transport: new RSocketWebSocketClient({uri: 'wss://...'}),
+  transport: new RSocketWebSocketClient({url: 'wss://...'}),
 });
 
 // Open the connection
