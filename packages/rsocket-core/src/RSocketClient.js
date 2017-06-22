@@ -38,6 +38,7 @@ import {
   MAX_REQUEST_N,
   MAX_STREAM_ID,
 } from './RSocketFrame';
+import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
 
 export interface TransportClient {
@@ -56,9 +57,6 @@ export type ClientConfig<D, M> = {|
   |},
   transport: TransportClient,
 |};
-
-const RSOCKET_MAJOR_VERSION = 1;
-const RSOCKET_MINOR_VERSION = 0;
 
 /**
  * RSocketClient: A client in an RSocket connection that will communicates with
@@ -437,10 +435,10 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       flags: 0,
       keepAlive,
       lifetime,
-      majorVersion: RSOCKET_MAJOR_VERSION,
+      majorVersion: MAJOR_VERSION,
       metadata: undefined,
       metadataMimeType,
-      minorVersion: RSOCKET_MINOR_VERSION,
+      minorVersion: MINOR_VERSION,
       resumeToken: '',
       streamId: CONNECTION_STREAM_ID,
       type: FRAME_TYPES.SETUP,

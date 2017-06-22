@@ -105,12 +105,15 @@ class TcpDuplexConnection implements DuplexConnection {
       onComplete: () => {
         subscription && this._senders.delete(subscription);
       },
-      onError: error => this._handleError(error),
+      onError: error => {
+        subscription && this._senders.delete(subscription);
+        this._handleError(error);
+      },
       onNext: frame => this._writeFrame(frame),
       onSubscribe: _subscription => {
         subscription = _subscription;
-        subscription.request(Number.MAX_SAFE_INTEGER);
         this._senders.add(subscription);
+        subscription.request(Number.MAX_SAFE_INTEGER);
       },
     });
   }
