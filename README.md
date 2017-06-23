@@ -18,11 +18,13 @@ protocol intended for use in browsers and/or Node.js. From [reactivesocket.io](h
 
 ## Install
 
-Coming soon.
+```
+npm install rsocket-js-core
+```
 
 ## Contributing
 
-See the `CONTRIBUTING.md` file for how to help out.
+See the [CONTRIBUTING.md](CONTRIBUTING.md) file for how to help out and development setup instructions.
 
 ## Documentation
 
