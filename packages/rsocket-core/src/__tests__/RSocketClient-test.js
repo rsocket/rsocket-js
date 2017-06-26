@@ -730,6 +730,18 @@ describe('RSocketClient', () => {
         });
       });
 
+      // open -> client.close() -> closed (errors)
+      it('errors if the socket is closed', () => {
+        socket.requestStream(payload).subscribe(subscriber);
+        subscriber.mock.request(42);
+        connection.mockClear();
+        client.close();
+        jest.runAllTimers();
+        expect(subscriber.onError.mock.calls.length).toBe(1);
+        const error = subscriber.onError.mock.calls[0][0];
+        expect(error.message).toBe('RSocketClient: The connection was closed.');
+      });
+
       // open -> socket.close() -> closed (errors)
       it('errors if the socket is closed', () => {
         socket.requestStream(payload).subscribe(subscriber);
@@ -768,7 +780,52 @@ describe('RSocketClient', () => {
 
     describe('metadataPush()', () => {});
 
-    describe('close()', () => {
+    describe('client.close()', () => {
+      let cancel;
+      let connection;
+      let socket;
+      let subscriber;
+
+      beforeEach(() => {
+        connection = genMockConnection();
+        cancel = jest.fn();
+        subscriber;
+        const connect = () =>
+          new Single(_subscriber => {
+            subscriber = _subscriber;
+            subscriber.onSubscribe(cancel);
+          });
+        client = new RSocketClient({
+          setup: {
+            dataMimeType: '<dataMimeType>',
+            keepAlive: 1000,
+            lifetime: 10000,
+            metadataMimeType: '<metadataMimeType>',
+          },
+          transport: {connect},
+        });
+        client.connect().subscribe({
+          onComplete: _socket => socket = _socket,
+        });
+      });
+
+      it('cancels the transport if not yet connected', () => {
+        client.close();
+        expect(cancel).toBeCalled();
+      });
+
+      it('closes the socket and transport if already connected', () => {
+        subscriber.onComplete(connection);
+        const socketClose = jest.fn();
+        socket.onClose().then(socketClose);
+        client.close();
+        jest.runAllTimers();
+        expect(connection.close).toBeCalled();
+        expect(socketClose).toBeCalled();
+      });
+    });
+
+    describe('socket.close()', () => {
       let connection;
       let resolve;
       let socket;

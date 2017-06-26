@@ -69,12 +69,27 @@ export type ClientConfig<D, M> = {|
  * - metadataPush()
  */
 export default class RSocketClient<D, M> {
+  _cancel: ?() => void;
   _config: ClientConfig<D, M>;
   _connection: ?Single<ReactiveSocket<D, M>>;
+  _socket: ?RSocketClientSocket<D, M>;
 
   constructor(config: ClientConfig<D, M>) {
+    this._cancel = null;
     this._config = config;
     this._connection = null;
+    this._socket = null;
+  }
+
+  close(): void {
+    if (this._cancel) {
+      this._cancel();
+      this._cancel = null;
+    }
+    if (this._socket) {
+      this._socket.close();
+      this._socket = null;
+    }
   }
 
   connect(): Single<ReactiveSocket<D, M>> {
@@ -82,9 +97,20 @@ export default class RSocketClient<D, M> {
       !this._connection,
       'RSocketClient: Unexpected call to connect(), already connected.',
     );
-    this._connection = this._config.transport
-      .connect()
-      .map(connection => new RSocketClientSocket(this._config, connection));
+    this._connection = new Single(subscriber => {
+      this._config.transport.connect().subscribe({
+        onComplete: connection => {
+          const socket = new RSocketClientSocket(this._config, connection);
+          this._socket = socket;
+          subscriber.onComplete(socket);
+        },
+        onError: error => subscriber.onError(error),
+        onSubscribe: cancel => {
+          this._cancel = cancel;
+          subscriber.onSubscribe(cancel);
+        },
+      });
+    });
     return this._connection;
   }
 }
