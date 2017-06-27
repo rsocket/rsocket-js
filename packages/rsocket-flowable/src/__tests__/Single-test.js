@@ -190,6 +190,104 @@ describe('Single', () => {
     });
   });
 
+  describe('flatMap()', () => {
+    it('maps values', () => {
+      const single = new Single(subscriber => {
+        subscriber.onSubscribe();
+        subscriber.onComplete(3);
+      }).flatMap(x => Single.of(x * x));
+      const onComplete = jest.fn();
+      const onError = jest.fn();
+      single.subscribe({onComplete, onError});
+      jest.runAllTimers();
+      expect(onComplete.mock.calls.length).toBe(1);
+      expect(onComplete.mock.calls[0][0]).toBe(9);
+      expect(onError.mock.calls.length).toBe(0);
+    });
+
+    it('passes through errors', () => {
+      const error = new Error('wtf');
+      const single = new Single(subscriber => {
+        subscriber.onError(error);
+      }).flatMap(x => Single.of(x * x));
+      const onComplete = jest.fn();
+      const onError = jest.fn();
+      single.subscribe({onComplete, onError});
+      jest.runAllTimers();
+      expect(onComplete.mock.calls.length).toBe(0);
+      expect(onError.mock.calls.length).toBe(1);
+      expect(onError.mock.calls[0][0]).toBe(error);
+    });
+
+    it('calls onError if the mapping function throws', () => {
+      const error = new Error('wtf');
+      const single = new Single(subscriber => {
+        subscriber.onSubscribe();
+        subscriber.onComplete(3);
+      }).flatMap(x => {
+        throw error;
+      });
+      const onComplete = jest.fn();
+      const onError = jest.fn();
+      single.subscribe({onComplete, onError});
+      jest.runAllTimers();
+      expect(onComplete.mock.calls.length).toBe(0);
+      expect(onError.mock.calls.length).toBe(1);
+      expect(onError.mock.calls[0][0]).toBe(error);
+    });
+
+    it('calls onError if the mapped single errors', () => {
+      const error = new Error('wtf');
+      const single = new Single(subscriber => {
+        subscriber.onSubscribe();
+        subscriber.onComplete(3);
+      }).flatMap(
+        x =>
+          new Single(innerSubscriber => {
+            innerSubscriber.onSubscribe();
+            innerSubscriber.onError(error);
+          }),
+      );
+      const onComplete = jest.fn();
+      const onError = jest.fn();
+      single.subscribe({onComplete, onError});
+      jest.runAllTimers();
+      expect(onComplete.mock.calls.length).toBe(0);
+      expect(onError.mock.calls.length).toBe(1);
+      expect(onError.mock.calls[0][0]).toBe(error);
+    });
+
+    it('cancels the original single if not yet resolved', () => {
+      const cancel = jest.fn();
+      const single = new Single(subscriber => {
+        subscriber.onSubscribe(cancel);
+      }).flatMap(x => Single.of(x + x));
+      const onSubscribe = jest.fn();
+      single.subscribe({onSubscribe});
+      expect(cancel.mock.calls.length).toBe(0);
+      onSubscribe.mock.calls[0][0](); // call cancellation
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+
+    it('cancels the mapped single if the original single has resolved', () => {
+      const cancel = jest.fn();
+      const single = new Single(subscriber => {
+        subscriber.onSubscribe();
+        subscriber.onComplete(1);
+      }).flatMap(
+        x =>
+          new Single(innerSubscriber => {
+            innerSubscriber.onSubscribe(cancel);
+          }),
+      );
+      const onSubscribe = jest.fn();
+      single.subscribe({onSubscribe});
+      expect(cancel.mock.calls.length).toBe(0);
+      onSubscribe.mock.calls[0][0](); // call cancellation
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+  });
+
   describe('map()', () => {
     it('maps values', () => {
       const single = new Single(subscriber => {

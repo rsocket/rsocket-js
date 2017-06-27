@@ -88,6 +88,34 @@ export default class Single<T> {
     }
   }
 
+  flatMap<R>(fn: (data: T) => Single<R>): Single<R> {
+    return new Single(subscriber => {
+      let currentCancel;
+      const cancel = () => {
+        currentCancel && currentCancel();
+        currentCancel = null;
+      };
+      this._source({
+        onComplete: value => {
+          fn(value).subscribe({
+            onComplete: mapValue => {
+              subscriber.onComplete(mapValue);
+            },
+            onError: error => subscriber.onError(error),
+            onSubscribe: _cancel => {
+              currentCancel = _cancel;
+            },
+          });
+        },
+        onError: error => subscriber.onError(error),
+        onSubscribe: _cancel => {
+          currentCancel = _cancel;
+          subscriber.onSubscribe(cancel);
+        },
+      });
+    });
+  }
+
   /**
    * Return a new Single that resolves to the value of this Single applied to
    * the given mapping function.
