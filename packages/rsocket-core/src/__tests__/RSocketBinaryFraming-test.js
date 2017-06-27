@@ -659,6 +659,38 @@ describe('RSocketBinaryFraming', () => {
     });
   });
 
+  describe('RESUME', () => {
+    it('serializes RESUME frames', () => {
+      const frame = {
+        type: FRAME_TYPES.RESUME,
+        flags: FLAGS.IGNORE | FLAGS.METADATA | FLAGS.LEASE,
+        resumeToken: '<resumeToken>',
+        streamId: 0,
+        majorVersion: 42,
+        minorVersion: 24,
+        clientPosition: 43,
+        serverPosition: 34,
+      };
+      const buffer = serializeFrame(frame);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer)).toEqual(frame);
+    });
+  });
+
+  describe('RESUME_OK', () => {
+    it('serializes RESUME_OK frames', () => {
+      const frame = {
+        type: FRAME_TYPES.RESUME_OK,
+        flags: FLAGS.IGNORE | FLAGS.METADATA | FLAGS.LEASE,
+        streamId: 0,
+        clientPosition: 43,
+      };
+      const buffer = serializeFrame(frame);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer)).toEqual(frame);
+    });
+  });
+
   it('serializes REQUEST_N frames', () => {
     const frame = {
       type: FRAME_TYPES.REQUEST_N,

@@ -135,6 +135,8 @@ export type Frame =
   | RequestNFrame
   | RequestResponseFrame
   | RequestStreamFrame
+  | ResumeFrame
+  | ResumeOkFrame
   | SetupFrame;
 
 // prettier-ignore
@@ -216,6 +218,24 @@ export type RequestStreamFrame = {|
   flags: number,
   requestN: number,
   streamId: number,
+|};
+// prettier-ignore
+export type ResumeFrame = {|
+  type: 0x0d,
+  clientPosition: number,
+  flags: number,
+  majorVersion: number,
+  minorVersion: number,
+  resumeToken: Encodable,
+  serverPosition: number,
+  streamId: 0,
+|};
+// prettier-ignore
+export type ResumeOkFrame = {|
+  type: 0x0e,
+  clientPosition: number,
+  flags: number,
+  streamId: 0,
 |};
 // prettier-ignore
 export type SetupFrame = {|

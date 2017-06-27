@@ -25,6 +25,8 @@ import type {
   RequestNFrame,
   RequestResponseFrame,
   RequestStreamFrame,
+  ResumeFrame,
+  ResumeOkFrame,
   SetupFrame,
 } from '../../ReactiveSocketTypes';
 import type {Encoders} from './RSocketEncoding';
@@ -158,6 +160,10 @@ export function deserializeFrame(
       return deserializeRequestChannelFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.REQUEST_N:
       return deserializeRequestNFrame(buffer, streamId, flags, encoders);
+    case FRAME_TYPES.RESUME:
+      return deserializeResumeFrame(buffer, streamId, flags, encoders);
+    case FRAME_TYPES.RESUME_OK:
+      return deserializeResumeOkFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.CANCEL:
       return deserializeCancelFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.LEASE:
@@ -193,6 +199,10 @@ export function serializeFrame(frame: Frame, encoders?: ?Encoders<*>): Buffer {
       return serializeRequestManyFrame(frame, encoders);
     case FRAME_TYPES.REQUEST_N:
       return serializeRequestNFrame(frame, encoders);
+    case FRAME_TYPES.RESUME:
+      return serializeResumeFrame(frame, encoders);
+    case FRAME_TYPES.RESUME_OK:
+      return serializeResumeOkFrame(frame, encoders);
     case FRAME_TYPES.CANCEL:
       return serializeCancelFrame(frame, encoders);
     case FRAME_TYPES.LEASE:
@@ -787,6 +797,125 @@ function deserializePayloadFrame(
   };
   readPayload(buffer, frame, encoders, FRAME_HEADER_SIZE);
   return frame;
+}
+
+/**
+ * Writes a RESUME frame into a new buffer and returns it.
+ *
+ * Fixed size is:
+ * - major version (uint16 = 2)
+ * - minor version (uint16 = 2)
+ * - token length (uint16 = 2)
+ * - client position (uint64 = 8)
+ * - server position (uint64 = 8)
+ */
+const RESUME_FIXED_SIZE = 22;
+function serializeResumeFrame(
+  frame: ResumeFrame,
+  encoders: Encoders<*>,
+): Buffer {
+  const resumeTokenLength = encoders.resumeToken.byteLength(frame.resumeToken);
+  const buffer = createBuffer(
+    FRAME_HEADER_SIZE + RESUME_FIXED_SIZE + resumeTokenLength,
+  );
+  let offset = writeHeader(frame, buffer);
+  offset = buffer.writeUInt16BE(frame.majorVersion, offset);
+  offset = buffer.writeUInt16BE(frame.minorVersion, offset);
+  offset = buffer.writeUInt16BE(resumeTokenLength, offset);
+  offset = encoders.resumeToken.encode(
+    frame.resumeToken,
+    buffer,
+    offset,
+    offset + resumeTokenLength,
+  );
+  offset = writeUInt64BE(buffer, frame.clientPosition, offset);
+  offset = writeUInt64BE(buffer, frame.serverPosition, offset);
+  return buffer;
+}
+
+function deserializeResumeFrame(
+  buffer: Buffer,
+  streamId: number,
+  flags: number,
+  encoders: Encoders<*>,
+): ResumeFrame {
+  invariant(
+    streamId === 0,
+    'RSocketBinaryFraming: Invalid RESUME frame, expected stream id to be 0.',
+  );
+
+  let offset = FRAME_HEADER_SIZE;
+  const majorVersion = buffer.readUInt16BE(offset);
+  offset += 2;
+  const minorVersion = buffer.readUInt16BE(offset);
+  offset += 2;
+
+  const resumeTokenLength = buffer.readInt16BE(offset);
+  offset += 2;
+  invariant(
+    resumeTokenLength >= 0 && resumeTokenLength <= MAX_RESUME_LENGTH,
+    'RSocketBinaryFraming: Invalid SETUP frame, expected resumeToken length ' +
+      'to be >= 0 and <= %s. Got `%s`.',
+    MAX_RESUME_LENGTH,
+    resumeTokenLength,
+  );
+  const resumeToken = encoders.resumeToken.decode(
+    buffer,
+    offset,
+    offset + resumeTokenLength,
+  );
+  offset += resumeTokenLength;
+  const clientPosition = readUInt64BE(buffer, offset);
+  offset += 8;
+  const serverPosition = readUInt64BE(buffer, offset);
+  offset += 8;
+  return {
+    clientPosition,
+    flags,
+    majorVersion,
+    minorVersion,
+    resumeToken,
+    serverPosition,
+    streamId,
+    type: FRAME_TYPES.RESUME,
+  };
+}
+
+/**
+ * Writes a RESUME_OK frame into a new buffer and returns it.
+ *
+ * Fixed size is:
+ * - client position (uint64 = 8)
+ */
+const RESUME_OK_FIXED_SIZE = 8;
+function serializeResumeOkFrame(
+  frame: ResumeOkFrame,
+  encoders: Encoders<*>,
+): Buffer {
+  const buffer = createBuffer(FRAME_HEADER_SIZE + RESUME_OK_FIXED_SIZE);
+  const offset = writeHeader(frame, buffer);
+  writeUInt64BE(buffer, frame.clientPosition, offset);
+  return buffer;
+}
+
+function deserializeResumeOkFrame(
+  buffer: Buffer,
+  streamId: number,
+  flags: number,
+  encoders: Encoders<*>,
+): ResumeOkFrame {
+  invariant(
+    streamId === 0,
+    'RSocketBinaryFraming: Invalid RESUME frame, expected stream id to be 0.',
+  );
+
+  const clientPosition = readUInt64BE(buffer, FRAME_HEADER_SIZE);
+  return {
+    clientPosition,
+    flags,
+    streamId,
+    type: FRAME_TYPES.RESUME_OK,
+  };
 }
 
 /**
