@@ -12,6 +12,7 @@
 'use strict';
 
 import type {
+  ConnectionStatus,
   DuplexConnection,
   Payload,
   ReactiveSocket,
@@ -22,7 +23,6 @@ import type {ISubject} from '../../ReactiveStreamTypes';
 import type {Serializer} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';
-import Deferred from 'fbjs/lib/Deferred';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
 import warning from 'fbjs/lib/warning';
@@ -121,7 +121,6 @@ export default class RSocketClient<D, M> {
  * @private
  */
 class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
-  _close: Deferred<void, Error>;
   _config: ClientConfig<D, M>;
   _connection: DuplexConnection;
   _nextStreamId: number;
@@ -133,7 +132,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
   _serverPosition: number;
 
   constructor(config: ClientConfig<D, M>, connection: DuplexConnection) {
-    this._close = new Deferred();
     this._config = config;
     this._connection = connection;
     this._nextStreamId = 1;
@@ -177,12 +175,11 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
   }
 
   close(): void {
-    this._close.resolve();
     this._connection.close();
   }
 
-  onClose(): Promise<void> {
-    return this._close.getPromise();
+  connectionStatus(): Flowable<ConnectionStatus> {
+    return this._connection.connectionStatus();
   }
 
   fireAndForget(payload: Payload<D, M>): void {
@@ -318,7 +315,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
    * Handle the connection closing normally: this is an error for any open streams.
    */
   _handleTransportClose = (): void => {
-    this._close.resolve();
     this._handleError(new Error('RSocketClient: The connection was closed.'));
   };
 
@@ -331,8 +327,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       receiver.onError(error);
     });
     this._receivers.clear();
-    // Resolve onClose()
-    this._close.reject(error);
   };
 
   _handleConnectionError(error: Error): void {

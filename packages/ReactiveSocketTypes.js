@@ -52,12 +52,12 @@ export interface ReactiveSocket<D, M> {
   close(): void,
 
   /**
-   * Returns a Promise that completes as follows:
-   * - Resolves when the socket is explicitly closed with close().
-   * - Rejects on connection-level protocol errors (ERROR frame w stream id 0).
-   * - Rejects if the underlying transport (DuplexConnection) closes or throws an error.
+   * Returns a Flowable that immediately publishes the current connection
+   * status and thereafter updates as it changes. Once a connection is in
+   * the CLOSED or ERROR state, it may not be connected again.
+   * Implementations must publish values per the comments on ConnectionStatus.
    */
-  onClose(): Promise<void>,
+  connectionStatus(): Flowable<ConnectionStatus>,
 }
 
 /**

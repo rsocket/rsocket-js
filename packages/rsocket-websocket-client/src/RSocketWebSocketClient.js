@@ -25,7 +25,6 @@ import type {Encoders} from 'rsocket-core';
 
 import invariant from 'fbjs/lib/invariant';
 import {Flowable} from 'rsocket-flowable';
-import Deferred from 'fbjs/lib/Deferred';
 import {
   deserializeFrame,
   deserializeFrameWithLength,

@@ -22,6 +22,7 @@ import RSocketClient from '../RSocketClient';
 import {JsonSerializers} from '../RSocketSerialization';
 import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
+import {genMockPublisher} from 'MockFlowableSubscription';
 import {Single} from 'rsocket-flowable';
 
 jest.useFakeTimers();
@@ -780,6 +781,7 @@ describe('RSocketClient', () => {
     describe('client.close()', () => {
       let transport;
       let socket;
+      let status;
 
       beforeEach(() => {
         transport = genMockConnection();
@@ -793,7 +795,12 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: _socket => socket = _socket,
+          onComplete: socket => {
+            socket.connectionStatus().subscribe({
+              onNext: _status => status = _status,
+              onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+            });
+          },
         });
       });
 
@@ -804,14 +811,10 @@ describe('RSocketClient', () => {
 
       it('closes the socket and transport if already connected', () => {
         transport.mock.connect();
-        const resolve = jest.fn();
-        const reject = jest.fn();
-        socket.onClose().then(resolve, reject);
         client.close();
         jest.runAllTimers();
         expect(transport.close).toBeCalled();
-        expect(resolve).toBeCalled();
-        expect(reject).not.toBeCalled();
+        expect(status.kind).toBe('CLOSED');
       });
     });
 
@@ -819,6 +822,7 @@ describe('RSocketClient', () => {
       let transport;
       let resolve;
       let socket;
+      let status;
 
       beforeEach(() => {
         transport = genMockConnection();
@@ -832,30 +836,30 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: _socket => socket = _socket,
+          onComplete: _socket => {
+            socket = _socket;
+            socket.connectionStatus().subscribe({
+              onNext: _status => status = _status,
+              onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+            });
+          },
         });
         transport.mock.connect();
       });
 
       it('closes the underlying socket', () => {
-        const socketClose = jest.fn();
-        socket.onClose().then(socketClose);
         socket.close();
         jest.runAllTimers();
         expect(transport.close).toBeCalled();
-        expect(socketClose).toBeCalled();
+        expect(status.kind).toBe('CLOSED');
       });
     });
 
-    describe('onClose()', () => {
-      let transport;
-      let reject;
-      let resolve;
-      let socket;
-
-      beforeEach(() => {
-        transport = genMockConnection();
-        client = new RSocketClient({
+    describe('connectionStatus()', () => {
+      it('returns the transport status', () => {
+        const transport = genMockConnection();
+        let socket;
+        const client = new RSocketClient({
           setup: {
             dataMimeType: '<dataMimeType>',
             keepAlive: 1000,
@@ -865,44 +869,12 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: _socket => socket = _socket,
+          onComplete: _socket => {
+            socket = _socket;
+          },
         });
         transport.mock.connect();
-        reject = jest.fn();
-        resolve = jest.fn();
-        socket.onClose().then(resolve, reject);
-      });
-
-      it('resolves when explicitly close()-d', () => {
-        socket.close();
-        jest.runAllTimers();
-        expect(resolve).toBeCalled();
-      });
-
-      it('rejects when a connection-level error occurs', () => {
-        const errorFrame = {
-          code: ERROR_CODES.REJECTED_SETUP,
-          flags: 0,
-          type: FRAME_TYPES.ERROR,
-          message: '<error>',
-          streamId: 0,
-        };
-        transport.receive.mock.publisher.onNext(errorFrame);
-        jest.runAllTimers();
-        expect(reject).toBeCalled();
-      });
-
-      it('resolves when the transport closes', () => {
-        transport.mock.close();
-        jest.runAllTimers();
-        expect(resolve).toBeCalled();
-      });
-
-      it('rejects when the connection closes due to an error', () => {
-        transport.mock.closeWithError(new Error('wtf'));
-        jest.runAllTimers();
-        expect(reject).toBeCalled();
-        expect(reject.mock.calls[0][0].message).toBe('wtf');
+        expect(socket.connectionStatus()).toBe(transport.connectionStatus());
       });
     });
   });
