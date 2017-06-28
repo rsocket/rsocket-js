@@ -100,16 +100,45 @@ export interface DuplexConnection {
   close(): void,
 
   /**
-   * Returns a Promise that resolves when the connection is closed. Implementations
-   * must resolve the promise as follows:
-   * - Resolve when the connection is closed explicitly with close().
-   * - Resolve when the underlying connection is closed by the peer.
-   * - Resolve when the underlying connection is closed due to an error.
-   *
-   * The promise should never be rejected, only resolved.
+   * Open the underlying connection. Throws if the connection is already in
+   * the CLOSED or ERROR state.
    */
+  connect(): void,
+
+  // DEPRECATED, Use connectionStatus() instead
   onClose(): Promise<void>,
+
+  /**
+   * Returns a Flowable that immediately publishes the current connection
+   * status and thereafter updates as it changes. Once a connection is in
+   * the CLOSED or ERROR state, it may not be connected again.
+   * Implementations must publish values per the comments on ConnectionStatus.
+   */
+  connectionStatus(): Flowable<ConnectionStatus>,
 }
+
+/**
+ * Describes the connection status of a ReactiveSocket/DuplexConnection.
+ * - NOT_CONNECTED: (only) until `connect()` has been called for the first time.
+ * - CONNECTING: when `connect()` has been called but a connection is not yet
+ *   established.
+ * - CONNECTED: when a connection is established.
+ * - CLOSED: when the connection has been explicitly closed via `close()`.
+ * - ERROR: when the connection has been closed for any other reason.
+ */
+export type ConnectionStatus =
+  | {kind: 'NOT_CONNECTED'}
+  | {kind: 'CONNECTING'}
+  | {kind: 'CONNECTED'}
+  | {kind: 'CLOSED'}
+  | {kind: 'ERROR', error: Error};
+
+export const CONNECTION_STATUS = {
+  CLOSED: Object.freeze({kind: 'CLOSED'}),
+  CONNECTED: Object.freeze({kind: 'CONNECTED'}),
+  CONNECTING: Object.freeze({kind: 'CONNECTING'}),
+  NOT_CONNECTED: Object.freeze({kind: 'NOT_CONNECTED'}),
+};
 
 /**
  * A type that can be written to a buffer.

@@ -18,11 +18,15 @@ import {genMockPublisher} from 'MockFlowableSubscription';
 export function genMockConnection() {
   const deferred = new Deferred();
   const receiver = genMockPublisher();
+  const status = genMockPublisher();
+  let closed = false;
 
   const connection = {
     close: jest.fn(() => {
-      deferred.resolve();
+      connection.mock.close();
     }),
+    connect: jest.fn(),
+    connectionStatus: jest.fn(() => status),
     onClose: jest.fn(() => {
       return deferred.getPromise();
     }),
@@ -39,22 +43,44 @@ export function genMockConnection() {
   // Convenience methods to terminate the connection
   connection.mock = {
     close: () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      status.onNext({kind: 'CLOSED'});
       receiver.onComplete();
       deferred.resolve();
     },
     closeWithError: error => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      status.onNext({
+        error,
+        kind: 'ERROR',
+      });
       receiver.onError(error);
-      deferred.resolve();
+      deferred.reject(error);
+    },
+    connect: () => {
+      if (closed) {
+        return;
+      }
+      status.onNext({kind: 'CONNECTING'});
+      status.onNext({kind: 'CONNECTED'});
     },
   };
 
   // Convenience to call mockClear() on all instance methods
   connection.mockClear = () => {
-    connection.send.mockClear();
-    connection.sendOne.mockClear();
+    connection.close.mockClear();
+    connection.connect.mockClear();
+    connection.onClose.mockClear();
     connection.receive.mockClear();
     connection.receive.mock.publisher = receiver;
-    connection.close.mockClear();
+    connection.send.mockClear();
+    connection.sendOne.mockClear();
   };
   return connection;
 }

@@ -33,10 +33,7 @@ describe('RSocketClient', () => {
 
   describe('connect()', () => {
     it('calls the transport connect function', () => {
-      const connection = genMockConnection();
-      const transport = {
-        connect: jest.fn(() => Single.of(connection)),
-      };
+      const transport = genMockConnection();
       const client = new RSocketClient({transport});
       expect(transport.connect.mock.calls.length).toBe(0);
       client.connect().subscribe();
@@ -45,7 +42,7 @@ describe('RSocketClient', () => {
     });
 
     it('sends the setup frame', () => {
-      const connection = genMockConnection();
+      const transport = genMockConnection();
       const client = new RSocketClient({
         setup: {
           dataMimeType: '<dataMimeType>',
@@ -53,13 +50,12 @@ describe('RSocketClient', () => {
           lifetime: 2017,
           metadataMimeType: '<metadataMimeType>',
         },
-        transport: {
-          connect: () => Single.of(connection),
-        },
+        transport,
       });
       client.connect().subscribe();
-      expect(connection.sendOne.mock.calls.length).toBe(1);
-      expect(connection.sendOne.mock.frame).toEqual({
+      transport.mock.connect();
+      expect(transport.sendOne.mock.calls.length).toBe(1);
+      expect(transport.sendOne.mock.frame).toEqual({
         type: FRAME_TYPES.SETUP,
         data: undefined,
         dataMimeType: '<dataMimeType>',
@@ -76,7 +72,7 @@ describe('RSocketClient', () => {
     });
 
     it('resolves to a client socket if the transport connects', () => {
-      const connection = genMockConnection();
+      const transport = genMockConnection();
       const client = new RSocketClient({
         setup: {
           dataMimeType: '<dataMimeType>',
@@ -84,22 +80,26 @@ describe('RSocketClient', () => {
           lifetime: 2017,
           metadataMimeType: '<metadataMimeType>',
         },
-        transport: {
-          connect: () => Single.of(connection),
-        },
+        transport,
       });
       let socket;
       client.connect().subscribe({
         onComplete: _socket => socket = _socket,
       });
+      transport.mock.connect();
       expect(typeof socket.fireAndForget).toEqual('function');
+      expect(typeof socket.metadataPush).toEqual('function');
+      expect(typeof socket.requestChannel).toEqual('function');
+      expect(typeof socket.requestResponse).toEqual('function');
+      expect(typeof socket.requestStream).toEqual('function');
     });
 
     it('rejects if the transport fails to connect', () => {
+      const transport = genMockConnection();
       const connectionError = new Error('wtf');
-      const single = new Single(subscriber => {
-        throw connectionError;
-      });
+      transport.connect = () => {
+        transport.mock.closeWithError(connectionError);
+      };
       const client = new RSocketClient({
         setup: {
           dataMimeType: '<dataMimeType>',
@@ -107,14 +107,13 @@ describe('RSocketClient', () => {
           lifetime: 2017,
           metadataMimeType: '<metadataMimeType>',
         },
-        transport: {
-          connect: () => single,
-        },
+        transport,
       });
       let error;
       client.connect().subscribe({
         onError: _error => error = _error,
       });
+      transport.mock.connect();
       expect(error).toBe(connectionError);
     });
   });
@@ -122,12 +121,12 @@ describe('RSocketClient', () => {
   describe('keepalive', () => {
     const keepAlive = 42;
     let keepAliveFrames;
-    let connection;
+    let transport;
     let client;
     let socket;
 
     beforeEach(() => {
-      connection = genMockConnection();
+      transport = genMockConnection();
       client = new RSocketClient({
         setup: {
           dataMimeType: '<dataMimeType>',
@@ -135,18 +134,17 @@ describe('RSocketClient', () => {
           lifetime: 2017,
           metadataMimeType: '<metadataMimeType>',
         },
-        transport: {
-          connect: () => Single.of(connection),
-        },
+        transport,
       });
       client.connect().subscribe({
         onComplete(_socket) {
           socket = _socket;
         },
       });
-      expect(connection.send.mock.calls.length).toBe(1);
-      keepAliveFrames = connection.send.mock.frames;
-      connection.mockClear();
+      transport.mock.connect();
+      expect(transport.send.mock.calls.length).toBe(1);
+      keepAliveFrames = transport.send.mock.frames;
+      transport.mockClear();
     });
 
     it('sends keepalive frames', () => {
@@ -188,7 +186,7 @@ describe('RSocketClient', () => {
         message: '<error>',
         streamId: 1,
       };
-      connection.receive.mock.publisher.onNext(errorFrame);
+      transport.receive.mock.publisher.onNext(errorFrame);
 
       jest.runTimersToTime(1);
       expect(onNext.mock.calls.length).toBe(1);
@@ -219,7 +217,7 @@ describe('RSocketClient', () => {
         data: '{}',
         metadata: '{}',
       };
-      connection.receive.mock.publisher.onNext(responseFrame);
+      transport.receive.mock.publisher.onNext(responseFrame);
 
       jest.runTimersToTime(1);
       expect(onNext.mock.calls.length).toBe(1);
@@ -233,16 +231,16 @@ describe('RSocketClient', () => {
     });
 
     it('responds to keepalive frames from the server', () => {
-      connection.receive.mock.publisher.onNext({
+      transport.receive.mock.publisher.onNext({
         type: FRAME_TYPES.KEEPALIVE,
         data: '<data>',
         flags: FLAGS_MASK,
         lastReceivedPosition: 123,
         streamId: 0,
       });
-      expect(connection.send.mock.calls.length).toBe(0);
-      expect(connection.sendOne.mock.calls.length).toBe(1);
-      expect(connection.sendOne.mock.frame).toEqual({
+      expect(transport.send.mock.calls.length).toBe(0);
+      expect(transport.sendOne.mock.calls.length).toBe(1);
+      expect(transport.sendOne.mock.frame).toEqual({
         data: '<data>', // echoed back
         flags: FLAGS_MASK ^ FLAGS.RESPOND,
         lastReceivedPosition: 0, // zeroed out
@@ -252,27 +250,27 @@ describe('RSocketClient', () => {
     });
 
     it('ignores non-respond keepalive frames from the server', () => {
-      connection.receive.mock.publisher.onNext({
+      transport.receive.mock.publisher.onNext({
         type: FRAME_TYPES.KEEPALIVE,
         data: null,
         flags: 0, // respond bit not set
         lastReceivedPosition: 123,
         streamId: 0,
       });
-      expect(connection.send.mock.calls.length).toBe(0);
-      expect(connection.sendOne.mock.calls.length).toBe(0);
+      expect(transport.send.mock.calls.length).toBe(0);
+      expect(transport.sendOne.mock.calls.length).toBe(0);
     });
   });
 
   describe('stream APIs', () => {
-    let connection;
+    let transport;
     let client;
     let payload;
     let socket;
     let subscriber;
 
     function createSocket(serializers) {
-      const connection = genMockConnection();
+      const transport = genMockConnection();
       const client = new RSocketClient({
         serializers,
         setup: {
@@ -281,9 +279,7 @@ describe('RSocketClient', () => {
           lifetime: 10000,
           metadataMimeType: '<metadataMimeType>',
         },
-        transport: {
-          connect: () => Single.of(connection),
-        },
+        transport,
       });
       let socket;
       client.connect().subscribe({
@@ -291,12 +287,13 @@ describe('RSocketClient', () => {
           socket = _socket;
         },
       });
-      connection.mockClear();
-      return {connection, client, socket};
+      transport.mock.connect();
+      transport.mockClear();
+      return {transport, client, socket};
     }
 
     beforeEach(() => {
-      ({connection, client, socket} = createSocket());
+      ({transport, client, socket} = createSocket());
       payload = Object.freeze({
         data: JSON.stringify({data: true}),
         metadata: JSON.stringify({metadata: true}),
@@ -311,8 +308,8 @@ describe('RSocketClient', () => {
     describe('fireAndForget()', () => {
       it('sends the payload', () => {
         socket.fireAndForget(payload);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_FNF,
           data: payload.data,
           flags: FLAGS.METADATA,
@@ -322,13 +319,13 @@ describe('RSocketClient', () => {
       });
 
       it('sends the payload with serialized data', () => {
-        ({socket, connection} = createSocket(JsonSerializers));
+        ({socket, transport} = createSocket(JsonSerializers));
         socket.fireAndForget({
           data: {data: true},
           metadata: {metadata: true},
         });
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_FNF,
           data: '{"data":true}',
           flags: FLAGS.METADATA,
@@ -342,8 +339,8 @@ describe('RSocketClient', () => {
       // -> open
       it('sends the payload', () => {
         socket.requestResponse(payload).subscribe(subscriber);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_RESPONSE,
           data: payload.data,
           flags: FLAGS.METADATA,
@@ -355,14 +352,14 @@ describe('RSocketClient', () => {
       });
 
       it('sends the payload with serialized data', () => {
-        ({socket, connection} = createSocket(JsonSerializers));
+        ({socket, transport} = createSocket(JsonSerializers));
         payload = {
           data: {data: true},
           metadata: {metadata: true},
         };
         socket.requestResponse(payload).subscribe(subscriber);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_RESPONSE,
           data: '{"data":true}',
           flags: FLAGS.METADATA,
@@ -377,7 +374,7 @@ describe('RSocketClient', () => {
       it('sends a cancellation frame when cancelled', () => {
         socket.requestResponse(payload).subscribe(subscriber);
         subscriber.onSubscribe.mock.calls[0][0]();
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.CANCEL,
           flags: 0,
           streamId: 1,
@@ -394,7 +391,7 @@ describe('RSocketClient', () => {
           message: '<error>',
           streamId: 1,
         };
-        connection.receive.mock.publisher.onNext(errorFrame);
+        transport.receive.mock.publisher.onNext(errorFrame);
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
         expect(error.message).toBe(
@@ -415,7 +412,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onComplete.mock.calls.length).toBe(1);
         const response = subscriber.onComplete.mock.calls[0][0];
         expect(response.data).toBe(responseFrame.data);
@@ -432,7 +429,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onComplete.mock.calls.length).toBe(1);
         const response = subscriber.onComplete.mock.calls[0][0];
         expect(response.data).toBe(responseFrame.data);
@@ -449,21 +446,21 @@ describe('RSocketClient', () => {
         expect(error.message).toBe('RSocketClient: The connection was closed.');
       });
 
-      // open -> connection.close() -> closed (errors)
+      // open -> transport.close() -> closed (errors)
       it('errors if the connection terminates with an error', () => {
         socket.requestResponse(payload).subscribe(subscriber);
-        connection.mock.close();
+        transport.mock.close();
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
         expect(error.message).toBe('RSocketClient: The connection was closed.');
       });
 
-      // open -> connection.error() -> closed (errors)
+      // open -> transport.error() -> closed (errors)
       it('errors if the connection terminates with an error', () => {
         const error = new Error('wtf');
         socket.requestResponse(payload).subscribe(subscriber);
-        connection.mock.closeWithError(error);
+        transport.mock.closeWithError(error);
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         expect(subscriber.onError.mock.calls[0][0]).toBe(error);
@@ -479,8 +476,8 @@ describe('RSocketClient', () => {
       // -> waiting
       it('does not immediately send any frames', () => {
         socket.requestStream(payload).subscribe(subscriber);
-        expect(connection.sendOne.mock.calls.length).toBe(0);
-        expect(connection.send.mock.calls.length).toBe(0);
+        expect(transport.sendOne.mock.calls.length).toBe(0);
+        expect(transport.send.mock.calls.length).toBe(0);
 
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(0);
@@ -491,8 +488,8 @@ describe('RSocketClient', () => {
       it('sends a request frame on the first request', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_STREAM,
           data: payload.data,
           flags: FLAGS.METADATA,
@@ -507,15 +504,15 @@ describe('RSocketClient', () => {
       });
 
       it('sends the payload with serialized data', () => {
-        ({socket, connection} = createSocket(JsonSerializers));
+        ({socket, transport} = createSocket(JsonSerializers));
         payload = {
           data: {data: true},
           metadata: {metadata: true},
         };
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_STREAM,
           data: '{"data":true}',
           flags: FLAGS.METADATA,
@@ -531,8 +528,8 @@ describe('RSocketClient', () => {
       it('sends a max request frame on the first request', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(MAX_REQUEST_N);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_STREAM,
           data: payload.data,
           flags: FLAGS.METADATA,
@@ -550,8 +547,8 @@ describe('RSocketClient', () => {
       it('does not send a cancellation frame if cancelled before making a request', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.cancel();
-        expect(connection.sendOne.mock.calls.length).toBe(0);
-        expect(connection.send.mock.calls.length).toBe(0);
+        expect(transport.sendOne.mock.calls.length).toBe(0);
+        expect(transport.send.mock.calls.length).toBe(0);
       });
 
       // open -> response.error() -> closed (errors)
@@ -565,7 +562,7 @@ describe('RSocketClient', () => {
           message: '<error>',
           streamId: 1,
         };
-        connection.receive.mock.publisher.onNext(errorFrame);
+        transport.receive.mock.publisher.onNext(errorFrame);
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
         expect(error.message).toBe(
@@ -587,7 +584,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const response = subscriber.onNext.mock.calls[0][0];
         expect(response.data).toBe(responseFrame.data);
@@ -606,7 +603,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
 
@@ -617,7 +614,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame2);
+        transport.receive.mock.publisher.onNext(responseFrame2);
         expect(subscriber.onNext.mock.calls.length).toBe(2);
         const response = subscriber.onNext.mock.calls[1][0];
         expect(response.data).toBe(responseFrame2.data);
@@ -636,7 +633,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const response = subscriber.onNext.mock.calls[0][0];
         expect(response.data).toBe(responseFrame.data);
@@ -657,7 +654,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame);
+        transport.receive.mock.publisher.onNext(responseFrame);
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const response = subscriber.onNext.mock.calls[0][0];
         expect(response.data).toBe(responseFrame.data);
@@ -670,7 +667,7 @@ describe('RSocketClient', () => {
           data: '{}',
           metadata: '{}',
         };
-        connection.receive.mock.publisher.onNext(responseFrame2);
+        transport.receive.mock.publisher.onNext(responseFrame2);
         expect(subscriber.onNext.mock.calls.length).toBe(2);
         const response2 = subscriber.onNext.mock.calls[1][0];
         expect(response2.data).toBe(responseFrame2.data);
@@ -684,10 +681,10 @@ describe('RSocketClient', () => {
       it('sends a request n frame on subsequent requests', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mockClear();
+        transport.mockClear();
         subscriber.mock.request(43);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_N,
           flags: 0,
           streamId: 1,
@@ -702,10 +699,10 @@ describe('RSocketClient', () => {
       it('sends a request n frame on subsequent requests', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mockClear();
+        transport.mockClear();
         subscriber.mock.request(MAX_REQUEST_N);
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.REQUEST_N,
           flags: 0,
           streamId: 1,
@@ -720,10 +717,10 @@ describe('RSocketClient', () => {
       it('sends a cancellation frame when cancelled', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mockClear();
+        transport.mockClear();
         subscriber.mock.cancel();
-        expect(connection.sendOne.mock.calls.length).toBe(1);
-        expect(connection.sendOne.mock.frame).toEqual({
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
           type: FRAME_TYPES.CANCEL,
           flags: 0,
           streamId: 1,
@@ -734,7 +731,7 @@ describe('RSocketClient', () => {
       it('errors if the socket is closed', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mockClear();
+        transport.mockClear();
         client.close();
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
@@ -746,7 +743,7 @@ describe('RSocketClient', () => {
       it('errors if the socket is closed', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mockClear();
+        transport.mockClear();
         socket.close();
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
@@ -754,22 +751,22 @@ describe('RSocketClient', () => {
         expect(error.message).toBe('RSocketClient: The connection was closed.');
       });
 
-      // waiting -> connection.error() -> closed (errors)
+      // waiting -> transport.error() -> closed (errors)
       it('errors if the connection terminates with an error', () => {
         const error = new Error('wtf');
         socket.requestStream(payload).subscribe(subscriber);
-        connection.mock.closeWithError(error);
+        transport.mock.closeWithError(error);
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         expect(subscriber.onError.mock.calls[0][0]).toBe(error);
       });
 
-      // open -> connection.error() -> closed (errors)
+      // open -> transport.error() -> closed (errors)
       it('errors if the connection terminates with an error after requesting data', () => {
         const error = new Error('wtf');
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
-        connection.mock.closeWithError(error);
+        transport.mock.closeWithError(error);
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         expect(subscriber.onError.mock.calls[0][0]).toBe(error);
@@ -781,20 +778,11 @@ describe('RSocketClient', () => {
     describe('metadataPush()', () => {});
 
     describe('client.close()', () => {
-      let cancel;
-      let connection;
+      let transport;
       let socket;
-      let subscriber;
 
       beforeEach(() => {
-        connection = genMockConnection();
-        cancel = jest.fn();
-        subscriber;
-        const connect = () =>
-          new Single(_subscriber => {
-            subscriber = _subscriber;
-            subscriber.onSubscribe(cancel);
-          });
+        transport = genMockConnection();
         client = new RSocketClient({
           setup: {
             dataMimeType: '<dataMimeType>',
@@ -802,7 +790,7 @@ describe('RSocketClient', () => {
             lifetime: 10000,
             metadataMimeType: '<metadataMimeType>',
           },
-          transport: {connect},
+          transport,
         });
         client.connect().subscribe({
           onComplete: _socket => socket = _socket,
@@ -811,27 +799,29 @@ describe('RSocketClient', () => {
 
       it('cancels the transport if not yet connected', () => {
         client.close();
-        expect(cancel).toBeCalled();
+        expect(transport.close).toBeCalled();
       });
 
       it('closes the socket and transport if already connected', () => {
-        subscriber.onComplete(connection);
-        const socketClose = jest.fn();
-        socket.onClose().then(socketClose);
+        transport.mock.connect();
+        const resolve = jest.fn();
+        const reject = jest.fn();
+        socket.onClose().then(resolve, reject);
         client.close();
         jest.runAllTimers();
-        expect(connection.close).toBeCalled();
-        expect(socketClose).toBeCalled();
+        expect(transport.close).toBeCalled();
+        expect(resolve).toBeCalled();
+        expect(reject).not.toBeCalled();
       });
     });
 
     describe('socket.close()', () => {
-      let connection;
+      let transport;
       let resolve;
       let socket;
 
       beforeEach(() => {
-        connection = genMockConnection();
+        transport = genMockConnection();
         client = new RSocketClient({
           setup: {
             dataMimeType: '<dataMimeType>',
@@ -839,29 +829,32 @@ describe('RSocketClient', () => {
             lifetime: 10000,
             metadataMimeType: '<metadataMimeType>',
           },
-          transport: {
-            connect: () => Single.of(connection),
-          },
+          transport,
         });
         client.connect().subscribe({
           onComplete: _socket => socket = _socket,
         });
+        transport.mock.connect();
       });
 
       it('closes the underlying socket', () => {
+        const socketClose = jest.fn();
+        socket.onClose().then(socketClose);
         socket.close();
-        expect(connection.close).toBeCalled();
+        jest.runAllTimers();
+        expect(transport.close).toBeCalled();
+        expect(socketClose).toBeCalled();
       });
     });
 
     describe('onClose()', () => {
-      let connection;
+      let transport;
       let reject;
       let resolve;
       let socket;
 
       beforeEach(() => {
-        connection = genMockConnection();
+        transport = genMockConnection();
         client = new RSocketClient({
           setup: {
             dataMimeType: '<dataMimeType>',
@@ -869,13 +862,12 @@ describe('RSocketClient', () => {
             lifetime: 10000,
             metadataMimeType: '<metadataMimeType>',
           },
-          transport: {
-            connect: () => Single.of(connection),
-          },
+          transport,
         });
         client.connect().subscribe({
           onComplete: _socket => socket = _socket,
         });
+        transport.mock.connect();
         reject = jest.fn();
         resolve = jest.fn();
         socket.onClose().then(resolve, reject);
@@ -895,38 +887,19 @@ describe('RSocketClient', () => {
           message: '<error>',
           streamId: 0,
         };
-        connection.receive.mock.publisher.onNext(errorFrame);
+        transport.receive.mock.publisher.onNext(errorFrame);
         jest.runAllTimers();
         expect(reject).toBeCalled();
       });
 
-      it('rejects when the transport closes', () => {
-        connection.mock.close();
+      it('resolves when the transport closes', () => {
+        transport.mock.close();
         jest.runAllTimers();
-        expect(reject).toBeCalled();
-        expect(reject.mock.calls[0][0].message).toBe(
-          'RSocketClient: The connection was closed.',
-        );
+        expect(resolve).toBeCalled();
       });
 
       it('rejects when the connection closes due to an error', () => {
-        connection.mock.closeWithError(new Error('wtf'));
-        jest.runAllTimers();
-        expect(reject).toBeCalled();
-        expect(reject.mock.calls[0][0].message).toBe('wtf');
-      });
-
-      it('rejects when the transport receive() completes', () => {
-        connection.receive.mock.publisher.onComplete();
-        jest.runAllTimers();
-        expect(reject).toBeCalled();
-        expect(reject.mock.calls[0][0].message).toBe(
-          'RSocketClient: The connection was closed.',
-        );
-      });
-
-      it('rejects when the transport receive() errors', () => {
-        connection.receive.mock.publisher.onError(new Error('wtf'));
+        transport.mock.closeWithError(new Error('wtf'));
         jest.runAllTimers();
         expect(reject).toBeCalled();
         expect(reject.mock.calls[0][0].message).toBe('wtf');

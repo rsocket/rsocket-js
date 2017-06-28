@@ -829,7 +829,7 @@ function serializeResumeFrame(
     offset + resumeTokenLength,
   );
   offset = writeUInt64BE(buffer, frame.clientPosition, offset);
-  offset = writeUInt64BE(buffer, frame.serverPosition, offset);
+  writeUInt64BE(buffer, frame.serverPosition, offset);
   return buffer;
 }
 

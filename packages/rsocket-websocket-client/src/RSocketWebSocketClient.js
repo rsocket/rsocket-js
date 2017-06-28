@@ -11,12 +11,20 @@
 
 'use strict';
 
-import type {DuplexConnection, Frame} from '../../ReactiveSocketTypes';
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
-import type {Encoders, TransportClient} from 'rsocket-core';
+import type {
+  ConnectionStatus,
+  DuplexConnection,
+  Frame,
+} from '../../ReactiveSocketTypes';
+import type {
+  ISubject,
+  ISubscriber,
+  ISubscription,
+} from '../../ReactiveStreamTypes';
+import type {Encoders} from 'rsocket-core';
 
-import sprintf from 'fbjs/lib/sprintf';
-import {Single, Flowable} from 'rsocket-flowable';
+import invariant from 'fbjs/lib/invariant';
+import {Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
 import {
   deserializeFrame,
@@ -26,6 +34,7 @@ import {
   serializeFrameWithLength,
   toBuffer,
 } from 'rsocket-core';
+import {CONNECTION_STATUS} from '../../ReactiveSocketTypes';
 
 export type ClientOptions = {|
   url: string,
@@ -36,82 +45,76 @@ export type ClientOptions = {|
 /**
  * A WebSocket transport client for use in browser environments.
  */
-export default class RSocketWebSocketClient implements TransportClient {
-  _encoders: ?Encoders<*>;
-  _options: ClientOptions;
-
-  constructor(options: ClientOptions, encoders?: ?Encoders<*>) {
-    this._encoders = encoders;
-    this._options = options;
-  }
-
-  connect(): Single<DuplexConnection> {
-    return new Single(subscriber => {
-      const socket = new WebSocket(this._options.url);
-      socket.binaryType = 'arraybuffer';
-
-      const removeListeners = () => {
-        (socket.removeEventListener: $FlowIssue)('close', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('error', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('open', onOpen);
-      };
-      const onSocketClosed = () => {
-        removeListeners();
-        subscriber.onError(
-          new Error(
-            sprintf(
-              'RSocketWebSocketClient: Failed to open connection to %s.',
-              this._options.url,
-            ),
-          ),
-        );
-      };
-      const onOpen = () => {
-        removeListeners();
-        subscriber.onComplete(
-          new WSDuplexConnection(this._options, socket, this._encoders),
-        );
-      };
-
-      subscriber.onSubscribe(() => {
-        removeListeners();
-        socket.close();
-      });
-      (socket.addEventListener: $FlowIssue)('close', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('error', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('open', onOpen);
-    });
-  }
-}
-
-/**
- * @private
- */
-class WSDuplexConnection implements DuplexConnection {
-  _active: boolean;
-  _close: Deferred<void, Error>;
+export default class RSocketWebSocketClient implements DuplexConnection {
+  _closeDeferred: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
   _receivers: Set<ISubscriber<Frame>>;
   _senders: Set<ISubscription>;
-  _socket: WebSocket;
+  _socket: ?WebSocket;
+  _status: ConnectionStatus;
+  _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(
-    options: ClientOptions,
-    socket: WebSocket,
-    encoders: ?Encoders<*>,
-  ) {
-    this._active = true;
-    this._close = new Deferred();
+  constructor(options: ClientOptions, encoders: ?Encoders<*>) {
+    this._closeDeferred = new Deferred();
     this._encoders = encoders;
     this._options = options;
     this._receivers = new Set();
     this._senders = new Set();
-    this._socket = socket;
+    this._socket = null;
+    this._status = CONNECTION_STATUS.NOT_CONNECTED;
+    this._statusSubscribers = new Set();
+  }
 
-    (this._socket.addEventListener: $FlowIssue)('close', this._handleClosed);
-    (this._socket.addEventListener: $FlowIssue)('error', this._handleClosed);
-    (this._socket.addEventListener: $FlowIssue)('message', this._handleMessage);
+  close(): void {
+    this._close();
+  }
+
+  connect(): void {
+    invariant(
+      this._status.kind === 'NOT_CONNECTED',
+      'RSocketWebSocketClient: Cannot connect(), a connection is already ' +
+        'established.',
+    );
+    this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
+    const socket = (this._socket = new WebSocket(this._options.url));
+    socket.binaryType = 'arraybuffer';
+
+    (socket.addEventListener: $FlowIssue)('close', this._handleClosed);
+    (socket.addEventListener: $FlowIssue)('error', this._handleClosed);
+    (socket.addEventListener: $FlowIssue)('open', this._handleOpened);
+    (socket.addEventListener: $FlowIssue)('message', this._handleMessage);
+  }
+
+  connectionStatus(): Flowable<ConnectionStatus> {
+    return new Flowable(subscriber => {
+      subscriber.onSubscribe({
+        cancel: () => {
+          this._statusSubscribers.delete(subscriber);
+        },
+        request: () => {
+          this._statusSubscribers.add(subscriber);
+          subscriber.onNext(this._status);
+        },
+      });
+    });
+  }
+
+  onClose(): Promise<void> {
+    return this._closeDeferred.getPromise();
+  }
+
+  receive(): Flowable<Frame> {
+    return new Flowable(subject => {
+      subject.onSubscribe({
+        cancel: () => {
+          this._receivers.delete(subject);
+        },
+        request: () => {
+          this._receivers.add(subject);
+        },
+      });
+    });
   }
 
   sendOne(frame: Frame): void {
@@ -137,51 +140,56 @@ class WSDuplexConnection implements DuplexConnection {
     });
   }
 
-  receive(): Flowable<Frame> {
-    return new Flowable(subject => {
-      subject.onSubscribe({
-        cancel: () => {
-          this._receivers.delete(subject);
-        },
-        request: () => {
-          this._receivers.add(subject);
-        },
-      });
-    });
-  }
-
-  close = () => {
-    if (!this._active) {
+  _close(error?: Error) {
+    if (this._status.kind === 'CLOSED' || this._status.kind === 'ERROR') {
+      // already closed
       return;
     }
-    this._active = false;
-    this._close.resolve();
-    this._receivers.forEach(subscriber => subscriber.onComplete());
+    const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
+    this._setConnectionStatus(status);
+    if (error) {
+      this._closeDeferred.reject(error);
+    } else {
+      this._closeDeferred.resolve();
+    }
+    this._receivers.forEach(subscriber => {
+      if (error) {
+        subscriber.onError(error);
+      } else {
+        subscriber.onComplete();
+      }
+    });
     this._receivers.clear();
     this._senders.forEach(subscription => subscription.cancel());
     this._senders.clear();
-    (this._socket.removeEventListener: $FlowIssue)('close', this._handleClosed);
-    (this._socket.removeEventListener: $FlowIssue)('error', this._handleClosed);
-    (this._socket.removeEventListener: $FlowIssue)(
-      'message',
-      this._handleMessage,
-    );
-    this._socket.close();
-  };
+    const socket = this._socket;
+    if (socket) {
+      (socket.removeEventListener: $FlowIssue)('close', this._handleClosed);
+      (socket.removeEventListener: $FlowIssue)('error', this._handleClosed);
+      (socket.removeEventListener: $FlowIssue)('open', this._handleOpened);
+      (socket.removeEventListener: $FlowIssue)('message', this._handleMessage);
+      socket.close();
+      this._socket = null;
+    }
+  }
 
-  onClose(): Promise<void> {
-    return this._close.getPromise();
+  _setConnectionStatus(status: ConnectionStatus): void {
+    this._status = status;
+    this._statusSubscribers.forEach(subscriber => subscriber.onNext(status));
   }
 
   _handleClosed = (): void => {
-    this._handleError(
+    this._close(
       new Error('RSocketWebSocketClient: Socket closed unexpectedly.'),
     );
   };
 
   _handleError = (error: Error): void => {
-    this._receivers.forEach(subscriber => subscriber.onError(error));
-    this.close();
+    this._close(error);
+  };
+
+  _handleOpened = (): void => {
+    this._setConnectionStatus(CONNECTION_STATUS.CONNECTED);
   };
 
   _handleMessage = (message: MessageEvent): void => {
@@ -216,6 +224,10 @@ class WSDuplexConnection implements DuplexConnection {
       const buffer = this._options.lengthPrefixedFrames
         ? serializeFrameWithLength(frame, this._encoders)
         : serializeFrame(frame, this._encoders);
+      invariant(
+        this._socket,
+        'RSocketWebSocketClient: Cannot send frame, not connected.',
+      );
       this._socket.send(buffer);
     } catch (error) {
       this._handleError(error);

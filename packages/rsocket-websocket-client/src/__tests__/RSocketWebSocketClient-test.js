@@ -23,52 +23,52 @@ describe('RSocketWebSocketClient', () => {
     jest.clearAllTimers();
   });
 
-  describe('connect()', () => {
-    it('resolves if the socket opens successfully', () => {
-      const client = new RSocketWebSocketClient({url: 'wss://...'});
-      const subscriber = genMockSubscriber();
-      client.connect().subscribe(subscriber);
-      WebSocket.socket.mock.open();
+  describe('connectionStatus() and connect()', () => {
+    let client;
+    let status;
 
-      expect(subscriber.onComplete.mock.calls.length).toBe(1);
-      expect(subscriber.onError.mock.calls.length).toBe(0);
-      const connection = subscriber.onComplete.mock.calls[0][0];
-      expect(typeof connection.close).toBe('function');
-      expect(typeof connection.receive).toBe('function');
-      expect(typeof connection.send).toBe('function');
-      expect(typeof connection.sendOne).toBe('function');
+    beforeEach(() => {
+      client = new RSocketWebSocketClient({url: 'wss://...'});
+      client.connectionStatus().subscribe({
+        onNext: _status => status = _status,
+        onSubscribe: subscription =>
+          subscription.request(Number.MAX_SAFE_INTEGER),
+      });
     });
 
-    it('rejects if the socket does not open successfully', () => {
-      const client = new RSocketWebSocketClient({url: 'wss://...'});
-      const subscriber = genMockSubscriber();
-      client.connect().subscribe(subscriber);
+    it('initially returns NOT_CONNECTED', () => {
+      expect(status.kind).toBe('NOT_CONNECTED');
+    });
+
+    it('returns CONNECTING while connecting', () => {
+      client.connect();
+      expect(status.kind).toBe('CONNECTING');
+    });
+
+    it('returns CONNECTED once connected', () => {
+      client.connect();
+      WebSocket.socket.mock.open();
+      expect(status.kind).toBe('CONNECTED');
+    });
+
+    it('returns ERROR if the socket errors', () => {
+      client.connect();
       WebSocket.socket.mock.error();
-
-      expect(subscriber.onComplete.mock.calls.length).toBe(0);
-      expect(subscriber.onError.mock.calls.length).toBe(1);
-      const error = subscriber.onError.mock.calls[0][0];
-      expect(error.message).toBe(
-        'RSocketWebSocketClient: Failed to open connection to wss://....',
+      expect(status.kind).toBe('ERROR');
+      expect(status.error.message).toBe(
+        'RSocketWebSocketClient: Socket closed unexpectedly.',
       );
-      expect(subscriber.onNext.mock.calls.length).toBe(0);
     });
 
-    it('closes the connection if cancelled', () => {
-      const client = new RSocketWebSocketClient({url: 'wss://...'});
-      const subscriber = genMockSubscriber();
-      client.connect().subscribe(subscriber);
-      subscriber.onSubscribe.mock.calls[0][0]();
-      expect(WebSocket.socket.close).toBeCalled();
-      WebSocket.socket.mock.open();
-      expect(subscriber.onComplete.mock.calls.length).toBe(0);
-      expect(subscriber.onError.mock.calls.length).toBe(0);
-      expect(subscriber.onNext.mock.calls.length).toBe(0);
+    it('returns CLOSED if explicitly closed', () => {
+      client.connect();
+      client.close();
+      expect(status.kind).toBe('CLOSED');
     });
   });
 
-  describe('connection', () => {
-    let connection;
+  describe('post-connect() APIs', () => {
+    let client;
     let socket;
 
     const frame = {
@@ -80,11 +80,8 @@ describe('RSocketWebSocketClient', () => {
     };
 
     beforeEach(() => {
-      new RSocketWebSocketClient({url: 'wss://...'}).connect().subscribe({
-        onComplete(_connection) {
-          connection = _connection;
-        },
-      });
+      client = new RSocketWebSocketClient({url: 'wss://...'});
+      client.connect();
       jest.runAllTimers();
       socket = WebSocket.socket;
       socket.mock.open();
@@ -93,16 +90,27 @@ describe('RSocketWebSocketClient', () => {
 
     describe('close()', () => {
       it('closes the socket', () => {
-        connection.close();
+        client.close();
         expect(socket.close.mock.calls.length).toBe(1);
+      });
+
+      it('sets the status to CLOSED', () => {
+        let status;
+        client.connectionStatus().subscribe({
+          onNext: _status => status = _status,
+          onSubscribe: subscription =>
+            subscription.request(Number.MAX_SAFE_INTEGER),
+        });
+        client.close();
+        expect(status.kind).toBe('CLOSED');
       });
 
       it('calls receive.onComplete', () => {
         const onComplete = jest.fn();
         const onSubscribe = subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onComplete, onSubscribe});
-        connection.close();
+        client.receive().subscribe({onComplete, onSubscribe});
+        client.close();
         expect(onComplete.mock.calls.length).toBe(1);
       });
     });
@@ -110,25 +118,25 @@ describe('RSocketWebSocketClient', () => {
     describe('onClose()', () => {
       it('resolves when close() is called', () => {
         let resolved = false;
-        connection.onClose().then(() => resolved = true);
+        client.onClose().then(() => resolved = true);
 
-        connection.close();
+        client.close();
         jest.runAllTimers();
         expect(resolved).toBe(true);
       });
 
-      it('resolves when the connection closes', () => {
+      it('rejects if the socket closes', () => {
         let resolved = false;
-        connection.onClose().then(() => resolved = true);
+        client.onClose().catch(() => resolved = true);
 
         socket.mock.close();
         jest.runAllTimers();
         expect(resolved).toBe(true);
       });
 
-      it('resolves when the connection has an error', () => {
+      it('rejects if the socket has an error', () => {
         let resolved = false;
-        connection.onClose().then(() => resolved = true);
+        client.onClose().catch(() => resolved = true);
 
         socket.mock.error();
         jest.runAllTimers();
@@ -138,7 +146,7 @@ describe('RSocketWebSocketClient', () => {
 
     describe('sendOne()', () => {
       it('sends a frame', () => {
-        connection.sendOne(frame);
+        client.sendOne(frame);
         expect(socket.send.mock.calls.length).toBe(1);
         const buffer = socket.send.mock.calls[0][0];
         expect(deserializeFrame(buffer)).toEqual(frame);
@@ -148,11 +156,11 @@ describe('RSocketWebSocketClient', () => {
         const onError = jest.fn();
         const onSubscribe = subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onError, onSubscribe});
+        client.receive().subscribe({onError, onSubscribe});
         socket.send = () => {
           throw new Error('wtf');
         };
-        connection.sendOne(frame);
+        client.sendOne(frame);
         expect(onError.mock.calls.length).toBe(1);
       });
     });
@@ -161,7 +169,7 @@ describe('RSocketWebSocketClient', () => {
       it('sends frames', () => {
         const frame2 = {...frame, flags: 1};
         const publisher = genMockPublisher();
-        connection.send(publisher);
+        client.send(publisher);
         publisher.onNext(frame);
         publisher.onNext(frame2);
         expect(socket.send.mock.calls.length).toBe(2);
@@ -175,20 +183,20 @@ describe('RSocketWebSocketClient', () => {
         const onError = jest.fn();
         const onSubscribe = subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onError, onSubscribe});
+        client.receive().subscribe({onError, onSubscribe});
         socket.send = () => {
           throw new Error('wtf');
         };
         const publisher = genMockPublisher();
-        connection.send(publisher);
+        client.send(publisher);
         publisher.onNext(frame);
         expect(onError.mock.calls.length).toBe(1);
       });
 
       it('unsubscribes when closed', () => {
         const publisher = genMockPublisher();
-        connection.send(publisher);
-        connection.close();
+        client.send(publisher);
+        client.close();
         expect(publisher.cancel).toBeCalled();
       });
     });
@@ -200,7 +208,7 @@ describe('RSocketWebSocketClient', () => {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
+        client.receive().subscribe(subscriber);
         expect(subscriber.onNext.mock.calls.length).toBe(0);
 
         socket.mock.message(serializeFrame(frame));
@@ -218,7 +226,7 @@ describe('RSocketWebSocketClient', () => {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
+        client.receive().subscribe(subscriber);
 
         const buffer = serializeFrame(frame);
         socket.mock.message(buffer.slice(0, 2));
@@ -235,20 +243,20 @@ describe('RSocketWebSocketClient', () => {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
-        connection.close();
+        client.receive().subscribe(subscriber);
+        client.close();
         expect(subscriber.onComplete.mock.calls.length).toBe(1);
         expect(subscriber.onError.mock.calls.length).toBe(0);
         expect(subscriber.onNext.mock.calls.length).toBe(0);
       });
 
-      it('calls onError when the connection is closed by the peer', () => {
+      it('calls onError when the socket is closed by the peer', () => {
         const subscriber = genMockSubscriber({
           onSubscribe(subscription) {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
+        client.receive().subscribe(subscriber);
         socket.mock.close();
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(1);
@@ -265,7 +273,7 @@ describe('RSocketWebSocketClient', () => {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
+        client.receive().subscribe(subscriber);
         // Emit a frame of length one, which is shorter than the smallest
         // possible frame (3 bytes of length, 1 byte of payload).
         const buffer = new Buffer([0x00, 0x00, 0x01, 0x00]);
@@ -278,13 +286,13 @@ describe('RSocketWebSocketClient', () => {
         expect(subscriber.onNext.mock.calls.length).toBe(0);
       });
 
-      it('calls onError when a connection error occurs', () => {
+      it('calls onError when a socket error occurs', () => {
         const subscriber = genMockSubscriber({
           onSubscribe(subscription) {
             subscription.request(Number.MAX_SAFE_INTEGER);
           },
         });
-        connection.receive().subscribe(subscriber);
+        client.receive().subscribe(subscriber);
         socket.mock.error();
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(1);

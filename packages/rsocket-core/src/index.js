@@ -11,7 +11,7 @@
 
 'use strict';
 
-export type {ClientConfig, TransportClient} from './RSocketClient';
+export type {ClientConfig} from './RSocketClient';
 
 export type {Encodable} from '../../ReactiveSocketTypes';
 

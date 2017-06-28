@@ -69,8 +69,8 @@ export function genMockPublisher() {
   });
   publisher.cancel = cancel;
   publisher.request = request;
-  publisher.onComplete = () => subscriber.onComplete();
-  publisher.onError = error => subscriber.onError(error);
-  publisher.onNext = data => subscriber.onNext(data);
+  publisher.onComplete = () => subscriber && subscriber.onComplete();
+  publisher.onError = error => subscriber && subscriber.onError(error);
+  publisher.onNext = data => subscriber && subscriber.onNext(data);
   return publisher;
 }

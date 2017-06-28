@@ -18,12 +18,30 @@ class MockSocket extends EventEmitter {
   });
 
   write = jest.fn();
+
+  mock = {
+    close: () => {
+      this.emit('close');
+    },
+    connect: () => {
+      this.emit('connect');
+    },
+    data: data => {
+      this.emit('data', data);
+    },
+    error: error => {
+      this.emit('error', error);
+    },
+  };
 }
 
-const connect = jest.fn(() => {
-  const socket = new MockSocket();
-  connect.socket = socket; // for easy accessibility in tests
-  return socket;
-});
+const net = {
+  connect: jest.fn(() => {
+    const socket = new MockSocket();
+    net.socket = socket; // for easy accessibility in tests
+    return socket;
+  }),
+  socket: null,
+};
 
-module.exports = {connect};
+module.exports = net;

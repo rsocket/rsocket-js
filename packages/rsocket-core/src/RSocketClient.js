@@ -41,9 +41,6 @@ import {
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
 
-export interface TransportClient {
-  connect(): Single<DuplexConnection>,
-}
 export type ClientConfig<D, M> = {|
   serializers?: {
     data: Serializer<D>,
@@ -55,7 +52,7 @@ export type ClientConfig<D, M> = {|
     lifetime: number,
     metadataMimeType: string,
   |},
-  transport: TransportClient,
+  transport: DuplexConnection,
 |};
 
 /**
@@ -82,14 +79,7 @@ export default class RSocketClient<D, M> {
   }
 
   close(): void {
-    if (this._cancel) {
-      this._cancel();
-      this._cancel = null;
-    }
-    if (this._socket) {
-      this._socket.close();
-      this._socket = null;
-    }
+    this._config.transport.close();
   }
 
   connect(): Single<ReactiveSocket<D, M>> {
@@ -98,18 +88,30 @@ export default class RSocketClient<D, M> {
       'RSocketClient: Unexpected call to connect(), already connected.',
     );
     this._connection = new Single(subscriber => {
-      this._config.transport.connect().subscribe({
-        onComplete: connection => {
-          const socket = new RSocketClientSocket(this._config, connection);
-          this._socket = socket;
-          subscriber.onComplete(socket);
+      const transport = this._config.transport;
+      let subscription;
+      transport.connectionStatus().subscribe({
+        onNext: status => {
+          if (status.kind === 'CONNECTED') {
+            subscription && subscription.cancel();
+            subscriber.onComplete(
+              new RSocketClientSocket(this._config, transport),
+            );
+          } else if (status.kind === 'ERROR') {
+            subscription && subscription.cancel();
+            subscriber.onError(status.error);
+          } else if (status.kind === 'CLOSED') {
+            subscription && subscription.cancel();
+            subscriber.onError(new Error('RSocketClient: Connection closed.'));
+          }
         },
-        onError: error => subscriber.onError(error),
-        onSubscribe: cancel => {
-          this._cancel = cancel;
-          subscriber.onSubscribe(cancel);
+        onSubscribe: _subscription => {
+          subscriber.onSubscribe(() => _subscription.cancel());
+          subscription = _subscription;
+          subscription.request(Number.MAX_SAFE_INTEGER);
         },
       });
+      transport.connect();
     });
     return this._connection;
   }
@@ -141,8 +143,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
 
     // Subscribe to completion/errors before sending anything
     this._connection.receive().subscribe({
-      onComplete: this._handleConnectionClose,
-      onError: this._handleConnectionError,
       onNext: this._handleFrame,
       onSubscribe: subscription =>
         subscription.request(Number.MAX_SAFE_INTEGER),
@@ -165,7 +165,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     // Cleanup when the connection closes
     this._connection
       .onClose()
-      .then(this._handleConnectionClose, this._handleConnectionError);
+      .then(this._handleTransportClose, this._handleError);
   }
 
   close(): void {
@@ -309,26 +309,28 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
   /**
    * Handle the connection closing normally: this is an error for any open streams.
    */
-  _handleConnectionClose = (): void => {
-    this._handleConnectionError(
-      new Error('RSocketClient: The connection was closed.'),
-    );
+  _handleTransportClose = (): void => {
+    this._close.resolve();
+    this._handleError(new Error('RSocketClient: The connection was closed.'));
   };
 
   /**
    * Handle the transport connection closing abnormally or a connection-level protocol error.
    */
-  _handleConnectionError = (error: Error) => {
+  _handleError = (error: Error) => {
     // Error any open request streams
     this._receivers.forEach(receiver => {
       receiver.onError(error);
     });
     this._receivers.clear();
-    // In case of a protocol-level error, close the stream.
-    this._connection.close();
     // Resolve onClose()
     this._close.reject(error);
   };
+
+  _handleConnectionError(error: Error): void {
+    this._handleError(error);
+    this._connection.close();
+  }
 
   /**
    * Handle a frame received from the transport client.
