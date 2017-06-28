@@ -41,7 +41,6 @@ import {CONNECTION_STATUS} from '../../ReactiveSocketTypes';
  */
 export default class RSocketTcpClient implements DuplexConnection {
   _buffer: Buffer;
-  _closeDeferred: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
   _options: SocketOptions;
   _receivers: Set<ISubscriber<Frame>>;
@@ -52,7 +51,6 @@ export default class RSocketTcpClient implements DuplexConnection {
 
   constructor(options: SocketOptions, encoders: ?Encoders<*>) {
     this._buffer = createBuffer(0);
-    this._closeDeferred = new Deferred();
     this._encoders = encoders;
     this._options = options;
     this._receivers = new Set();
@@ -94,10 +92,6 @@ export default class RSocketTcpClient implements DuplexConnection {
         },
       });
     });
-  }
-
-  onClose(): Promise<void> {
-    return this._closeDeferred.getPromise();
   }
 
   receive(): Flowable<Frame> {
@@ -143,11 +137,6 @@ export default class RSocketTcpClient implements DuplexConnection {
     }
     const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
     this._setConnectionStatus(status);
-    if (error) {
-      this._closeDeferred.reject(error);
-    } else {
-      this._closeDeferred.resolve();
-    }
     this._receivers.forEach(subscriber => {
       if (error) {
         subscriber.onError(error);

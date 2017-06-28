@@ -105,9 +105,6 @@ export interface DuplexConnection {
    */
   connect(): void,
 
-  // DEPRECATED, Use connectionStatus() instead
-  onClose(): Promise<void>,
-
   /**
    * Returns a Flowable that immediately publishes the current connection
    * status and thereafter updates as it changes. Once a connection is in

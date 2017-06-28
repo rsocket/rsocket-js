@@ -46,7 +46,6 @@ export type ClientOptions = {|
  * A WebSocket transport client for use in browser environments.
  */
 export default class RSocketWebSocketClient implements DuplexConnection {
-  _closeDeferred: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
   _receivers: Set<ISubscriber<Frame>>;
@@ -56,7 +55,6 @@ export default class RSocketWebSocketClient implements DuplexConnection {
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
   constructor(options: ClientOptions, encoders: ?Encoders<*>) {
-    this._closeDeferred = new Deferred();
     this._encoders = encoders;
     this._options = options;
     this._receivers = new Set();
@@ -98,10 +96,6 @@ export default class RSocketWebSocketClient implements DuplexConnection {
         },
       });
     });
-  }
-
-  onClose(): Promise<void> {
-    return this._closeDeferred.getPromise();
   }
 
   receive(): Flowable<Frame> {
@@ -147,11 +141,6 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     }
     const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
     this._setConnectionStatus(status);
-    if (error) {
-      this._closeDeferred.reject(error);
-    } else {
-      this._closeDeferred.resolve();
-    }
     this._receivers.forEach(subscriber => {
       if (error) {
         subscriber.onError(error);

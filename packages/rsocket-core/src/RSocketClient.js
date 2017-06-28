@@ -163,9 +163,17 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     this._connection.send(keepAliveFrames);
 
     // Cleanup when the connection closes
-    this._connection
-      .onClose()
-      .then(this._handleTransportClose, this._handleError);
+    this._connection.connectionStatus().subscribe({
+      onNext: status => {
+        if (status.kind === 'CLOSED') {
+          this._handleTransportClose();
+        } else if (status.kind === 'ERROR') {
+          this._handleError(status.error);
+        }
+      },
+      onSubscribe: subscription =>
+        subscription.request(Number.MAX_SAFE_INTEGER),
+    });
   }
 
   close(): void {

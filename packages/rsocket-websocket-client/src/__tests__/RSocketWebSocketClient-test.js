@@ -115,35 +115,6 @@ describe('RSocketWebSocketClient', () => {
       });
     });
 
-    describe('onClose()', () => {
-      it('resolves when close() is called', () => {
-        let resolved = false;
-        client.onClose().then(() => resolved = true);
-
-        client.close();
-        jest.runAllTimers();
-        expect(resolved).toBe(true);
-      });
-
-      it('rejects if the socket closes', () => {
-        let resolved = false;
-        client.onClose().catch(() => resolved = true);
-
-        socket.mock.close();
-        jest.runAllTimers();
-        expect(resolved).toBe(true);
-      });
-
-      it('rejects if the socket has an error', () => {
-        let resolved = false;
-        client.onClose().catch(() => resolved = true);
-
-        socket.mock.error();
-        jest.runAllTimers();
-        expect(resolved).toBe(true);
-      });
-    });
-
     describe('sendOne()', () => {
       it('sends a frame', () => {
         client.sendOne(frame);
