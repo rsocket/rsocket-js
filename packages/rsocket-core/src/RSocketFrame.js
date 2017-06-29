@@ -142,6 +142,21 @@ export function isLease(flags: number): boolean {
   return (flags & FLAGS.LEASE) === FLAGS.LEASE;
 }
 
+/**
+ * Returns true iff the frame type is counted toward the implied
+ * client/server position used for the resumption protocol.
+ */
+export function isResumePositionFrameType(type: number): boolean {
+  return type === FRAME_TYPES.CANCEL ||
+    type === FRAME_TYPES.ERROR ||
+    type === FRAME_TYPES.METADATA_PUSH ||
+    type === FRAME_TYPES.PAYLOAD ||
+    type === FRAME_TYPES.REQUEST_CHANNEL ||
+    type === FRAME_TYPES.REQUEST_FNF ||
+    type === FRAME_TYPES.REQUEST_RESPONSE ||
+    type === FRAME_TYPES.REQUEST_STREAM;
+}
+
 export function getFrameTypeName(type: number): string {
   const name = FRAME_TYPE_NAMES[type];
   return name != null ? name : toHex(type);

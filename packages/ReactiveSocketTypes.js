@@ -116,7 +116,7 @@ export interface DuplexConnection {
 
 /**
  * Describes the connection status of a ReactiveSocket/DuplexConnection.
- * - NOT_CONNECTED: (only) until `connect()` has been called for the first time.
+ * - NOT_CONNECTED: no connection established or pending.
  * - CONNECTING: when `connect()` has been called but a connection is not yet
  *   established.
  * - CONNECTED: when a connection is established.

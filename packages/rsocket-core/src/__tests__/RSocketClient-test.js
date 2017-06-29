@@ -169,68 +169,6 @@ describe('RSocketClient', () => {
       });
     });
 
-    it('counts ERROR frames in lastReceivedPosition', () => {
-      const onNext = jest.fn();
-      keepAliveFrames.subscribe({
-        onNext,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
-      });
-
-      jest.runTimersToTime(keepAlive - 1);
-      expect(onNext.mock.calls.length).toBe(0);
-
-      socket.requestResponse({data: null, metadata: null}).subscribe();
-      const errorFrame = {
-        code: 0x00000201, // application error
-        flags: 0,
-        type: FRAME_TYPES.ERROR,
-        message: '<error>',
-        streamId: 1,
-      };
-      transport.receive.mock.publisher.onNext(errorFrame);
-
-      jest.runTimersToTime(1);
-      expect(onNext.mock.calls.length).toBe(1);
-      expect(onNext.mock.calls[0][0]).toEqual({
-        type: FRAME_TYPES.KEEPALIVE,
-        data: null,
-        flags: FLAGS.RESPOND,
-        lastReceivedPosition: 1,
-        streamId: 0,
-      });
-    });
-
-    it('counts PAYLOAD frames in lastReceivedPosition', () => {
-      const onNext = jest.fn();
-      keepAliveFrames.subscribe({
-        onNext,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
-      });
-
-      jest.runTimersToTime(keepAlive - 1);
-      expect(onNext.mock.calls.length).toBe(0);
-
-      socket.requestResponse({data: null, metadata: null}).subscribe();
-      const responseFrame = {
-        streamId: 1,
-        type: FRAME_TYPES.PAYLOAD,
-        flags: FLAGS.COMPLETE | FLAGS.NEXT,
-        data: '{}',
-        metadata: '{}',
-      };
-      transport.receive.mock.publisher.onNext(responseFrame);
-
-      jest.runTimersToTime(1);
-      expect(onNext.mock.calls.length).toBe(1);
-      expect(onNext.mock.calls[0][0]).toEqual({
-        type: FRAME_TYPES.KEEPALIVE,
-        data: null,
-        flags: FLAGS.RESPOND,
-        lastReceivedPosition: 1,
-        streamId: 0,
-      });
-    });
-
     it('responds to keepalive frames from the server', () => {
       transport.receive.mock.publisher.onNext({
         type: FRAME_TYPES.KEEPALIVE,

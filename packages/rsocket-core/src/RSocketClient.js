@@ -129,7 +129,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     data: Serializer<D>,
     metadata: Serializer<M>,
   };
-  _serverPosition: number;
 
   constructor(config: ClientConfig<D, M>, connection: DuplexConnection) {
     this._config = config;
@@ -137,7 +136,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     this._nextStreamId = 1;
     this._receivers = new Map();
     this._serializers = config.serializers || (IdentitySerializers: any);
-    this._serverPosition = 0;
 
     // Subscribe to completion/errors before sending anything
     this._connection.receive().subscribe({
@@ -154,7 +152,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     const keepAliveFrames = every(keepAlive).map(() => ({
       data: null,
       flags: FLAGS.RESPOND,
-      lastReceivedPosition: this._serverPosition,
+      lastReceivedPosition: 0,
       streamId: CONNECTION_STREAM_ID,
       type: FRAME_TYPES.KEEPALIVE,
     }));
@@ -363,7 +361,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
           this._connection.sendOne({
             ...frame,
             flags: frame.flags ^ FLAGS.RESPOND, // eslint-disable-line no-bitwise
-            lastReceivedPosition: this._serverPosition,
+            lastReceivedPosition: 0,
           });
         }
         break;
@@ -375,7 +373,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       case FRAME_TYPES.REQUEST_FNF:
       case FRAME_TYPES.REQUEST_RESPONSE:
       case FRAME_TYPES.REQUEST_STREAM:
-        // TODO #18064706: handle requests from server, increment serverPosition
+        // TODO #18064706: handle requests from server
         break;
       case FRAME_TYPES.RESERVED:
         // No-op
@@ -402,15 +400,13 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
   _handleStreamFrame(streamId: number, frame: Frame): void {
     switch (frame.type) {
       case FRAME_TYPES.CANCEL:
-        // TODO #18064706: cancel requests from server, increment serverPosition
+        // TODO #18064706: cancel requests from server
         break;
       case FRAME_TYPES.ERROR:
-        this._serverPosition++;
         const error = createErrorFromFrame(frame);
         this._handleStreamError(streamId, error);
         break;
       case FRAME_TYPES.PAYLOAD:
-        this._serverPosition++;
         const receiver = this._receivers.get(streamId);
         if (receiver != null) {
           if (isNext(frame.flags)) {
@@ -427,7 +423,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
         }
         break;
       case FRAME_TYPES.REQUEST_N:
-        // TODO #18064706: handle requests from server, increment serverPosition
+        // TODO #18064706: handle requests from server
         break;
       default:
         if (__DEV__) {
