@@ -65,7 +65,7 @@ describe('RSocketClient', () => {
         lifetime: 2017,
         metadata: undefined,
         metadataMimeType: '<metadataMimeType>',
-        resumeToken: '',
+        resumeToken: null,
         streamId: 0,
         majorVersion: 1,
         minorVersion: 0,

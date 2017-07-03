@@ -22,6 +22,9 @@ export type {Serializer} from './RSocketSerialization';
 import RSocketClient from './RSocketClient';
 export {RSocketClient};
 
+import RSocketResumableTransport from './RSocketResumableTransport';
+export {RSocketResumableTransport};
+
 export {
   CONNECTION_STREAM_ID,
   ERROR_CODES,

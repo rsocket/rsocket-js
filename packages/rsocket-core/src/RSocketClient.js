@@ -465,7 +465,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       metadata: undefined,
       metadataMimeType,
       minorVersion: MINOR_VERSION,
-      resumeToken: '',
+      resumeToken: null,
       streamId: CONNECTION_STREAM_ID,
       type: FRAME_TYPES.SETUP,
     };

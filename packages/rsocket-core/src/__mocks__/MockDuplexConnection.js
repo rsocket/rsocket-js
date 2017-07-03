@@ -47,8 +47,8 @@ export function genMockConnection() {
         return;
       }
       closed = true;
-      status.onNext({kind: 'CLOSED'});
       receiver.onComplete();
+      status.onNext({kind: 'CLOSED'});
       deferred.resolve();
     },
     closeWithError: error => {
@@ -56,11 +56,11 @@ export function genMockConnection() {
         return;
       }
       closed = true;
+      receiver.onError(error);
       status.onNext({
         error,
         kind: 'ERROR',
       });
-      receiver.onError(error);
       deferred.reject(error);
     },
     connect: () => {
@@ -70,6 +70,13 @@ export function genMockConnection() {
       status.onNext({kind: 'CONNECTING'});
       status.onNext({kind: 'CONNECTED'});
     },
+    connecting: () => {
+      if (closed) {
+        return;
+      }
+      status.onNext({kind: 'CONNECTING'});
+    },
+    receiver,
   };
 
   // Convenience to call mockClear() on all instance methods
