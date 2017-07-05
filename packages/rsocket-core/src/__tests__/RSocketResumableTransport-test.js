@@ -84,7 +84,7 @@ describe('RSocketResumableTransport', () => {
       resumeToken,
       streamId: 0,
       majorVersion: 1,
-      minorVersion: 0,
+      minorVersion: 1,
       clientPosition: 0,
       serverPosition: 0,
     };
@@ -106,12 +106,28 @@ describe('RSocketResumableTransport', () => {
       resumeToken: null,
       streamId: 0,
       majorVersion: 1,
-      minorVersion: 0,
+      minorVersion: 1,
     };
   });
 
   it('is initially NOT_CONNECTED', () => {
     expect(resumableStatus.kind).toBe('NOT_CONNECTED');
+  });
+
+  it('errors for v1.0 setup frames', () => {
+    resumableTransport.connect();
+    currentTransport.mock.connect();
+    expect(resumableStatus.kind).toBe('CONNECTED');
+    resumableTransport.sendOne({
+      ...setupFrame,
+      majorVersion: 1,
+      minorVersion: 0,
+    });
+    expect(resumableStatus.kind).toBe('ERROR');
+    expect(resumableStatus.error.message).toBe(
+      'RSocketResumableTransport: Unsupported protocol version 1.0. This ' +
+        'class implements the v1.1 resumption protocol.',
+    );
   });
 
   describe('buffering disabled (bufferSize === 0)', () => {

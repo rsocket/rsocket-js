@@ -249,10 +249,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
   }
 
   _disconnect(): void {
-    if (this._currentConnection) {
-      this._currentConnection.close();
-      this._currentConnection = null;
-    }
     if (this._statusSubscription) {
       this._statusSubscription.cancel();
       this._statusSubscription = null;
@@ -260,6 +256,10 @@ export default class RSocketResumableTransport implements DuplexConnection {
     if (this._receiveSubscription) {
       this._receiveSubscription.cancel();
       this._receiveSubscription = null;
+    }
+    if (this._currentConnection) {
+      this._currentConnection.close();
+      this._currentConnection = null;
     }
   }
 
@@ -380,6 +380,14 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _writeFrame(frame: Frame): void {
     // Ensure that SETUP frames contain the resume token
     if (frame.type === FRAME_TYPES.SETUP) {
+      invariant(
+        frame.majorVersion > 1 ||
+          (frame.majorVersion === 1 && frame.minorVersion > 0),
+        'RSocketResumableTransport: Unsupported protocol version %s.%s. ' +
+          'This class implements the v1.1 resumption protocol.',
+        frame.majorVersion,
+        frame.minorVersion,
+      );
       frame = {
         ...frame,
         flags: frame.flags | FLAGS.RESUME_ENABLE, // eslint-disable-line no-bitwise
