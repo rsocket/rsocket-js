@@ -53,7 +53,6 @@ const packageNames = packages.map(pkg => path.basename(pkg));
 // Packages that should also be exported as Haste modules:
 const hastePackages = {
   'rsocket-core': true,
-  'rsocket-flowable': true,
   'rsocket-websocket-client': true,
 };
 

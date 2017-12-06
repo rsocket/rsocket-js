@@ -10,14 +10,15 @@
 'use strict';
 
 import Deferred from 'fbjs/lib/Deferred';
-import {genMockPublisher} from 'MockFlowableSubscription';
+
+import {UnicastProcessor} from 'reactor-core-js/flux';
 
 /**
  * Creates an object implementing the DuplexConnection interface.
  */
 export function genMockConnection() {
   const deferred = new Deferred();
-  const receiver = genMockPublisher();
+  const receiver = new UnicastProcessor();
 
   const connection = {
     close: jest.fn(() => {

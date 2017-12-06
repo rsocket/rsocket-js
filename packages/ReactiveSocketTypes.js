@@ -9,7 +9,7 @@
  * @flow
  */
 
-import type {Flowable, Single} from 'rsocket-flowable';
+import {Flux} from 'reactor-core-js/flux';
 
 /**
  * A contract providing different interaction models per the [ReactiveSocket protocol]
@@ -26,25 +26,25 @@ export interface ReactiveSocket<D, M> {
    * Request-Response interaction model of `ReactiveSocket`. The returned
    * Publisher resolves with the response.
    */
-  requestResponse(payload: Payload<D, M>): Single<Payload<D, M>>,
+  requestResponse(payload: Payload<D, M>): Flux<Payload<D, M>>,
 
   /**
    * Request-Stream interaction model of `ReactiveSocket`. The returned
    * Publisher returns values representing the response(s).
    */
-  requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>>,
+  requestStream(payload: Payload<D, M>): Flux<Payload<D, M>>,
 
   /**
    * Request-Channel interaction model of `ReactiveSocket`. The returned
    * Publisher returns values representing the response(s).
    */
-  requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>>,
+  requestChannel(payloads: Flux<Payload<D, M>>): Flux<Payload<D, M>>,
 
   /**
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(payload: Payload<D, M>): Single<void>,
+  metadataPush(payload: Payload<D, M>): Flux<void>,
 
   /**
    * Close this `ReactiveSocket` and the underlying transport connection.
@@ -78,7 +78,7 @@ export interface DuplexConnection {
    * - Implementations must signal any errors by calling `onError` on the
    *   `receive()` Publisher.
    */
-  send(input: Flowable<Frame>): void,
+  send(input: Flux<Frame>): void,
 
   /**
    * Returns a stream of all `Frame`s received on this connection.
@@ -91,7 +91,7 @@ export interface DuplexConnection {
    * - Implemenations may optionally support multi-cast receivers. Those that do
    *   not should throw if `receive` is called more than once.
    */
-  receive(): Flowable<Frame>,
+  receive(): Flux<Frame>,
 
   /**
    * Close the underlying connection, emitting `onComplete` on the receive()

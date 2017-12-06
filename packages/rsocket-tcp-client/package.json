@@ -10,7 +10,7 @@
   "main": "build/index.js",
   "dependencies": {
     "fbjs": "^0.8.12",
-    "rsocket-core": "^0.0.1",
-    "rsocket-flowable": "^0.0.1"
+    "reactor-core-js": "^0.4.0",
+    "rsocket-core": "^0.0.1"
   }
 }

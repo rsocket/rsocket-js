@@ -13,12 +13,13 @@
 
 import type {connect as SocketOptions} from 'net';
 import type {DuplexConnection, Frame} from '../../ReactiveSocketTypes';
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
+import type {Subscriber, Subscription} from 'reactor-core-js/reactivestreams-spec';
 import type {Encoders, TransportClient} from 'rsocket-core';
 
 import net from 'net';
-import {Single, Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
+import {Flux} from 'reactor-core-js/flux';
+import {DeferrendScalarSubscription} from 'reactor-core-js/subscription';
 import {
   createBuffer,
   deserializeFrames,
@@ -37,28 +38,37 @@ export default class RSocketTcpClient implements TransportClient {
     this._options = options;
   }
 
-  connect(): Single<DuplexConnection> {
-    return new Single(subscriber => {
+  connect(): Flux<DuplexConnection> {
+    const connection = new Flux();
+    connection.subscribe = subscriber => {
       const socket = net.connect(this._options);
+
+      const dsd = new DeferrendScalarSubscription(subscriber);
+      subscriber.onSubscribe({
+        cancel() : void {
+          socket.removeAllListeners();
+          socket.end();
+          dsd.cancel();
+        },
+        request(n: number) : void {
+          dsd.request(n);
+        },
+      });
       const onError = error => {
         socket.removeAllListeners();
         subscriber.onError(error);
       };
       const onComplete = () => {
         socket.removeAllListeners();
-        subscriber.onComplete(
+        dsd.complete(
           new TcpDuplexConnection(this._options, this._encoders, socket),
         );
       };
-      const remove = () => {
-        socket.removeAllListeners();
-        socket.end();
-      };
 
-      subscriber.onSubscribe(remove);
       socket.once('error', onError);
       socket.once('connect', onComplete);
-    });
+    };
+    return connection;
   }
 }
 
@@ -70,8 +80,8 @@ class TcpDuplexConnection implements DuplexConnection {
   _buffer: Buffer;
   _close: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
-  _receivers: Set<ISubscriber<Frame>>;
-  _senders: Set<ISubscription>;
+  _receivers: Set<Subscriber<Frame>>;
+  _senders: Set<Subscription>;
   _socket: net.Socket;
   _options: SocketOptions;
 
@@ -99,7 +109,7 @@ class TcpDuplexConnection implements DuplexConnection {
     this._writeFrame(frame);
   }
 
-  send(frames: Flowable<Frame>): void {
+  send(frames: Flux<Frame>): void {
     let subscription;
     frames.subscribe({
       onComplete: () => {
@@ -115,8 +125,9 @@ class TcpDuplexConnection implements DuplexConnection {
     });
   }
 
-  receive(): Flowable<Frame> {
-    return new Flowable(subject => {
+  receive(): Flux<Frame> {
+    const connection = new Flux();
+    connection.subscribe = subject => {
       subject.onSubscribe({
         cancel: () => {
           this._receivers.delete(subject);
@@ -125,7 +136,8 @@ class TcpDuplexConnection implements DuplexConnection {
           this._receivers.add(subject);
         },
       });
-    });
+    };
+    return connection;
   }
 
   close = (): void => {
@@ -166,6 +178,7 @@ class TcpDuplexConnection implements DuplexConnection {
 
   _handleError = (error: Error): void => {
     this._receivers.forEach(subscriber => subscriber.onError(error));
+    this._receivers.clear();
     this.close();
   };
 
