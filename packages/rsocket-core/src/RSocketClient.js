@@ -204,7 +204,9 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
           };
           this._connection.sendOne(cancelFrame);
         })
-        .doAfterTerminated(() => this._receivers.delete(streamId));
+        .doAfterTerminated(() => {
+          this._receivers.delete(streamId);
+        });
     });
   }
 
@@ -270,7 +272,9 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
         };
         this._connection.sendOne(cancelFrame);
       })
-      .doAfterTerminated(() => this._receivers.delete(streamId));
+      .doAfterTerminated(() => {
+        this._receivers.delete(streamId);
+      });
     });
   }
 
@@ -340,9 +344,9 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
         const error = createErrorFromFrame(frame);
         this._handleConnectionError(error);
         break;
-      case FRAME_TYPES.EXT:
+      /*case FRAME_TYPES.EXT:
         // Extensions are not supported
-        break;
+        break;*/
       case FRAME_TYPES.KEEPALIVE:
         if (isRespond(frame.flags)) {
           this._connection.sendOne({
@@ -355,20 +359,20 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       case FRAME_TYPES.LEASE:
         // TODO #18064860: support lease
         break;
-      case FRAME_TYPES.METADATA_PUSH:
+      //case FRAME_TYPES.METADATA_PUSH:
       case FRAME_TYPES.REQUEST_CHANNEL:
       case FRAME_TYPES.REQUEST_FNF:
       case FRAME_TYPES.REQUEST_RESPONSE:
       case FRAME_TYPES.REQUEST_STREAM:
         // TODO #18064706: handle requests from server, increment serverPosition
         break;
-      case FRAME_TYPES.RESERVED:
+      /*case FRAME_TYPES.RESERVED:
         // No-op
         break;
       case FRAME_TYPES.RESUME:
       case FRAME_TYPES.RESUME_OK:
         // TODO #18065016: support resumption
-        break;
+        break;*/
       default:
         if (__DEV__) {
           console.log(

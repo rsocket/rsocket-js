@@ -39,36 +39,36 @@ export default class RSocketTcpClient implements TransportClient {
   }
 
   connect(): Flux<DuplexConnection> {
-    const connection = new Flux();
-    connection.subscribe = subscriber => {
-      const socket = net.connect(this._options);
+    return Flux.from({
+      subscribe: subscriber => {
+        const socket = net.connect(this._options);
 
-      const dsd = new DeferrendScalarSubscription(subscriber);
-      subscriber.onSubscribe({
-        cancel() : void {
+        const dsd = new DeferrendScalarSubscription(subscriber);
+        subscriber.onSubscribe({
+          cancel(): void {
+            socket.removeAllListeners();
+            socket.end();
+            dsd.cancel();
+          },
+          request(n: number): void {
+            dsd.request(n);
+          },
+        });
+        const onError = error => {
           socket.removeAllListeners();
-          socket.end();
-          dsd.cancel();
-        },
-        request(n: number) : void {
-          dsd.request(n);
-        },
-      });
-      const onError = error => {
-        socket.removeAllListeners();
-        subscriber.onError(error);
-      };
-      const onComplete = () => {
-        socket.removeAllListeners();
-        dsd.complete(
-          new TcpDuplexConnection(this._options, this._encoders, socket),
-        );
-      };
+          subscriber.onError(error);
+        };
+        const onComplete = () => {
+          socket.removeAllListeners();
+          dsd.complete(
+            new TcpDuplexConnection(this._options, this._encoders, socket),
+          );
+        };
 
-      socket.once('error', onError);
-      socket.once('connect', onComplete);
-    };
-    return connection;
+        socket.once('error', onError);
+        socket.once('connect', onComplete);
+      },
+    });
   }
 }
 
@@ -126,18 +126,18 @@ class TcpDuplexConnection implements DuplexConnection {
   }
 
   receive(): Flux<Frame> {
-    const connection = new Flux();
-    connection.subscribe = subject => {
-      subject.onSubscribe({
-        cancel: () => {
-          this._receivers.delete(subject);
-        },
-        request: () => {
-          this._receivers.add(subject);
-        },
-      });
-    };
-    return connection;
+    return Flux.from({
+      subscribe: subscriber => {
+        subscriber.onSubscribe({
+          cancel: () => {
+            this._receivers.delete(subscriber);
+          },
+          request: () => {
+            this._receivers.add(subscriber);
+          },
+        });
+      },
+    });
   }
 
   close = (): void => {

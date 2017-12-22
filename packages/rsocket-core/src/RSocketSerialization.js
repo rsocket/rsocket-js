@@ -34,7 +34,7 @@ export const JsonSerializer: Serializer<*> = {
     } else if (typeof data === 'string') {
       str = data;
     } else if (Buffer.isBuffer(data)) {
-      str = data.toString('utf8');
+      str = (data: any).toString('utf8');
     } else {
       const buffer = Buffer.from(data);
       str = buffer.toString('utf8');

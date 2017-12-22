@@ -47,51 +47,51 @@ export default class RSocketWebSocketClient implements TransportClient {
   }
 
   connect(): Flux<DuplexConnection> {
-    const connection = new Flux();
-    connection.subscribe = subscriber => {
-      const socket = new WebSocket(this._options.url);
-      socket.binaryType = 'arraybuffer';
+    return Flux.from({
+      subscribe: subscriber => {
+        const socket = new WebSocket(this._options.url);
+        socket.binaryType = 'arraybuffer';
 
-      const dsd = new DeferrendScalarSubscription(subscriber);
-      subscriber.onSubscribe({
-        cancel() : void {
+        const dsd = new DeferrendScalarSubscription(subscriber);
+        subscriber.onSubscribe({
+          cancel(): void {
+            removeListeners();
+            socket.close();
+            dsd.cancel();
+          },
+          request(n: number): void {
+            dsd.request(n);
+          },
+        });
+
+        const removeListeners = () => {
+          (socket.removeEventListener: $FlowIssue)('close', onSocketClosed);
+          (socket.removeEventListener: $FlowIssue)('error', onSocketClosed);
+          (socket.removeEventListener: $FlowIssue)('open', onOpen);
+        };
+        const onSocketClosed = () => {
           removeListeners();
-          socket.close();
-          dsd.cancel();
-        },
-        request(n: number) : void {
-          dsd.request(n);
-        },
-      });
-
-      const removeListeners = () => {
-        (socket.removeEventListener: $FlowIssue)('close', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('error', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('open', onOpen);
-      };
-      const onSocketClosed = () => {
-        removeListeners();
-        subscriber.onError(
-          new Error(
-            sprintf(
-              'RSocketWebSocketClient: Failed to open connection to %s.',
-              this._options.url,
+          subscriber.onError(
+            new Error(
+              sprintf(
+                'RSocketWebSocketClient: Failed to open connection to %s.',
+                this._options.url,
+              ),
             ),
-          ),
-        );
-      };
-      const onOpen = () => {
-        removeListeners();
-        dsd.complete(
-          new WSDuplexConnection(this._options, socket, this._encoders),
-        );
-      };
+          );
+        };
+        const onOpen = () => {
+          removeListeners();
+          dsd.complete(
+            new WSDuplexConnection(this._options, socket, this._encoders),
+          );
+        };
 
-      (socket.addEventListener: $FlowIssue)('close', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('error', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('open', onOpen);
-    };
-    return connection;
+        (socket.addEventListener: $FlowIssue)('close', onSocketClosed);
+        (socket.addEventListener: $FlowIssue)('error', onSocketClosed);
+        (socket.addEventListener: $FlowIssue)('open', onOpen);
+      },
+    });
   }
 }
 
@@ -146,18 +146,18 @@ class WSDuplexConnection implements DuplexConnection {
   }
 
   receive(): Flux<Frame> {
-    const connection = new Flux();
-    connection.subscribe = subject => {
-      subject.onSubscribe({
-        cancel: () => {
-          this._receivers.delete(subject);
-        },
-        request: () => {
-          this._receivers.add(subject);
-        },
-      });
-    };
-    return connection;
+    return Flux.from({
+      subscribe: subscriber => {
+        subscriber.onSubscribe({
+          cancel: () => {
+            this._receivers.delete(subscriber);
+          },
+          request: () => {
+            this._receivers.add(subscriber);
+          },
+        });
+      },
+    });
   }
 
   close = () => {

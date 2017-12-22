@@ -11,6 +11,6 @@
   "dependencies": {
     "buffer": "^5.0.6",
     "fbjs": "^0.8.12",
-    "reactor-core-js": "^0.4.0"
+    "reactor-core-js": "^0.5.0"
   }
 }

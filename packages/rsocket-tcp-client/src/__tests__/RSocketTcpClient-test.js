@@ -196,7 +196,7 @@ describe('RSocketTcpClient', () => {
         const publisher = new UnicastProcessor();
         connection.send(publisher);
         connection.close();
-        expect(publisher.cancelled).toBe(true);
+        expect(publisher._cancelled).toBe(true);
       });
     });
 
