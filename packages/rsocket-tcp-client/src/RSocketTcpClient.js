@@ -12,9 +12,8 @@
 'use strict';
 
 import type {connect as SocketOptions} from 'net';
-import type {DuplexConnection, Frame} from '../../ReactiveSocketTypes';
 import type {Subscriber, Subscription} from 'reactor-core-js/reactivestreams-spec';
-import type {Encoders, TransportClient} from 'rsocket-core';
+import type {Encoders, TransportClient, DuplexConnection, Frame} from 'rsocket-core';
 
 import net from 'net';
 import Deferred from 'fbjs/lib/Deferred';

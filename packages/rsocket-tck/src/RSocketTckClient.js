@@ -22,7 +22,7 @@ import sprintf from 'fbjs/lib/sprintf';
 import util from 'util';
 import yargs from 'yargs';
 
-import type {Payload, ReactiveSocket} from '../../ReactiveSocketTypes';
+import type {Payload, RSocket} from 'rsocket-core';
 
 type Options = {
   host: string,
@@ -230,7 +230,7 @@ async function run(options: Options): Promise<void> {
   }
 }
 
-async function connect(options: Options): Promise<ReactiveSocket<*, *>> {
+async function connect(options: Options): Promise<RSocket<*, *>> {
   const client = new RSocketClient({
     setup: {
       dataMimeType: 'text/plain',

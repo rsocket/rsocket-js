@@ -11,7 +11,7 @@
 
 'use strict';
 
-import type {Encodable} from '../../ReactiveSocketTypes';
+import type {Encodable} from './RSocketTypes';
 
 import {Buffer} from 'buffer'; // rewritten for browsers
 import invariant from 'fbjs/lib/invariant';

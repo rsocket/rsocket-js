@@ -115,6 +115,7 @@ function buildFile(file, silent) {
     ).code;
     code = format(code);
     fs.writeFileSync(destPath, code);
+    fs.copyFileSync(file, `${destPath}.flow`);
     silent ||
       process.stdout.write(
         chalk.green('  \u2022 ') +

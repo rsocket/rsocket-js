@@ -13,7 +13,7 @@ import Deferred from 'fbjs/lib/Deferred';
 
 import nullthrows from 'fbjs/lib/nullthrows';
 
-import type {Payload} from '../../ReactiveSocketTypes';
+import type {Payload} from 'rsocket-core';
 import type {Subscriber, Subscription} from 'reactor-core-js/reactivestreams-spec';
 
 export default class RSocketTckSubscriber

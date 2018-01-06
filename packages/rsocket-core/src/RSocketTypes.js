@@ -12,42 +12,42 @@
 import {Flux} from 'reactor-core-js/flux';
 
 /**
- * A contract providing different interaction models per the [ReactiveSocket protocol]
+ * A contract providing different interaction models per the [RSocket protocol]
  (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
  */
-export interface ReactiveSocket<D, M> {
+export interface RSocket<D, M> {
   /**
-   * Fire and Forget interaction model of `ReactiveSocket`. The returned
+   * Fire and Forget interaction model of `RSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
    */
   fireAndForget(payload: Payload<D, M>): void,
 
   /**
-   * Request-Response interaction model of `ReactiveSocket`. The returned
+   * Request-Response interaction model of `RSocket`. The returned
    * Publisher resolves with the response.
    */
   requestResponse(payload: Payload<D, M>): Flux<Payload<D, M>>,
 
   /**
-   * Request-Stream interaction model of `ReactiveSocket`. The returned
+   * Request-Stream interaction model of `RSocket`. The returned
    * Publisher returns values representing the response(s).
    */
   requestStream(payload: Payload<D, M>): Flux<Payload<D, M>>,
 
   /**
-   * Request-Channel interaction model of `ReactiveSocket`. The returned
+   * Request-Channel interaction model of `RSocket`. The returned
    * Publisher returns values representing the response(s).
    */
   requestChannel(payloads: Flux<Payload<D, M>>): Flux<Payload<D, M>>,
 
   /**
-   * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
+   * Metadata-Push interaction model of `RSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
   metadataPush(payload: Payload<D, M>): Flux<void>,
 
   /**
-   * Close this `ReactiveSocket` and the underlying transport connection.
+   * Close this `RSocket` and the underlying transport connection.
    */
   close(): void,
 
@@ -61,7 +61,7 @@ export interface ReactiveSocket<D, M> {
 }
 
 /**
- * Represents a network connection with input/output used by a ReactiveSocket to
+ * Represents a network connection with input/output used by a RSocket to
  * send/receive data.
  */
 export interface DuplexConnection {
@@ -117,7 +117,7 @@ export interface DuplexConnection {
 export type Encodable = string | Buffer | Uint8Array;
 
 /**
- * A single unit of data exchanged between the peers of a `ReactiveSocket`.
+ * A single unit of data exchanged between the peers of a `RSocket`.
  */
 export type Payload<D, M> = {|
   data: ?D,

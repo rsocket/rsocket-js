@@ -14,10 +14,10 @@
 import type {
   DuplexConnection,
   Payload,
-  ReactiveSocket,
+  RSocket,
   Frame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
+} from './RSocketTypes';
 import type {Subscriber} from 'reactor-core-js/reactivestreams-spec';
 import type {Serializer} from './RSocketSerialization';
 
@@ -73,14 +73,14 @@ const RSOCKET_MINOR_VERSION = 0;
  */
 export default class RSocketClient<D, M> {
   _config: ClientConfig<D, M>;
-  _connection: ?Flux<ReactiveSocket<D, M>>;
+  _connection: ?Flux<RSocket<D, M>>;
 
   constructor(config: ClientConfig<D, M>) {
     this._config = config;
     this._connection = null;
   }
 
-  connect(): Flux<ReactiveSocket<D, M>> {
+  connect(): Flux<RSocket<D, M>> {
     invariant(
       !this._connection,
       'RSocketClient: Unexpected call to connect(), already connected.',
@@ -95,7 +95,7 @@ export default class RSocketClient<D, M> {
 /**
  * @private
  */
-class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
+class RSocketClientSocket<D, M> implements RSocket<D, M> {
   _close: Deferred<void, Error>;
   _config: ClientConfig<D, M>;
   _connection: DuplexConnection;
