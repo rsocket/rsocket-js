@@ -39,7 +39,7 @@ describe('RSocketClient', () => {
       };
       const client = new RSocketClient({transport});
       expect(transport.connect.mock.calls.length).toBe(0);
-      client.connect().consume(t => {});
+      client.connect().consume();
       expect(transport.connect.mock.calls.length).toBe(1);
       expect(() => client.connect()).toThrow('');
     });
@@ -57,7 +57,7 @@ describe('RSocketClient', () => {
           connect: () => Flux.just(connection),
         },
       });
-      client.connect().consume(t => {});
+      client.connect().consume();
       expect(connection.sendOne.mock.calls.length).toBe(1);
       expect(connection.sendOne.mock.frame).toEqual({
         type: FRAME_TYPES.SETUP,
@@ -166,7 +166,7 @@ describe('RSocketClient', () => {
       jest.runTimersToTime(keepAlive - 1);
       expect(onNext.mock.calls.length).toBe(0);
 
-      socket.requestResponse({data: null, metadata: null}).consume(t => {});
+      socket.requestResponse({data: null, metadata: null}).consume();
       const errorFrame = {
         code: 0x00000201, // application error
         flags: 0,
@@ -194,7 +194,7 @@ describe('RSocketClient', () => {
       jest.runTimersToTime(keepAlive - 1);
       expect(onNext.mock.calls.length).toBe(0);
 
-      socket.requestResponse({data: null, metadata: null}).consume(t => {});
+      socket.requestResponse({data: null, metadata: null}).consume();
       const responseFrame = {
         streamId: 1,
         type: FRAME_TYPES.PAYLOAD,
