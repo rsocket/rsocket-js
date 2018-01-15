@@ -13,7 +13,7 @@
 
 export type {ClientConfig, TransportClient} from './RSocketClient';
 
-export type {Encodable} from '../../ReactiveSocketTypes';
+export type {RSocket, DuplexConnection, Encodable, Payload, Frame} from './RSocketTypes';
 
 export type {Encoder, Encoders} from './RSocketEncoding';
 
@@ -59,8 +59,10 @@ export {
   byteLength,
   createBuffer,
   readUInt24BE,
+  readUInt64BE,
   toBuffer,
   writeUInt24BE,
+  writeUInt64BE,
 } from './RSocketBufferUtils';
 export {
   BufferEncoders,

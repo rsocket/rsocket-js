@@ -53,7 +53,6 @@ const packageNames = packages.map(pkg => path.basename(pkg));
 // Packages that should also be exported as Haste modules:
 const hastePackages = {
   'rsocket-core': true,
-  'rsocket-flowable': true,
   'rsocket-websocket-client': true,
 };
 
@@ -116,6 +115,7 @@ function buildFile(file, silent) {
     ).code;
     code = format(code);
     fs.writeFileSync(destPath, code);
+    fs.copyFileSync(file, `${destPath}.flow`);
     silent ||
       process.stdout.write(
         chalk.green('  \u2022 ') +

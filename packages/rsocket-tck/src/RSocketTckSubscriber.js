@@ -13,9 +13,11 @@ import Deferred from 'fbjs/lib/Deferred';
 
 import nullthrows from 'fbjs/lib/nullthrows';
 
-import type {Payload} from '../../ReactiveSocketTypes';
+import type {Payload} from 'rsocket-core';
+import type {Subscriber, Subscription} from 'reactor-core-js/reactivestreams-spec';
 
-export default class RSocketTckRequestResponseSubscriber {
+export default class RSocketTckSubscriber
+  implements Subscriber<Payload<*, *>> {
   _cancelled: boolean;
   _completeDefer: Deferred<void, Error>;
   _completed: boolean;
@@ -25,7 +27,7 @@ export default class RSocketTckRequestResponseSubscriber {
   _payloadCount: ?number;
   _payloadDefer: ?Deferred<void, Error>;
   _payloads: Array<Payload<*, *>>;
-  _subscription: ?any;
+  _subscription: ?Subscription;
 
   constructor(log: Function) {
     this._cancelled = false;
@@ -79,18 +81,11 @@ export default class RSocketTckRequestResponseSubscriber {
   }
 
   request(n: number): void {
-    // no-op for requestResponse()
+    nullthrows(this._subscription).request(n);
   }
 
-  onComplete(payload: Payload<*, *>): void {
+  onComplete(): void {
     this._log('onComplete');
-    this._payloads.push(payload);
-    if (this._payloadCount != null && this._payloadDefer != null) {
-      this._payloadCount--;
-      if (this._payloadCount === 0) {
-        this._payloadDefer.resolve();
-      }
-    }
     this._completed = true;
     this._completeDefer.resolve();
     this._errorDefer.reject(new Error('onComplete was called unexpectedly.'));
@@ -103,7 +98,18 @@ export default class RSocketTckRequestResponseSubscriber {
     this._completeDefer.reject(new Error('onError was called unexpectedly.'));
   }
 
-  onSubscribe(subscription: any): void {
+  onNext(payload: Payload<*, *>): void {
+    this._log('onNext: %s', JSON.stringify(payload));
+    this._payloads.push(payload);
+    if (this._payloadCount != null && this._payloadDefer != null) {
+      this._payloadCount--;
+      if (this._payloadCount === 0) {
+        this._payloadDefer.resolve();
+      }
+    }
+  }
+
+  onSubscribe(subscription: Subscription): void {
     this._log('onSubscribe');
     this._subscription = subscription;
   }

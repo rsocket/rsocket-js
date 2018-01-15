@@ -44,7 +44,7 @@ Promise.resolve(run(argv)).then(
  * when they are received. Designed for use with the
  * conditional-request-handling example at
  *
- * github.com/ReactiveSocket/reactivesocket-cpp/tree/master/examples/conditional-request-handling
+ * github.com/RSocket/reactivesocket-cpp/tree/master/examples/conditional-request-handling
  */
 async function run(options) {
   const socket = await connect(options);

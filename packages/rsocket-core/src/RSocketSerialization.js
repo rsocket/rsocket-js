@@ -11,7 +11,7 @@
 
 'use strict';
 
-import type {Encodable} from '../../ReactiveSocketTypes';
+import type {Encodable} from './RSocketTypes';
 
 import {Buffer} from 'buffer'; // rewritten for browsers
 import invariant from 'fbjs/lib/invariant';
@@ -34,7 +34,7 @@ export const JsonSerializer: Serializer<*> = {
     } else if (typeof data === 'string') {
       str = data;
     } else if (Buffer.isBuffer(data)) {
-      str = data.toString('utf8');
+      str = (data: any).toString('utf8');
     } else {
       const buffer = Buffer.from(data);
       str = buffer.toString('utf8');

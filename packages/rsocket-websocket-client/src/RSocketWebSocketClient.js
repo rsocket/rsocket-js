@@ -11,13 +11,13 @@
 
 'use strict';
 
-import type {DuplexConnection, Frame} from '../../ReactiveSocketTypes';
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
-import type {Encoders, TransportClient} from 'rsocket-core';
+import type {Subscriber, Subscription} from 'reactor-core-js/reactivestreams-spec';
+import type {Encoders, TransportClient, DuplexConnection, Frame} from 'rsocket-core';
 
 import sprintf from 'fbjs/lib/sprintf';
-import {Single, Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
+import {Flux} from 'reactor-core-js/flux';
+import {DeferrendScalarSubscription} from 'reactor-core-js/subscription';
 import {
   deserializeFrame,
   deserializeFrameWithLength,
@@ -45,41 +45,51 @@ export default class RSocketWebSocketClient implements TransportClient {
     this._options = options;
   }
 
-  connect(): Single<DuplexConnection> {
-    return new Single(subscriber => {
-      const socket = new WebSocket(this._options.url);
-      socket.binaryType = 'arraybuffer';
+  connect(): Flux<DuplexConnection> {
+    return Flux.from({
+      subscribe: subscriber => {
+        const socket = new WebSocket(this._options.url);
+        socket.binaryType = 'arraybuffer';
 
-      const removeListeners = () => {
-        (socket.removeEventListener: $FlowIssue)('close', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('error', onSocketClosed);
-        (socket.removeEventListener: $FlowIssue)('open', onOpen);
-      };
-      const onSocketClosed = () => {
-        removeListeners();
-        subscriber.onError(
-          new Error(
-            sprintf(
-              'RSocketWebSocketClient: Failed to open connection to %s.',
-              this._options.url,
+        const dsd = new DeferrendScalarSubscription(subscriber);
+        subscriber.onSubscribe({
+          cancel(): void {
+            removeListeners();
+            socket.close();
+            dsd.cancel();
+          },
+          request(n: number): void {
+            dsd.request(n);
+          },
+        });
+
+        const removeListeners = () => {
+          (socket.removeEventListener: $FlowIssue)('close', onSocketClosed);
+          (socket.removeEventListener: $FlowIssue)('error', onSocketClosed);
+          (socket.removeEventListener: $FlowIssue)('open', onOpen);
+        };
+        const onSocketClosed = () => {
+          removeListeners();
+          subscriber.onError(
+            new Error(
+              sprintf(
+                'RSocketWebSocketClient: Failed to open connection to %s.',
+                this._options.url,
+              ),
             ),
-          ),
-        );
-      };
-      const onOpen = () => {
-        removeListeners();
-        subscriber.onComplete(
-          new WSDuplexConnection(this._options, socket, this._encoders),
-        );
-      };
+          );
+        };
+        const onOpen = () => {
+          removeListeners();
+          dsd.complete(
+            new WSDuplexConnection(this._options, socket, this._encoders),
+          );
+        };
 
-      subscriber.onSubscribe(() => {
-        removeListeners();
-        socket.close();
-      });
-      (socket.addEventListener: $FlowIssue)('close', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('error', onSocketClosed);
-      (socket.addEventListener: $FlowIssue)('open', onOpen);
+        (socket.addEventListener: $FlowIssue)('close', onSocketClosed);
+        (socket.addEventListener: $FlowIssue)('error', onSocketClosed);
+        (socket.addEventListener: $FlowIssue)('open', onOpen);
+      },
     });
   }
 }
@@ -92,8 +102,8 @@ class WSDuplexConnection implements DuplexConnection {
   _close: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
-  _receivers: Set<ISubscriber<Frame>>;
-  _senders: Set<ISubscription>;
+  _receivers: Set<Subscriber<Frame>>;
+  _senders: Set<Subscription>;
   _socket: WebSocket;
 
   constructor(
@@ -118,7 +128,7 @@ class WSDuplexConnection implements DuplexConnection {
     this._writeFrame(frame);
   }
 
-  send(frames: Flowable<Frame>): void {
+  send(frames: Flux<Frame>): void {
     let subscription;
     frames.subscribe({
       onComplete: () => {
@@ -134,16 +144,18 @@ class WSDuplexConnection implements DuplexConnection {
     });
   }
 
-  receive(): Flowable<Frame> {
-    return new Flowable(subject => {
-      subject.onSubscribe({
-        cancel: () => {
-          this._receivers.delete(subject);
-        },
-        request: () => {
-          this._receivers.add(subject);
-        },
-      });
+  receive(): Flux<Frame> {
+    return Flux.from({
+      subscribe: subscriber => {
+        subscriber.onSubscribe({
+          cancel: () => {
+            this._receivers.delete(subscriber);
+          },
+          request: () => {
+            this._receivers.add(subscriber);
+          },
+        });
+      },
     });
   }
 
@@ -178,6 +190,7 @@ class WSDuplexConnection implements DuplexConnection {
 
   _handleError = (error: Error): void => {
     this._receivers.forEach(subscriber => subscriber.onError(error));
+    this._receivers.clear();
     this.close();
   };
 

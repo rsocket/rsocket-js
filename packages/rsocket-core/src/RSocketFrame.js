@@ -16,7 +16,7 @@
 import forEachObject from 'fbjs/lib/forEachObject';
 import sprintf from 'fbjs/lib/sprintf';
 
-import type {ErrorFrame, Frame} from '../../ReactiveSocketTypes';
+import type {ErrorFrame, Frame} from './RSocketTypes';
 
 export const CONNECTION_STREAM_ID = 0;
 

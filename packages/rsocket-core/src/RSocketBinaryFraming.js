@@ -26,7 +26,7 @@ import type {
   RequestResponseFrame,
   RequestStreamFrame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
+} from './RSocketTypes';
 import type {Encoders} from './RSocketEncoding';
 
 import invariant from 'fbjs/lib/invariant';

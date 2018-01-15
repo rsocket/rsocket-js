@@ -11,10 +11,7 @@
 
 import {RSocketClient} from 'rsocket-core';
 import RSocketTcpClient from 'rsocket-tcp-client';
-import RSocketTckRequestResponseSubscriber
-  from './RSocketTckRequestResponseSubscriber';
-import RSocketTckRequestStreamSubscriber
-  from './RSocketTckRequestStreamSubscriber';
+import RSocketTckSubscriber from './RSocketTckSubscriber';
 
 import areEqual from 'fbjs/lib/areEqual';
 import chalk from 'chalk';
@@ -25,7 +22,7 @@ import sprintf from 'fbjs/lib/sprintf';
 import util from 'util';
 import yargs from 'yargs';
 
-import type {Payload, ReactiveSocket} from '../../ReactiveSocketTypes';
+import type {Payload, RSocket} from 'rsocket-core';
 
 type Options = {
   host: string,
@@ -126,10 +123,10 @@ async function run(options: Options): Promise<void> {
           case 'subscribe': {
             const [type, _, data, metadata] = args; // eslint-disable-line no-unused-vars
             if (type === 'rr') {
-              subscriber = new RSocketTckRequestResponseSubscriber(log);
+              subscriber = new RSocketTckSubscriber(log);
               socket.requestResponse({data, metadata}).subscribe(subscriber);
             } else if (type === 'rs') {
-              subscriber = new RSocketTckRequestStreamSubscriber(log);
+              subscriber = new RSocketTckSubscriber(log);
               socket.requestStream({data, metadata}).subscribe(subscriber);
             } else {
               assert(false, 'Invalid `subscribe` type %s.', type);
@@ -233,7 +230,7 @@ async function run(options: Options): Promise<void> {
   }
 }
 
-async function connect(options: Options): Promise<ReactiveSocket<*, *>> {
+async function connect(options: Options): Promise<RSocket<*, *>> {
   const client = new RSocketClient({
     setup: {
       dataMimeType: 'text/plain',
@@ -247,10 +244,10 @@ async function connect(options: Options): Promise<ReactiveSocket<*, *>> {
     }),
   });
   return new Promise((resolve, reject) => {
-    client.connect().subscribe({
-      onComplete: resolve,
-      onError: reject,
-    });
+    client.connect().consume(
+      resolve,
+      reject,
+    );
   });
 }
 

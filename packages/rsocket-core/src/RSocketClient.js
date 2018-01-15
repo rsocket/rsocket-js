@@ -14,14 +14,14 @@
 import type {
   DuplexConnection,
   Payload,
-  ReactiveSocket,
+  RSocket,
   Frame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
-import type {ISubject} from '../../ReactiveStreamTypes';
+} from './RSocketTypes';
+import type {Subscriber} from 'reactor-core-js/reactivestreams-spec';
 import type {Serializer} from './RSocketSerialization';
 
-import {Flowable, Single, every} from 'rsocket-flowable';
+import {Flux, UnicastProcessor} from 'reactor-core-js/flux';
 import Deferred from 'fbjs/lib/Deferred';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
@@ -37,11 +37,12 @@ import {
   FRAME_TYPES,
   MAX_REQUEST_N,
   MAX_STREAM_ID,
+  ERROR_CODES,
 } from './RSocketFrame';
 import {IdentitySerializers} from './RSocketSerialization';
 
 export interface TransportClient {
-  connect(): Single<DuplexConnection>,
+  connect(): Flux<DuplexConnection>,
 }
 export type ClientConfig<D, M> = {|
   serializers?: {
@@ -72,14 +73,14 @@ const RSOCKET_MINOR_VERSION = 0;
  */
 export default class RSocketClient<D, M> {
   _config: ClientConfig<D, M>;
-  _connection: ?Single<ReactiveSocket<D, M>>;
+  _connection: ?Flux<RSocket<D, M>>;
 
   constructor(config: ClientConfig<D, M>) {
     this._config = config;
     this._connection = null;
   }
 
-  connect(): Single<ReactiveSocket<D, M>> {
+  connect(): Flux<RSocket<D, M>> {
     invariant(
       !this._connection,
       'RSocketClient: Unexpected call to connect(), already connected.',
@@ -94,12 +95,12 @@ export default class RSocketClient<D, M> {
 /**
  * @private
  */
-class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
+class RSocketClientSocket<D, M> implements RSocket<D, M> {
   _close: Deferred<void, Error>;
   _config: ClientConfig<D, M>;
   _connection: DuplexConnection;
   _nextStreamId: number;
-  _receivers: Map<number, ISubject<Payload<D, M>>>;
+  _receivers: Map<number, Subscriber<Payload<D, M>>>;
   _serializers: {
     data: Serializer<D>,
     metadata: Serializer<M>,
@@ -129,7 +130,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
 
     // Send KEEPALIVE frames
     const {keepAlive} = this._config.setup;
-    const keepAliveFrames = every(keepAlive).map(() => ({
+    const keepAliveFrames = Flux.interval(keepAlive, keepAlive).map(i => ({
       data: null,
       flags: FLAGS.RESPOND,
       lastReceivedPosition: this._serverPosition,
@@ -167,14 +168,13 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     this._connection.sendOne(frame);
   }
 
-  requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
-    const streamId = this._getNextStreamId();
-    return new Single(subscriber => {
-      this._receivers.set(streamId, {
-        onComplete: emptyFunction,
-        onError: error => subscriber.onError(error),
-        onNext: data => subscriber.onComplete(data),
-      });
+  requestResponse(payload: Payload<D, M>): Flux<Payload<D, M>> {
+    return Flux.defer(() => {
+      const streamId = this._getNextStreamId();
+
+      const receiver = new UnicastProcessor();
+      this._receivers.set(streamId, receiver);
+
       const data = this._serializers.data.serialize(payload.data);
       const metadata = this._serializers.metadata.serialize(payload.metadata);
       const frame = {
@@ -186,87 +186,104 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       };
       this._connection.sendOne(frame);
 
-      subscriber.onSubscribe(() => {
-        this._receivers.delete(streamId);
+      return receiver
+        .doOnError(e => {
+          const errorFrame = {
+            code: ERROR_CODES.APPLICATION_ERROR,
+            flags: 0,
+            message: e.message,
+            streamId,
+            type: FRAME_TYPES.ERROR,
+          };
+        })
+        .doOnCancel(() => {
+          const cancelFrame = {
+            flags: 0,
+            streamId,
+            type: FRAME_TYPES.CANCEL,
+          };
+          this._connection.sendOne(cancelFrame);
+        })
+        .doAfterTerminated(() => {
+          this._receivers.delete(streamId);
+        });
+    });
+  }
+
+  requestStream(payload: Payload<D, M>): Flux<Payload<D, M>> {
+    return Flux.defer(() => {
+      const streamId = this._getNextStreamId();
+
+      const receiver = new UnicastProcessor();
+      this._receivers.set(streamId, receiver);
+
+      let initialized = false;
+      return receiver.doOnRequest(n => {
+        if (n > MAX_REQUEST_N) {
+          warning(
+            false,
+            'RSocketClient: Invalid request value `%s`, the maximum ' +
+            'value supported by the RSocket protocol is `%s`. Sending ' +
+            'the maximum supported value instead.',
+            n,
+            MAX_REQUEST_N,
+          );
+          n = MAX_REQUEST_N;
+        }
+        if (initialized) {
+          const requestNFrame = {
+            flags: 0,
+            requestN: n,
+            streamId,
+            type: FRAME_TYPES.REQUEST_N,
+          };
+          this._connection.sendOne(requestNFrame);
+        } else {
+          initialized = true;
+          const data = this._serializers.data.serialize(payload.data);
+          const metadata = this._serializers.metadata.serialize(
+            payload.metadata,
+          );
+          const requestStreamFrame = {
+            data,
+            flags: payload.metadata !== undefined ? FLAGS.METADATA : 0,
+            metadata,
+            requestN: n,
+            streamId,
+            type: FRAME_TYPES.REQUEST_STREAM,
+          };
+          this._connection.sendOne(requestStreamFrame);
+        }
+      })
+      .doOnError(e => {
+        const errorFrame = {
+          code: ERROR_CODES.APPLICATION_ERROR,
+          flags: 0,
+          message: e.message,
+          streamId,
+          type: FRAME_TYPES.ERROR,
+        };
+      })
+      .doOnCancel(() => {
         const cancelFrame = {
           flags: 0,
           streamId,
           type: FRAME_TYPES.CANCEL,
         };
         this._connection.sendOne(cancelFrame);
+      })
+      .doAfterTerminated(() => {
+        this._receivers.delete(streamId);
       });
     });
   }
 
-  requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>> {
-    const streamId = this._getNextStreamId();
-    return new Flowable(
-      subscriber => {
-        this._receivers.set(streamId, subscriber);
-        let initialized = false;
-
-        subscriber.onSubscribe({
-          cancel: () => {
-            this._receivers.delete(streamId);
-            if (!initialized) {
-              return;
-            }
-            const cancelFrame = {
-              flags: 0,
-              streamId,
-              type: FRAME_TYPES.CANCEL,
-            };
-            this._connection.sendOne(cancelFrame);
-          },
-          request: n => {
-            if (n > MAX_REQUEST_N) {
-              warning(
-                false,
-                'RSocketClient: Invalid request value `%s`, the maximum ' +
-                  'value supported by the RSocket protocol is `%s`. Sending ' +
-                  'the maximum supported value instead.',
-                n,
-                MAX_REQUEST_N,
-              );
-              n = MAX_REQUEST_N;
-            }
-            if (initialized) {
-              const requestNFrame = {
-                flags: 0,
-                requestN: n,
-                streamId,
-                type: FRAME_TYPES.REQUEST_N,
-              };
-              this._connection.sendOne(requestNFrame);
-            } else {
-              initialized = true;
-              const data = this._serializers.data.serialize(payload.data);
-              const metadata = this._serializers.metadata.serialize(
-                payload.metadata,
-              );
-              const requestStreamFrame = {
-                data,
-                flags: payload.metadata !== undefined ? FLAGS.METADATA : 0,
-                metadata,
-                requestN: n,
-                streamId,
-                type: FRAME_TYPES.REQUEST_STREAM,
-              };
-              this._connection.sendOne(requestStreamFrame);
-            }
-          },
-        });
-      },
-      MAX_REQUEST_N,
-    );
-  }
-
-  requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
+  requestChannel(payloads: Flux<Payload<D, M>>): Flux<Payload<D, M>> {
     // TODO #18065296: implement requestChannel
     throw new Error('requestChannel() is not implemented');
   }
 
-  metadataPush(payload: Payload<D, M>): Single<void> {
+  metadataPush(payload: Payload<D, M>): Flux<void> {
     // TODO #18065331: implement metadataPush
     throw new Error('metadataPush() is not implemented');
   }
@@ -327,9 +344,9 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
         const error = createErrorFromFrame(frame);
         this._handleConnectionError(error);
         break;
-      case FRAME_TYPES.EXT:
+      /*case FRAME_TYPES.EXT:
         // Extensions are not supported
-        break;
+        break;*/
       case FRAME_TYPES.KEEPALIVE:
         if (isRespond(frame.flags)) {
           this._connection.sendOne({
@@ -342,20 +359,20 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       case FRAME_TYPES.LEASE:
         // TODO #18064860: support lease
         break;
-      case FRAME_TYPES.METADATA_PUSH:
+      //case FRAME_TYPES.METADATA_PUSH:
       case FRAME_TYPES.REQUEST_CHANNEL:
       case FRAME_TYPES.REQUEST_FNF:
       case FRAME_TYPES.REQUEST_RESPONSE:
       case FRAME_TYPES.REQUEST_STREAM:
         // TODO #18064706: handle requests from server, increment serverPosition
         break;
-      case FRAME_TYPES.RESERVED:
+      /*case FRAME_TYPES.RESERVED:
         // No-op
         break;
       case FRAME_TYPES.RESUME:
       case FRAME_TYPES.RESUME_OK:
         // TODO #18065016: support resumption
-        break;
+        break;*/
       default:
         if (__DEV__) {
           console.log(

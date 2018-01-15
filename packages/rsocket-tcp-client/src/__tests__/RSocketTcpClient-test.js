@@ -20,8 +20,8 @@ describe('RSocketTcpClient', () => {
     serializeFrameWithLength,
   } = require('rsocket-core');
   const {default: RSocketTcpClient} = require('../RSocketTcpClient');
-  const {genMockPublisher} = require('MockFlowableSubscription');
-  const {genMockSubscriber} = require('MockFlowableSubscriber');
+  const {genMockSubscriber} = require('MockSubscriber');
+  const {UnicastProcessor} = require('reactor-core-js/flux');
 
   beforeEach(() => {
     jest.clearAllTimers();
@@ -30,13 +30,17 @@ describe('RSocketTcpClient', () => {
   describe('connect()', () => {
     it('resolves if the socket opens successfully', () => {
       const client = new RSocketTcpClient();
-      const subscriber = genMockSubscriber();
+      const subscriber = genMockSubscriber({
+        onSubscribe(subscription) {
+          subscription.request(Number.MAX_SAFE_INTEGER);
+        },
+      });
       client.connect().subscribe(subscriber);
       net.connect.socket.emit('connect');
 
       expect(subscriber.onComplete.mock.calls.length).toBe(1);
       expect(subscriber.onError.mock.calls.length).toBe(0);
-      const connection = subscriber.onComplete.mock.calls[0][0];
+      const connection = subscriber.onNext.mock.calls[0][0];
       expect(typeof connection.close).toBe('function');
       expect(typeof connection.receive).toBe('function');
       expect(typeof connection.send).toBe('function');
@@ -59,7 +63,7 @@ describe('RSocketTcpClient', () => {
       const client = new RSocketTcpClient();
       const subscriber = genMockSubscriber();
       client.connect().subscribe(subscriber);
-      subscriber.onSubscribe.mock.calls[0][0](); // cancel
+      subscriber.mock.cancel();
       expect(net.connect.socket.end).toBeCalled();
       net.connect.socket.emit('connect');
       expect(subscriber.onComplete.mock.calls.length).toBe(0);
@@ -80,11 +84,7 @@ describe('RSocketTcpClient', () => {
     };
 
     beforeEach(() => {
-      new RSocketTcpClient().connect().subscribe({
-        onComplete(_connection) {
-          connection = _connection;
-        },
-      });
+      new RSocketTcpClient().connect().consume(_connection => connection = _connection);
       jest.runAllTimers();
       socket = net.connect.socket;
       socket.emit('connect');
@@ -98,10 +98,10 @@ describe('RSocketTcpClient', () => {
       });
 
       it('calls receive.onComplete', () => {
+        const onNext = jest.fn();
+        const onError = jest.fn();
         const onComplete = jest.fn();
-        const onSubscribe = subscription =>
-          subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onComplete, onSubscribe});
+        connection.receive().consume(onNext, onError, onComplete);
         connection.close();
         expect(onComplete.mock.calls.length).toBe(1);
       });
@@ -154,10 +154,9 @@ describe('RSocketTcpClient', () => {
       });
 
       it('calls receive.onError if the frame cannot be sent', () => {
+        const onNext = jest.fn();
         const onError = jest.fn();
-        const onSubscribe = subscription =>
-          subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onError, onSubscribe});
+        connection.receive().consume(onNext, onError);
         socket.write = () => {
           throw new Error('wtf');
         };
@@ -169,7 +168,7 @@ describe('RSocketTcpClient', () => {
     describe('send()', () => {
       it('sends frames', () => {
         const frame2 = {...frame, flags: 1};
-        const publisher = genMockPublisher();
+        const publisher = new UnicastProcessor();
         connection.send(publisher);
         publisher.onNext(frame);
         publisher.onNext(frame2);
@@ -181,24 +180,23 @@ describe('RSocketTcpClient', () => {
       });
 
       it('calls receive.onError if frames cannot be sent', () => {
+        const onNext = jest.fn();
         const onError = jest.fn();
-        const onSubscribe = subscription =>
-          subscription.request(Number.MAX_SAFE_INTEGER);
-        connection.receive().subscribe({onError, onSubscribe});
+        connection.receive().consume(onNext, onError);
         socket.write = () => {
           throw new Error('wtf');
         };
-        const publisher = genMockPublisher();
+        const publisher = new UnicastProcessor();
         connection.send(publisher);
         publisher.onNext(frame);
         expect(onError.mock.calls.length).toBe(1);
       });
 
       it('unsubscribes when closed', () => {
-        const publisher = genMockPublisher();
+        const publisher = new UnicastProcessor();
         connection.send(publisher);
         connection.close();
-        expect(publisher.cancel).toBeCalled();
+        expect(publisher._cancelled).toBe(true);
       });
     });
 

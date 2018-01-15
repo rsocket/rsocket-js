@@ -9,7 +9,7 @@
 
 'use strict';
 
-import Flowable from '../Flowable';
+import {Flux, UnicastProcessor} from 'reactor-core-js/flux';
 
 /**
  * Creates an object implementing the `Subscription` interface with mock
@@ -57,20 +57,4 @@ export function genMockSubscription(subscriber) {
     subscription.mock.totalRequested = 0;
   };
   return subscription;
-}
-
-export function genMockPublisher() {
-  let subscriber;
-  const cancel = jest.fn();
-  const request = jest.fn();
-  const publisher = new Flowable(_subscriber => {
-    subscriber = _subscriber;
-    subscriber.onSubscribe({cancel, request});
-  });
-  publisher.cancel = cancel;
-  publisher.request = request;
-  publisher.onComplete = () => subscriber.onComplete();
-  publisher.onError = error => subscriber.onError(error);
-  publisher.onNext = data => subscriber.onNext(data);
-  return publisher;
 }
