@@ -18,6 +18,7 @@ import type {
   ReactiveSocket,
   Frame,
   SetupFrame,
+  Responder,
 } from 'rsocket-types';
 import type {ISubject} from 'rsocket-types';
 import type {Serializer, PayloadSerializers} from './RSocketSerialization';
@@ -51,6 +52,7 @@ export type ClientConfig<D, M> = {|
     metadataMimeType: string,
   |},
   transport: DuplexConnection,
+  responder?: Responder<D, M>,
 |};
 
 /**
@@ -126,6 +128,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       connection,
       subscriber => connection.receive().subscribe(subscriber),
       config.serializers,
+      config.responder,
     );
 
     // Send SETUP

@@ -23,6 +23,7 @@ import FlowableTakeOperator from './FlowableTakeOperator';
 
 import invariant from 'fbjs/lib/invariant';
 import warning from 'fbjs/lib/warning';
+import emptyFunction from 'fbjs/lib/emptyFunction';
 
 export type Source<T> = (subscriber: ISubscriber<T>) => void;
 
@@ -61,6 +62,15 @@ export default class Flowable<T> implements IPublisher<T> {
         request: () => {
           subscriber.onError(error);
         },
+      });
+    });
+  }
+
+  static never<U>(): Flowable<U> {
+    return new Flowable(subscriber => {
+      subscriber.onSubscribe({
+        cancel: emptyFunction,
+        request: emptyFunction,
       });
     });
   }

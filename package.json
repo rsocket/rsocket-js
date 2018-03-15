@@ -22,8 +22,7 @@
     "lint-prettier": "node scripts/prettier.js lint",
     "prettier": "node scripts/prettier.js write",
     "tck": "yarn run build && node packages/rsocket-tck/build/index.js \"$@\"",
-    "simple-server": "yarn run build && node packages/rsocket-examples/build/SimpleServer.js \"$@\"",
-    "simple-client": "yarn run build && node packages/rsocket-examples/build/SimpleClient.js \"$@\"",
+    "simple-cli": "yarn run build && node packages/rsocket-examples/build/SimpleCli.js \"$@\"",
     "test": "f() { EXIT=0; yarn run typecheck || EXIT=$?; yarn run jest \"$@\" || EXIT=$?; exit $EXIT; }; f",
     "typecheck": "flow check packages/"
   },

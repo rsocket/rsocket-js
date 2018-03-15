@@ -55,6 +55,7 @@ import {
 } from './RSocketFrame';
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
+import type {RSocketMachine} from './RSocketMachine';
 import {createServerMachine} from './RSocketMachine';
 
 export interface TransportServer {
@@ -62,7 +63,10 @@ export interface TransportServer {
   stop(): void,
 }
 export type ServerConfig<D, M> = {|
-  getRequestHandler: (payload: Payload<D, M>) => PartialResponder<D, M>,
+  getRequestHandler: (
+    socket: ReactiveSocket<D, M>,
+    payload: Payload<D, M>,
+  ) => PartialResponder<D, M>,
   serializers?: PayloadSerializers<D, M>,
   transport: TransportServer,
 |};
@@ -145,18 +149,20 @@ export default class RSocketServer<D, M> {
             case FRAME_TYPES.SETUP:
               const serializers = this._getSerializers();
               // TODO: Handle getRequestHandler() throwing
-              const requestHandler = this._config.getRequestHandler(
-                deserializePayload(serializers, frame),
-              );
-              const socketConnection = createServerMachine(
+              const serverMachine = createServerMachine(
                 connection,
                 subscriber => {
                   swapper.swap(subscriber);
                 },
                 serializers,
-                requestHandler,
               );
-              this._connections.add(socketConnection);
+              const requestHandler = this._config.getRequestHandler(
+                serverMachine,
+                deserializePayload(serializers, frame),
+              );
+              serverMachine.setRequestHandler(requestHandler);
+
+              this._connections.add(serverMachine);
               // TODO(blom): We should subscribe to connection status
               // so we can remove the connection when it goes away
               break;

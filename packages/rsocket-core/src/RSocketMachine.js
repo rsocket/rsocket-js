@@ -61,6 +61,10 @@ class ResponderWrapper<D, M> implements Responder<D, M> {
     this._responder = responder || {};
   }
 
+  setResponder(responder: ?PartialResponder<D, M>): void {
+    this._responder = responder || {};
+  }
+
   fireAndForget(payload: Payload<D, M>): void {
     if (this._responder.fireAndForget) {
       this._responder.fireAndForget(payload);
@@ -100,13 +104,17 @@ class ResponderWrapper<D, M> implements Responder<D, M> {
   }
 }
 
+export interface RSocketMachine<D, M> extends ReactiveSocket<D, M> {
+  setRequestHandler(requestHandler: ?PartialResponder<D, M>): void,
+}
+
 export function createServerMachine<D, M>(
   connection: DuplexConnection,
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
   requestHandler?: ?PartialResponder<D, M>,
-): ReactiveSocket<D, M> {
-  return new RSocketMachine(
+): RSocketMachine<D, M> {
+  return new RSocketMachineImpl(
     'SERVER',
     connection,
     connectionPublisher,
@@ -120,8 +128,8 @@ export function createClientMachine<D, M>(
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
   requestHandler?: ?PartialResponder<D, M>,
-): ReactiveSocket<D, M> {
-  return new RSocketMachine(
+): RSocketMachine<D, M> {
+  return new RSocketMachineImpl(
     'CLIENT',
     connection,
     connectionPublisher,
@@ -130,8 +138,8 @@ export function createClientMachine<D, M>(
   );
 }
 
-class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
-  _requestHandler: Responder<D, M>;
+class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
+  _requestHandler: ResponderWrapper<D, M>;
   _connection: DuplexConnection;
   _nextStreamId: number;
   _receivers: Map<number, ISubject<Payload<D, M>>>;
@@ -173,6 +181,10 @@ class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
       onSubscribe: subscription =>
         subscription.request(Number.MAX_SAFE_INTEGER),
     });
+  }
+
+  setRequestHandler(requestHandler: ?PartialResponder<D, M>): void {
+    this._requestHandler.setResponder(requestHandler);
   }
 
   close(): void {
