@@ -29,8 +29,6 @@
   "workspaces": [
     "packages/*"
   ],
-  "dependencies": {},
-  "peerDependencies": {},
   "devDependencies": {
     "babel-cli": "^6.9.0",
     "babel-core": "^6.9.0",
@@ -58,7 +56,7 @@
     "flow-bin": "^0.66.0",
     "glob": "^7.1.1",
     "jest": "^19.0.2",
-    "lerna": "^2.0.0-rc.3",
+    "lerna": "^2.9.0",
     "object-assign": "^4.1.0",
     "prettier": "^0.22.0",
     "rollup": "^0.41.6",

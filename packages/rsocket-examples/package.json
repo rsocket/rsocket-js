@@ -2,7 +2,7 @@
   "name": "rsocket-examples",
   "private": true,
   "description": "RSocket examples",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/rsocket/rsocket-js.git"
@@ -10,10 +10,10 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "fbjs": "^0.8.12",
-    "rsocket-core": "^0.0.1",
-    "rsocket-flowable": "^0.0.1",
-    "rsocket-types": "^0.0.1",
-    "rsocket-websocket-server": "^0.0.1",
-    "rsocket-tcp-server": "^0.0.1"
+    "rsocket-core": "^0.0.2",
+    "rsocket-flowable": "^0.0.2",
+    "rsocket-tcp-server": "^0.0.2",
+    "rsocket-types": "^0.0.2",
+    "rsocket-websocket-server": "^0.0.2"
   }
 }
