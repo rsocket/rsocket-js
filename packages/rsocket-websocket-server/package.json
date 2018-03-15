@@ -1,0 +1,18 @@
+{
+  "name": "rsocket-websocket-server",
+  "description": "RSocket WebSocket server for use in node environments",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rsocket/rsocket-js.git"
+  },
+  "license": "BSD-3-Clause",
+  "main": "build/index.js",
+  "dependencies": {
+    "fbemitter": "3.0.0-alpha.1",
+    "fbjs": "^0.8.12",
+    "rsocket-core": "^0.0.0",
+    "rsocket-flowable": "^0.0.0",
+    "ws": "^2.3.1"
+  }
+}

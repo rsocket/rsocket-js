@@ -166,6 +166,11 @@ export type Frame =
   | SetupFrame
   | UnsupportedFrame;
 
+export type FrameWithData = {
+  data: ?Encodable,
+  metadata: ?Encodable,
+};
+
 // prettier-ignore
 export type CancelFrame = {|
   type: 0x09,
