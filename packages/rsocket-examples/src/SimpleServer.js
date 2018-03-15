@@ -14,12 +14,11 @@
 import Deferred from 'fbjs/lib/Deferred';
 import type {ReactiveSocket, ConnectionStatus, Payload} from 'rsocket-types';
 import {RSocketClient} from 'rsocket-core';
-import RSocketTcpClient from 'rsocket-tcp-client';
 import {RSocketServer} from 'rsocket-core';
 import {Flowable, Single} from 'rsocket-flowable';
 
-import type {ServerOptions} from 'rsocket-websocket-server';
 import RSocketWebSocketServer from 'rsocket-websocket-server';
+import RSocketTCPServer from 'rsocket-tcp-server';
 
 import yargs from 'yargs';
 
@@ -36,7 +35,18 @@ const argv = yargs
       describe: 'server port.',
       type: 'string',
     },
+    port: {
+      default: 8080,
+      describe: 'server port.',
+      type: 'string',
+    },
+    protocol: {
+      default: 'ws',
+      describe: 'the protocol.',
+      type: 'string',
+    },
   })
+  .choices('protocol', ['ws', 'tcp'])
   .help().argv;
 
 Promise.resolve(run(argv)).then(
@@ -126,6 +136,21 @@ class Responder implements ReactiveSocket<string, string> {
   }
 }
 
+type ServerOptions = {
+  host?: string,
+  port: number,
+};
+
+function getTransport(protocol: string, options: ServerOptions) {
+  switch (protocol) {
+    case 'tcp':
+      return new RSocketTCPServer({...options});
+    case 'ws':
+    default:
+      return new RSocketWebSocketServer({...options});
+  }
+}
+
 async function run(options) {
   const deferred = new Deferred();
 
@@ -138,7 +163,7 @@ async function run(options) {
     getRequestHandler: payload => {
       return new Responder();
     },
-    transport: new RSocketWebSocketServer(serverOptions),
+    transport: getTransport(options.protocol, serverOptions),
   });
   server.start();
 

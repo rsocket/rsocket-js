@@ -30,7 +30,7 @@ import {CONNECTION_STATUS} from 'rsocket-types';
 /**
  * A TCP transport client for use in node environments.
  */
-export default class RSocketTcpClient implements DuplexConnection {
+export class RSocketTcpConnection implements DuplexConnection {
   _buffer: Buffer;
   _encoders: ?Encoders<*>;
   _options: SocketOptions;
@@ -40,15 +40,20 @@ export default class RSocketTcpClient implements DuplexConnection {
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(options: SocketOptions, encoders: ?Encoders<*>) {
+  constructor(socket: ?net.Socket, encoders: ?Encoders<*>) {
     this._buffer = createBuffer(0);
     this._encoders = encoders;
-    this._options = options;
     this._receivers = new Set();
     this._senders = new Set();
-    this._socket = null;
-    this._status = CONNECTION_STATUS.NOT_CONNECTED;
     this._statusSubscribers = new Set();
+
+    if (socket) {
+      this.setupSocket(socket);
+      this._status = CONNECTION_STATUS.CONNECTED;
+    } else {
+      this._socket = null;
+      this._status = CONNECTION_STATUS.NOT_CONNECTED;
+    }
   }
 
   close(): void {
@@ -56,16 +61,12 @@ export default class RSocketTcpClient implements DuplexConnection {
   }
 
   connect(): void {
-    invariant(
-      this._status.kind === 'NOT_CONNECTED',
-      'RSocketTcpClient: Cannot connect(), a connection is already ' +
-        'established.',
-    );
-    this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-    const socket = (this._socket = net.connect(this._options));
+    throw new Error('not supported');
+  }
 
+  setupSocket(socket: net.Socket) {
+    this._socket = socket;
     socket.on('close', this._handleError);
-    socket.on('connect', this._handleOpened);
     socket.on('end', this._handleError);
     socket.on('error', this._handleError);
     socket.on('data', this._handleData);
@@ -121,13 +122,22 @@ export default class RSocketTcpClient implements DuplexConnection {
     });
   }
 
+  getConnectionState(): ConnectionStatus {
+    return this._status;
+  }
+
+  setConnectionStatus(status: ConnectionStatus): void {
+    this._status = status;
+    this._statusSubscribers.forEach(subscriber => subscriber.onNext(status));
+  }
+
   _close(error?: Error) {
     if (this._status.kind === 'CLOSED' || this._status.kind === 'ERROR') {
       // already closed
       return;
     }
     const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
-    this._setConnectionStatus(status);
+    this.setConnectionStatus(status);
     this._receivers.forEach(subscriber => {
       if (error) {
         subscriber.onError(error);
@@ -146,18 +156,9 @@ export default class RSocketTcpClient implements DuplexConnection {
     }
   }
 
-  _setConnectionStatus(status: ConnectionStatus): void {
-    this._status = status;
-    this._statusSubscribers.forEach(subscriber => subscriber.onNext(status));
-  }
-
   _handleError = (error?: ?Error): void => {
     error = error || new Error('RSocketTcpClient: Socket closed unexpectedly.');
     this._close(error);
-  };
-
-  _handleOpened = (): void => {
-    this._setConnectionStatus(CONNECTION_STATUS.CONNECTED);
   };
 
   _handleData = (chunk: Buffer): void => {
@@ -182,11 +183,6 @@ export default class RSocketTcpClient implements DuplexConnection {
 
   _writeFrame(frame: Frame): void {
     try {
-      if (__DEV__) {
-        if (this._options.debug) {
-          console.log(printFrame(frame));
-        }
-      }
       const buffer = serializeFrameWithLength(frame, this._encoders);
       invariant(
         this._socket,
@@ -197,4 +193,33 @@ export default class RSocketTcpClient implements DuplexConnection {
       this._handleError(error);
     }
   }
+}
+
+/**
+ * A TCP transport client for use in node environments.
+ */
+export class RSocketTcpClient extends RSocketTcpConnection {
+  _options: SocketOptions;
+
+  constructor(options: SocketOptions, encoders: ?Encoders<*>) {
+    super(null, encoders);
+    this._options = options;
+  }
+
+  connect(): void {
+    invariant(
+      this.getConnectionState().kind === 'NOT_CONNECTED',
+      'RSocketTcpClient: Cannot connect(), a connection is already ' +
+        'established.',
+    );
+    this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
+    const socket = net.connect(this._options);
+
+    this.setupSocket(socket);
+    socket.on('connect', this._handleOpened);
+  }
+
+  _handleOpened = (): void => {
+    this.setConnectionStatus(CONNECTION_STATUS.CONNECTED);
+  };
 }

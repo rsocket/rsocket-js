@@ -19,7 +19,7 @@ describe('RSocketTcpClient', () => {
     deserializeFrameWithLength,
     serializeFrameWithLength,
   } = require('rsocket-core');
-  const {default: RSocketTcpClient} = require('../RSocketTcpClient');
+  const {RSocketTcpClient} = require('../RSocketTcpClient');
   const {genMockPublisher} = require('MockFlowableSubscription');
   const {genMockSubscriber} = require('MockFlowableSubscriber');
 
