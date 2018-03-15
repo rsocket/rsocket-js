@@ -18,8 +18,8 @@ import type {
   ReactiveSocket,
   Frame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
-import type {ISubject} from '../../ReactiveStreamTypes';
+} from 'rsocket-types';
+import type {ISubject} from 'rsocket-types';
 import type {Serializer} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';

@@ -11,12 +11,8 @@
 
 'use strict';
 
-import type {
-  ConnectionStatus,
-  DuplexConnection,
-  Frame,
-} from '../../ReactiveSocketTypes';
-import type {IPublisher} from '../../ReactiveStreamTypes';
+import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
+import type {IPublisher} from 'rsocket-types';
 import type {Encoders, TransportServer} from 'rsocket-core';
 
 import EventEmitter from 'events';
@@ -33,7 +29,7 @@ export type ServerOptions = {|
   backlog?: number,
   server?: any,
   verifyClient?: Function,
-  handleProtocols: ?Function,
+  handleProtocols:? Function,
   handleProtocols?: Function,
   path?: string,
   noServer?: boolean,

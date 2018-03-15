@@ -15,7 +15,7 @@ export type {ClientConfig} from './RSocketClient';
 
 export type {ServerConfig, TransportServer} from './RSocketServer';
 
-export type {Encodable} from '../../ReactiveSocketTypes';
+export type {Encodable} from 'rsocket-types';
 
 export type {Encoder, Encoders} from './RSocketEncoding';
 

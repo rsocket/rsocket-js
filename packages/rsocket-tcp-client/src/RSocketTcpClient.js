@@ -12,16 +12,8 @@
 'use strict';
 
 import type {connect as SocketOptions} from 'net';
-import type {
-  ConnectionStatus,
-  DuplexConnection,
-  Frame,
-} from '../../ReactiveSocketTypes';
-import type {
-  ISubject,
-  ISubscriber,
-  ISubscription,
-} from '../../ReactiveStreamTypes';
+import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
+import type {ISubject, ISubscriber, ISubscription} from 'rsocket-types';
 import type {Encoders} from 'rsocket-core';
 
 import net from 'net';
@@ -33,7 +25,7 @@ import {
   printFrame,
   serializeFrameWithLength,
 } from 'rsocket-core';
-import {CONNECTION_STATUS} from '../../ReactiveSocketTypes';
+import {CONNECTION_STATUS} from 'rsocket-types';
 
 /**
  * A TCP transport client for use in node environments.

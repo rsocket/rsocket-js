@@ -11,16 +11,8 @@
 
 'use strict';
 
-import type {
-  ConnectionStatus,
-  DuplexConnection,
-  Frame,
-} from '../../ReactiveSocketTypes';
-import type {
-  ISubject,
-  ISubscriber,
-  ISubscription,
-} from '../../ReactiveStreamTypes';
+import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
+import type {ISubject, ISubscriber, ISubscription} from 'rsocket-types';
 import type {Encoders} from 'rsocket-core';
 
 import invariant from 'fbjs/lib/invariant';
@@ -33,7 +25,7 @@ import {
   serializeFrameWithLength,
   toBuffer,
 } from 'rsocket-core';
-import {CONNECTION_STATUS} from '../../ReactiveSocketTypes';
+import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type ClientOptions = {|
   url: string,

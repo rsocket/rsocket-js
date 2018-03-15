@@ -28,7 +28,7 @@ import type {
   ResumeFrame,
   ResumeOkFrame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
+} from 'rsocket-types';
 import type {Encoders} from './RSocketEncoding';
 
 import invariant from 'fbjs/lib/invariant';

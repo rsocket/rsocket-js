@@ -16,8 +16,8 @@ import type {
   DuplexConnection,
   Frame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
-import type {ISubject, ISubscription} from '../../ReactiveStreamTypes';
+} from 'rsocket-types';
+import type {ISubject, ISubscription} from 'rsocket-types';
 
 import {Flowable} from 'rsocket-flowable';
 import invariant from 'fbjs/lib/invariant';
@@ -28,7 +28,7 @@ import {
   FLAGS,
   FRAME_TYPES,
 } from './RSocketFrame';
-import {CONNECTION_STATUS} from '../../ReactiveSocketTypes';
+import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type Options = {|
   bufferSize: number,

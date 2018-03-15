@@ -11,7 +11,6 @@
 
 'use strict';
 
-import RSocketWebSocketServer from './RSocketWebSocketServer';
-export default RSocketWebSocketServer;
+export * from './ReactiveSocketTypes';
 
-export type {ServerOptions} from './RSocketWebSocketServer';
+export * from './ReactiveStreamTypes';

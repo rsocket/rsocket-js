@@ -13,7 +13,7 @@
 
 import nullthrows from 'fbjs/lib/nullthrows';
 
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
+import type {ISubscriber, ISubscription} from 'rsocket-types';
 
 /**
  * An operator that requests a fixed number of values from its source

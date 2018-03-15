@@ -33,7 +33,7 @@ export interface IPublisher<T> {
  */
 export interface ISubscription {
   cancel(): void,
-  request(n: number): void
+  request(n: number): void,
 }
 
 /**
@@ -66,4 +66,3 @@ export interface ISubject<T> {
   +onError: (error: Error) => void,
   +onNext: (value: T) => void,
 }
-

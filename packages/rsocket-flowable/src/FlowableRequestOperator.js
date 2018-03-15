@@ -11,7 +11,7 @@
 
 'use strict';
 
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
+import type {ISubscriber, ISubscription} from 'rsocket-types';
 
 /**
  * An operator that `request()`s the given number of items immediately upon

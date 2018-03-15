@@ -13,7 +13,7 @@ import Deferred from 'fbjs/lib/Deferred';
 
 import nullthrows from 'fbjs/lib/nullthrows';
 
-import type {Payload} from '../../ReactiveSocketTypes';
+import type {Payload} from 'rsocket-types';
 
 export default class RSocketTckRequestResponseSubscriber {
   _cancelled: boolean;

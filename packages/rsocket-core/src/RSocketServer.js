@@ -25,8 +25,8 @@ import type {
   RequestResponseFrame,
   RequestStreamFrame,
   SetupFrame,
-} from '../../ReactiveSocketTypes';
-import type {ISubject, ISubscription} from '../../ReactiveStreamTypes';
+} from 'rsocket-types';
+import type {ISubject, ISubscription} from 'rsocket-types';
 import type {Serializer} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';

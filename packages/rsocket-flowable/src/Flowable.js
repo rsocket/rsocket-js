@@ -16,7 +16,7 @@ import type {
   ISubscriber,
   IPartialSubscriber,
   ISubscription,
-} from '../../ReactiveStreamTypes';
+} from 'rsocket-types';
 
 import FlowableMapOperator from './FlowableMapOperator';
 import FlowableTakeOperator from './FlowableTakeOperator';

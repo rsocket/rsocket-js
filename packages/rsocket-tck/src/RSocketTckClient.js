@@ -25,7 +25,7 @@ import sprintf from 'fbjs/lib/sprintf';
 import util from 'util';
 import yargs from 'yargs';
 
-import type {Payload, ReactiveSocket} from '../../ReactiveSocketTypes';
+import type {Payload, ReactiveSocket} from 'rsocket-types';
 
 type Options = {
   host: string,

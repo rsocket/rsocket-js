@@ -13,8 +13,8 @@ import Deferred from 'fbjs/lib/Deferred';
 
 import nullthrows from 'fbjs/lib/nullthrows';
 
-import type {Payload} from '../../ReactiveSocketTypes';
-import type {ISubscriber, ISubscription} from '../../ReactiveStreamTypes';
+import type {Payload} from 'rsocket-types';
+import type {ISubscriber, ISubscription} from 'rsocket-types';
 
 export default class RSocketTckRequestStreamSubscriber
   implements ISubscriber<Payload<*, *>> {
