@@ -107,31 +107,28 @@ async function run(options) {
   };
 
   console.log(`Client connecting to ${options.host}:${options.port}`);
-  const socketSingle = connect(options.protocol, serverOptions);
+  // $FlowFixMe
+  const socket: ReactiveSocket<string, string> = await connect(
+    options.protocol,
+    serverOptions,
+  );
 
-  socketSingle.subscribe({
-    onComplete: socket => {
-      let subscription: ISubscription;
-      doOperation(socket, options.operation, options.payload).subscribe({
-        onComplete() {
-          console.log('onComplete()');
-          deferred.resolve();
-        },
-        onError(error) {
-          console.log('onError(%s)', error.message);
-          deferred.reject(error);
-        },
-        onNext(payload) {
-          console.log('onNext(%s)', payload.data);
-        },
-        onSubscribe(_subscription) {
-          subscription = _subscription;
-          subscription.request(MAX_STREAM_ID);
-        },
-      });
+  let subscription: ISubscription;
+  doOperation(socket, options.operation, options.payload).subscribe({
+    onComplete() {
+      console.log('onComplete()');
+      deferred.resolve();
     },
-    onError: e => {
-      console.error('Failed to connect', e);
+    onError(error) {
+      console.log('onError(%s)', error.message);
+      deferred.reject(error);
+    },
+    onNext(payload) {
+      console.log('onNext(%s)', payload.data);
+    },
+    onSubscribe(_subscription) {
+      subscription = _subscription;
+      subscription.request(MAX_STREAM_ID);
     },
   });
 

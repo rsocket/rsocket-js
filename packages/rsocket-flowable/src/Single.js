@@ -12,6 +12,7 @@
 'use strict';
 
 import warning from 'fbjs/lib/warning';
+import emptyFunction from 'fbjs/lib/emptyFunction';
 
 export type Source<T> = (subject: IFutureSubject<T>) => void;
 
@@ -134,6 +135,13 @@ export default class Single<T> {
         onError: error => subscriber.onError(error),
         onSubscribe: cancel => subscriber.onSubscribe(cancel),
       });
+    });
+  }
+
+  then(successFn?: (data: T) => void, errorFn?: (error: Error) => void): void {
+    this.subscribe({
+      onComplete: successFn || emptyFunction,
+      onError: errorFn || emptyFunction,
     });
   }
 }
