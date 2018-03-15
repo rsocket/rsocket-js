@@ -15,11 +15,9 @@ import type {
   CancelFrame,
   ConnectionStatus,
   DuplexConnection,
-  ErrorFrame,
   Frame,
   FrameWithData,
   Payload,
-  PayloadFrame,
   Responder,
   PartialResponder,
   ReactiveSocket,
@@ -27,12 +25,11 @@ import type {
   RequestNFrame,
   RequestResponseFrame,
   RequestStreamFrame,
-  SetupFrame,
 } from 'rsocket-types';
 import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
-import type {Serializer, PayloadSerializers} from './RSocketSerialization';
+import type {PayloadSerializers} from './RSocketSerialization';
 
-import {Flowable, Single, every} from 'rsocket-flowable';
+import {Flowable, Single} from 'rsocket-flowable';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
 import warning from 'fbjs/lib/warning';
@@ -49,7 +46,6 @@ import {
   MAX_REQUEST_N,
   MAX_STREAM_ID,
 } from './RSocketFrame';
-import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
 
 type Role = 'CLIENT' | 'SERVER';
@@ -540,6 +536,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   ): void {
     let flags = FLAGS.NEXT;
     if (complete) {
+      // eslint-disable-next-line no-bitwise
       flags |= FLAGS.COMPLETE;
       this._subscriptions.delete(streamId);
     }

@@ -12,50 +12,29 @@
 'use strict';
 
 import type {
-  CancelFrame,
   DuplexConnection,
-  ErrorFrame,
   Frame,
   FrameWithData,
   Payload,
-  PayloadFrame,
   ReactiveSocket,
   PartialResponder,
-  RequestFnfFrame,
-  RequestNFrame,
-  RequestResponseFrame,
-  RequestStreamFrame,
-  SetupFrame,
 } from 'rsocket-types';
 import type {
-  ISubject,
   ISubscription,
   ISubscriber,
   IPartialSubscriber,
 } from 'rsocket-types';
-import type {Serializer, PayloadSerializers} from './RSocketSerialization';
+import type {PayloadSerializers} from './RSocketSerialization';
 
-import {Flowable, Single, every} from 'rsocket-flowable';
-import Deferred from 'fbjs/lib/Deferred';
-import emptyFunction from 'fbjs/lib/emptyFunction';
+import {Flowable} from 'rsocket-flowable';
 import invariant from 'fbjs/lib/invariant';
-import warning from 'fbjs/lib/warning';
 import {
-  createErrorFromFrame,
   getFrameTypeName,
-  isComplete,
-  isNext,
-  isRespond,
   CONNECTION_STREAM_ID,
   ERROR_CODES,
-  FLAGS,
   FRAME_TYPES,
-  MAX_REQUEST_N,
-  MAX_STREAM_ID,
 } from './RSocketFrame';
-import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
-import type {RSocketMachine} from './RSocketMachine';
 import {createServerMachine} from './RSocketMachine';
 
 export interface TransportServer {

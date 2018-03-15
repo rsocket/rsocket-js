@@ -16,31 +16,15 @@ import type {
   DuplexConnection,
   Payload,
   ReactiveSocket,
-  Frame,
   SetupFrame,
   Responder,
 } from 'rsocket-types';
-import type {ISubject} from 'rsocket-types';
-import type {Serializer, PayloadSerializers} from './RSocketSerialization';
+import type {PayloadSerializers} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';
-import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
-import warning from 'fbjs/lib/warning';
-import {
-  createErrorFromFrame,
-  getFrameTypeName,
-  isComplete,
-  isNext,
-  isRespond,
-  CONNECTION_STREAM_ID,
-  FLAGS,
-  FRAME_TYPES,
-  MAX_REQUEST_N,
-  MAX_STREAM_ID,
-} from './RSocketFrame';
+import {CONNECTION_STREAM_ID, FLAGS, FRAME_TYPES} from './RSocketFrame';
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
-import {IdentitySerializers} from './RSocketSerialization';
 import {createClientMachine} from './RSocketMachine';
 
 export type ClientConfig<D, M> = {|

@@ -11,19 +11,13 @@
 
 'use strict';
 
-import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
-import type {IPublisher} from 'rsocket-types';
+import type {DuplexConnection} from 'rsocket-types';
 import type {Encoders, TransportServer} from 'rsocket-core';
 import {RSocketTcpConnection} from 'rsocket-tcp-client';
 
 import EventEmitter from 'events';
-import ws from 'ws';
 import net from 'net';
-import invariant from 'fbjs/lib/invariant';
-import sprintf from 'fbjs/lib/sprintf';
 import {Flowable} from 'rsocket-flowable';
-import Deferred from 'fbjs/lib/Deferred';
-import {deserializeFrame, serializeFrame, toBuffer} from 'rsocket-core';
 
 export type ServerOptions = {|
   host?: string,

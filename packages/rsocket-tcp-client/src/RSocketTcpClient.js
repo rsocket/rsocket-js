@@ -22,7 +22,6 @@ import invariant from 'fbjs/lib/invariant';
 import {
   createBuffer,
   deserializeFrames,
-  printFrame,
   serializeFrameWithLength,
 } from 'rsocket-core';
 import {CONNECTION_STATUS} from 'rsocket-types';

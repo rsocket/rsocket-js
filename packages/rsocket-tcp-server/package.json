@@ -1,6 +1,5 @@
 {
   "name": "rsocket-tcp-server",
-  "private": true,
   "description": "RSocket TCP server",
   "version": "0.0.1",
   "repository": {

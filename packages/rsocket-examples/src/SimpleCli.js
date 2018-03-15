@@ -9,13 +9,14 @@
  * @flow
  */
 
+/* eslint-disable sort-keys */
+
 'use strict';
 
 import Deferred from 'fbjs/lib/Deferred';
 import type {
   PartialResponder,
   ReactiveSocket,
-  ConnectionStatus,
   Payload,
   ISubscription,
 } from 'rsocket-types';
@@ -35,11 +36,6 @@ const argv = yargs
     host: {
       default: '0.0.0.0',
       describe: 'server hostname.',
-      type: 'string',
-    },
-    port: {
-      default: 8080,
-      describe: 'server port.',
       type: 'string',
     },
     port: {
@@ -76,14 +72,15 @@ const side = isClient ? 'Client' : 'Server';
 
 function make(data: string): Payload<string, string> {
   return {
-    data: data,
+    data,
     metadata: '',
   };
 }
 
 function logRequest(type: string, payload: Payload<string, string>) {
   console.log(
-    `${side} got ${type} with payload: data: ${payload.data || 'null'}, metadata: ${payload.metadata || 'null'}`,
+    `${side} got ${type} with payload: data: ${payload.data || 'null'},
+      metadata: ${payload.metadata || 'null'}`,
   );
 }
 
@@ -186,8 +183,8 @@ function connect(protocol: string, options: ServerOptions) {
       lifetime: 100000,
       metadataMimeType: 'text/plain',
     },
-    transport: getClientTransport(protocol, options),
     responder: new SymmetricResponder(),
+    transport: getClientTransport(protocol, options),
   });
   return client.connect();
 }
@@ -200,7 +197,7 @@ async function run(options) {
 
   if (!isClient) {
     const deferred = new Deferred();
-    let server = new RSocketServer({
+    const server = new RSocketServer({
       getRequestHandler: socket => {
         runOperation(socket, options);
         return new SymmetricResponder();
