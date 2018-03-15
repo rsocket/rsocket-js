@@ -33,6 +33,38 @@ export default class Flowable<T> implements IPublisher<T> {
   _max: number;
   _source: Source<T>;
 
+  static just<U>(...values: Array<U>): Flowable<U> {
+    return new Flowable(subscriber => {
+      let cancelled = false;
+      let i = 0;
+      subscriber.onSubscribe({
+        cancel: () => {
+          cancelled = true;
+        },
+        request: n => {
+          while (!cancelled && n > 0 && i < values.length) {
+            subscriber.onNext(values[i++]);
+            n--;
+          }
+          if (!cancelled && i == values.length) {
+            subscriber.onComplete();
+          }
+        },
+      });
+    });
+  }
+
+  static error<U>(error: Error): Flowable<U> {
+    return new Flowable(subscriber => {
+      subscriber.onSubscribe({
+        cancel: () => {},
+        request: () => {
+          subscriber.onError(error);
+        },
+      });
+    });
+  }
+
   constructor(source: Source<T>, max?: number = Number.MAX_SAFE_INTEGER) {
     this._max = max;
     this._source = source;

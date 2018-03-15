@@ -24,6 +24,9 @@ export type {Serializer} from './RSocketSerialization';
 import RSocketClient from './RSocketClient';
 export {RSocketClient};
 
+import RSocketServer from './RSocketServer';
+export {RSocketServer};
+
 import RSocketResumableTransport from './RSocketResumableTransport';
 export {RSocketResumableTransport};
 

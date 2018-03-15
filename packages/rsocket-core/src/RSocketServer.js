@@ -26,7 +26,12 @@ import type {
   RequestStreamFrame,
   SetupFrame,
 } from 'rsocket-types';
-import type {ISubject, ISubscription} from 'rsocket-types';
+import type {
+  ISubject,
+  ISubscription,
+  ISubscriber,
+  IPartialSubscriber,
+} from 'rsocket-types';
 import type {Serializer} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';
@@ -54,12 +59,13 @@ export interface TransportServer {
   start(): Flowable<DuplexConnection>,
   stop(): void,
 }
+type Serializers<D, M> = {
+  data: Serializer<D>,
+  metadata: Serializer<M>,
+};
 export type ServerConfig<D, M> = {|
   getRequestHandler: (payload: Payload<D, M>) => ReactiveSocket<D, M>,
-  serializers?: {
-    data: Serializer<D>,
-    metadata: Serializer<M>,
-  },
+  serializers?: Serializers<D, M>,
   transport: TransportServer,
 |};
 
@@ -92,6 +98,7 @@ export default class RSocketServer<D, M> {
       onNext: this._handleTransportConnection,
       onSubscribe: subscription => {
         this._subscription = subscription;
+        subscription.request(Number.MAX_SAFE_INTEGER);
       },
     });
   }
@@ -106,57 +113,106 @@ export default class RSocketServer<D, M> {
     );
   }
 
-  _handleTransportComplete(): void {
+  _handleTransportComplete = (): void => {
     this._handleTransportError(
       new Error('RSocketServer: Connection closed unexpectedly.'),
     );
-  }
+  };
 
-  _handleTransportError(error: Error): void {
+  _handleTransportError = (error: Error): void => {
     this._connections.forEach(connection => {
       connection.handleConnectionError(error);
     });
+  };
+
+  _handleTransportConnection = (connection: DuplexConnection): void => {
+    const swapper: SubscriberSwapper<Frame> = new SubscriberSwapper();
+    let subscription;
+    connection.receive().subscribe(
+      swapper.swap({
+        onError: error => console.error(error),
+        onNext: frame => {
+          switch (frame.type) {
+            case FRAME_TYPES.RESUME:
+              subscription && subscription.cancel();
+              connection.sendOne({
+                code: ERROR_CODES.REJECTED_RESUME,
+                flags: 0,
+                message: 'RSocketServer: RESUME not supported.',
+                streamId: CONNECTION_STREAM_ID,
+                type: FRAME_TYPES.ERROR,
+              });
+              break;
+            case FRAME_TYPES.SETUP:
+              const serializers = this._getSerializers();
+              // TODO: Handle getRequestHandler() throwing
+              const requestHandler = this._config.getRequestHandler(
+                deserializePayload(serializers, frame),
+              );
+              const socketConnection = new RSocketConnection(
+                connection,
+                subscriber => {
+                  swapper.swap(subscriber);
+                },
+                requestHandler,
+                serializers,
+              );
+              this._connections.add(socketConnection);
+              break;
+            default:
+              invariant(
+                false,
+                'RSocketServer: Expected first frame to be SETUP or RESUME, ' +
+                  'got `%s`.',
+                getFrameTypeName(frame.type),
+              );
+          }
+        },
+        onSubscribe: _subscription => {
+          subscription = _subscription;
+          subscription.request(1);
+        },
+      }),
+    );
+  };
+
+  _getSerializers(): Serializers<D, M> {
+    return this._config.serializers || (IdentitySerializers: any);
+  }
+}
+
+class SubscriberSwapper<T> implements ISubscriber<T> {
+  _target: ?IPartialSubscriber<T>;
+  _subscription: ?ISubscription;
+
+  constructor(target?: IPartialSubscriber<T>) {
+    this._target = target;
   }
 
-  _handleTransportConnection(connection: DuplexConnection): void {
-    let subscription;
-    connection.receive().subscribe({
-      onError: error => console.error(error),
-      onNext: frame => {
-        switch (frame.type) {
-          case FRAME_TYPES.RESUME:
-            subscription && subscription.cancel();
-            connection.sendOne({
-              code: ERROR_CODES.REJECTED_RESUME,
-              flags: 0,
-              message: 'RSocketServer: RESUME not supported.',
-              streamId: CONNECTION_STREAM_ID,
-              type: FRAME_TYPES.ERROR,
-            });
-            break;
-          case FRAME_TYPES.SETUP:
-            subscription && subscription.cancel();
-            const socketConnection = new RSocketConnection(
-              connection,
-              frame,
-              this._config,
-            );
-            this._connections.add(socketConnection);
-            break;
-          default:
-            invariant(
-              false,
-              'RSocketServer: Expected first frame to be SETUP or RESUME, ' +
-                'got `%s`.',
-              getFrameTypeName(frame.type),
-            );
-        }
-      },
-      onSubscribe: _subscription => {
-        subscription = _subscription;
-        subscription.request(1);
-      },
-    });
+  swap(next: IPartialSubscriber<T>): ISubscriber<T> {
+    this._target = next;
+    if (this._subscription) {
+      this._target.onSubscribe && this._target.onSubscribe(this._subscription);
+    }
+    return this;
+  }
+
+  onComplete() {
+    invariant(this._target, 'must have target');
+    this._target.onComplete && this._target.onComplete();
+  }
+  onError(error) {
+    invariant(this._target, 'must have target');
+    this._target.onError && this._target.onError(error);
+  }
+  onNext(value: T) {
+    invariant(this._target, 'must have target');
+    this._target.onNext && this._target.onNext(value);
+  }
+  onSubscribe(subscription: ISubscription) {
+    invariant(this._target, 'must have target');
+    this._subscription = subscription;
+    this._target.onSubscribe && this._target.onSubscribe(subscription);
   }
 }
 
@@ -166,25 +222,22 @@ export default class RSocketServer<D, M> {
 class RSocketConnection<D, M> {
   _connection: DuplexConnection;
   _requestHandler: ReactiveSocket<D, M>;
-  _serializers: {
-    data: Serializer<D>,
-    metadata: Serializer<M>,
-  };
+  _serializers: Serializers<D, M>;
   _subscriptions: Map<number, ISubscription>;
 
   constructor(
     connection: DuplexConnection,
-    setup: SetupFrame,
-    config: ServerConfig<D, M>,
+    publisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+    requestHandler: ReactiveSocket<D, M>,
+    serializers: Serializers<D, M>,
   ) {
-    const payload = this.deserializePayload(setup);
     this._connection = connection;
-    this._requestHandler = config.getRequestHandler(payload);
-    this._serializers = config.serializers || (IdentitySerializers: any);
+    this._requestHandler = requestHandler;
+    this._serializers = serializers;
     this._subscriptions = new Map();
 
     // Accept all frames from the client
-    connection.receive().subscribe({
+    publisher({
       onComplete: this.handleConnectionClose,
       onError: this.handleConnectionError,
       onNext: this.handleFrame,
@@ -396,9 +449,16 @@ class RSocketConnection<D, M> {
   }
 
   deserializePayload(frame: FrameWithData): Payload<D, M> {
-    return {
-      data: this._serializers.data.deserialize(frame.data),
-      metadata: this._serializers.metadata.deserialize(frame.metadata),
-    };
+    return deserializePayload(this._serializers, frame);
   }
+}
+
+function deserializePayload<D, M>(
+  serializers: Serializers<D, M>,
+  frame: FrameWithData,
+): Payload<D, M> {
+  return {
+    data: serializers.data.deserialize(frame.data),
+    metadata: serializers.metadata.deserialize(frame.metadata),
+  };
 }

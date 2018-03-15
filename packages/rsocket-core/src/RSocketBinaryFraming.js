@@ -35,6 +35,7 @@ import invariant from 'fbjs/lib/invariant';
 import {
   getFrameTypeName,
   isMetadata,
+  FLAGS,
   FLAGS_MASK,
   FRAME_TYPE_OFFFSET,
   FRAME_TYPES,
@@ -223,10 +224,10 @@ export function serializeFrame(frame: Frame, encoders?: ?Encoders<*>): Buffer {
  * - version (2x uint16 = 4)
  * - keepalive (uint32 = 4)
  * - lifetime (uint32 = 4)
- * - resume token length (uint16 = 2)
  * - mime lengths (2x uint8 = 2)
  */
-const SETUP_FIXED_SIZE = 16;
+const SETUP_FIXED_SIZE = 14;
+const RESUME_TOKEN_LENGTH_SIZE = 2;
 function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
   const resumeTokenLength = frame.resumeToken != null
     ? encoders.resumeToken.byteLength(frame.resumeToken)
@@ -241,7 +242,7 @@ function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
   const buffer = createBuffer(
     FRAME_HEADER_SIZE +
       SETUP_FIXED_SIZE + //
-      resumeTokenLength +
+      (resumeTokenLength ? RESUME_TOKEN_LENGTH_SIZE + resumeTokenLength : 0) +
       metadataMimeTypeLength +
       dataMimeTypeLength +
       payloadLength,
@@ -252,14 +253,16 @@ function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
   offset = buffer.writeUInt32BE(frame.keepAlive, offset);
   offset = buffer.writeUInt32BE(frame.lifetime, offset);
 
-  offset = buffer.writeUInt16BE(resumeTokenLength, offset);
-  if (frame.resumeToken != null) {
-    offset = encoders.resumeToken.encode(
-      frame.resumeToken,
-      buffer,
-      offset,
-      offset + resumeTokenLength,
-    );
+  if (frame.flags & FLAGS.RESUME_ENABLE) {
+    offset = buffer.writeUInt16BE(resumeTokenLength, offset);
+    if (frame.resumeToken != null) {
+      offset = encoders.resumeToken.encode(
+        frame.resumeToken,
+        buffer,
+        offset,
+        offset + resumeTokenLength,
+      );
+    }
   }
 
   offset = buffer.writeUInt8(metadataMimeTypeLength, offset);
@@ -326,21 +329,24 @@ function deserializeSetupFrame(
     lifetime,
   );
 
-  const resumeTokenLength = buffer.readInt16BE(offset);
-  offset += 2;
-  invariant(
-    resumeTokenLength >= 0 && resumeTokenLength <= MAX_RESUME_LENGTH,
-    'RSocketBinaryFraming: Invalid SETUP frame, expected resumeToken length ' +
-      'to be >= 0 and <= %s. Got `%s`.',
-    MAX_RESUME_LENGTH,
-    resumeTokenLength,
-  );
-  const resumeToken = encoders.resumeToken.decode(
-    buffer,
-    offset,
-    offset + resumeTokenLength,
-  );
-  offset += resumeTokenLength;
+  let resumeToken = null;
+  if (flags & FLAGS.RESUME_ENABLE) {
+    const resumeTokenLength = buffer.readInt16BE(offset);
+    offset += 2;
+    invariant(
+      resumeTokenLength >= 0 && resumeTokenLength <= MAX_RESUME_LENGTH,
+      'RSocketBinaryFraming: Invalid SETUP frame, expected resumeToken length ' +
+        'to be >= 0 and <= %s. Got `%s`.',
+      MAX_RESUME_LENGTH,
+      resumeTokenLength,
+    );
+    resumeToken = encoders.resumeToken.decode(
+      buffer,
+      offset,
+      offset + resumeTokenLength,
+    );
+    offset += resumeTokenLength;
+  }
 
   const metadataMimeTypeLength = buffer.readUInt8(offset);
   offset += 1;

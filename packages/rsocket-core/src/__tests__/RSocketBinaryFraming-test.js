@@ -32,7 +32,7 @@ describe('RSocketBinaryFraming', () => {
         type: FRAME_TYPES.SETUP,
         data: '<data>',
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.METADATA | FLAGS.LEASE,
+        flags: FLAGS.METADATA | FLAGS.LEASE | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: '<metadata>',
@@ -105,7 +105,7 @@ describe('RSocketBinaryFraming', () => {
         type: FRAME_TYPES.SETUP,
         data: '<data>',
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.METADATA | FLAGS.LEASE,
+        flags: FLAGS.METADATA | FLAGS.LEASE | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: '<metadata>',
@@ -120,12 +120,32 @@ describe('RSocketBinaryFraming', () => {
       expect(deserializeFrame(buffer)).toEqual(frame);
     });
 
+    it('serializes SETUP frames without resume token', () => {
+      const frame = {
+        type: FRAME_TYPES.SETUP,
+        data: '<data>',
+        dataMimeType: '<dataMimeType>',
+        flags: FLAGS.METADATA | FLAGS.LEASE,
+        keepAlive: 123,
+        lifetime: 456,
+        metadata: '<metadata>',
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 42,
+        minorVersion: 24,
+      };
+      const buffer = serializeFrame(frame);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer)).toEqual(frame);
+    });
+
     it('serializes SETUP frames with binary', () => {
       const frame = {
         type: FRAME_TYPES.SETUP,
         data: new Buffer([0x0a, 0x0b, 0x0c]),
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.METADATA | FLAGS.LEASE,
+        flags: FLAGS.METADATA | FLAGS.LEASE | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: new Buffer([0x0d, 0x0e, 0x0f]),
@@ -145,7 +165,7 @@ describe('RSocketBinaryFraming', () => {
         type: FRAME_TYPES.SETUP,
         data: null,
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.LEASE,
+        flags: FLAGS.IGNORE | FLAGS.LEASE | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: null,
@@ -165,7 +185,7 @@ describe('RSocketBinaryFraming', () => {
         type: FRAME_TYPES.SETUP,
         data: null,
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.LEASE | FLAGS.METADATA,
+        flags: FLAGS.LEASE | FLAGS.METADATA | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: '<metadata>',
@@ -185,7 +205,7 @@ describe('RSocketBinaryFraming', () => {
         type: FRAME_TYPES.SETUP,
         data: '<data>',
         dataMimeType: '<dataMimeType>',
-        flags: FLAGS.IGNORE | FLAGS.LEASE,
+        flags: FLAGS.IGNORE | FLAGS.LEASE | FLAGS.RESUME_ENABLE,
         keepAlive: 123,
         lifetime: 456,
         metadata: null,

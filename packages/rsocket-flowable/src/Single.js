@@ -75,6 +75,13 @@ export default class Single<T> {
     });
   }
 
+  static error<U>(error: Error): Single<U> {
+    return new Single(subscriber => {
+      subscriber.onSubscribe();
+      subscriber.onError(error);
+    });
+  }
+
   constructor(source: Source<T>) {
     this._source = source;
   }

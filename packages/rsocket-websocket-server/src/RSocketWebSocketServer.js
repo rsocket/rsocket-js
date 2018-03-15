@@ -29,7 +29,6 @@ export type ServerOptions = {|
   backlog?: number,
   server?: any,
   verifyClient?: Function,
-  handleProtocols:? Function,
   handleProtocols?: Function,
   path?: string,
   noServer?: boolean,
