@@ -532,7 +532,7 @@ describe('RSocketClient', () => {
       });
 
       // open -> response.next() -> response.next/complete() -> closed
-      it('publishes and completes when a next/completed payload is received', () => {
+      it('publishes and completes when next+completed payloads are received', () => {
         socket.requestStream(payload).subscribe(subscriber);
         subscriber.mock.request(42);
         const responseFrame = {

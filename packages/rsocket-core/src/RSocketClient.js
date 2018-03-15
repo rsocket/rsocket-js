@@ -40,7 +40,7 @@ import {
 } from './RSocketFrame';
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
-import {RSocketMachine} from './RSocketMachine';
+import {createClientMachine} from './RSocketMachine';
 
 export type ClientConfig<D, M> = {|
   serializers?: PayloadSerializers<D, M>,
@@ -119,13 +119,13 @@ export default class RSocketClient<D, M> {
  * @private
  */
 class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
-  _machine: RSocketMachine<D, M>;
+  _machine: ReactiveSocket<D, M>;
 
   constructor(config: ClientConfig<D, M>, connection: DuplexConnection) {
-    this._machine = new RSocketMachine(
-      'CLIENT',
-      config.serializers,
+    this._machine = createClientMachine(
       connection,
+      subscriber => connection.receive().subscribe(subscriber),
+      config.serializers,
     );
 
     // Send SETUP

@@ -11,11 +11,7 @@
 
 import type {Flowable, Single} from 'rsocket-flowable';
 
-/**
- * A contract providing different interaction models per the [ReactiveSocket protocol]
- (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
- */
-export interface ReactiveSocket<D, M> {
+export interface Responder<D, M> {
   /**
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
@@ -45,7 +41,23 @@ export interface ReactiveSocket<D, M> {
    * resolves when the passed `payload` is successfully handled.
    */
   metadataPush(payload: Payload<D, M>): Single<void>,
+}
 
+export interface PartialResponder<D, M> {
+  +fireAndForget?: (payload: Payload<D, M>) => void,
+  +requestResponse?: (payload: Payload<D, M>) => Single<Payload<D, M>>,
+  +requestStream?: (payload: Payload<D, M>) => Flowable<Payload<D, M>>,
+  +requestChannel?: (
+    payloads: Flowable<Payload<D, M>>,
+  ) => Flowable<Payload<D, M>>,
+  +metadataPush?: (payload: Payload<D, M>) => Single<void>,
+}
+
+/**
+ * A contract providing different interaction models per the [ReactiveSocket protocol]
+ (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
+ */
+export interface ReactiveSocket<D, M> extends Responder<D, M> {
   /**
    * Close this `ReactiveSocket` and the underlying transport connection.
    */

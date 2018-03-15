@@ -12,14 +12,24 @@
 'use strict';
 
 import type {
+  CancelFrame,
   ConnectionStatus,
   DuplexConnection,
-  Payload,
-  ReactiveSocket,
+  ErrorFrame,
   Frame,
+  FrameWithData,
+  Payload,
+  PayloadFrame,
+  Responder,
+  PartialResponder,
+  ReactiveSocket,
+  RequestFnfFrame,
+  RequestNFrame,
+  RequestResponseFrame,
+  RequestStreamFrame,
   SetupFrame,
 } from 'rsocket-types';
-import type {ISubject} from 'rsocket-types';
+import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
 import type {Serializer, PayloadSerializers} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';
@@ -33,6 +43,7 @@ import {
   isNext,
   isRespond,
   CONNECTION_STREAM_ID,
+  ERROR_CODES,
   FLAGS,
   FRAME_TYPES,
   MAX_REQUEST_N,
@@ -41,26 +52,110 @@ import {
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {IdentitySerializers} from './RSocketSerialization';
 
-export type Role = 'CLIENT' | 'SERVER';
+type Role = 'CLIENT' | 'SERVER';
 
-export class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
+class ResponderWrapper<D, M> implements Responder<D, M> {
+  _responder: PartialResponder<D, M>;
+
+  constructor(responder: ?PartialResponder<D, M>) {
+    this._responder = responder || {};
+  }
+
+  fireAndForget(payload: Payload<D, M>): void {
+    if (this._responder.fireAndForget) {
+      this._responder.fireAndForget(payload);
+    }
+  }
+
+  requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
+    if (this._responder.requestResponse) {
+      return this._responder.requestResponse(payload);
+    } else {
+      return Single.error(new Error('not implemented'));
+    }
+  }
+
+  requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>> {
+    if (this._responder.requestStream) {
+      return this._responder.requestStream(payload);
+    } else {
+      return Flowable.error(new Error('not implemented'));
+    }
+  }
+
+  requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
+    if (this._responder.requestChannel) {
+      return this._responder.requestChannel(payloads);
+    } else {
+      return Flowable.error(new Error('not implemented'));
+    }
+  }
+
+  metadataPush(payload: Payload<D, M>): Single<void> {
+    if (this._responder.metadataPush) {
+      return this._responder.metadataPush(payload);
+    } else {
+      return Single.error(new Error('not implemented'));
+    }
+  }
+}
+
+export function createServerMachine<D, M>(
+  connection: DuplexConnection,
+  connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+  serializers?: ?PayloadSerializers<D, M>,
+  requestHandler?: ?PartialResponder<D, M>,
+): ReactiveSocket<D, M> {
+  return new RSocketMachine(
+    'SERVER',
+    connection,
+    connectionPublisher,
+    serializers,
+    requestHandler,
+  );
+}
+
+export function createClientMachine<D, M>(
+  connection: DuplexConnection,
+  connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+  serializers?: ?PayloadSerializers<D, M>,
+  requestHandler?: ?PartialResponder<D, M>,
+): ReactiveSocket<D, M> {
+  return new RSocketMachine(
+    'CLIENT',
+    connection,
+    connectionPublisher,
+    serializers,
+    requestHandler,
+  );
+}
+
+class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
+  _requestHandler: Responder<D, M>;
   _connection: DuplexConnection;
   _nextStreamId: number;
   _receivers: Map<number, ISubject<Payload<D, M>>>;
+  _subscriptions: Map<number, ISubscription>;
   _serializers: PayloadSerializers<D, M>;
 
   constructor(
     role: Role,
-    serializers: ?PayloadSerializers<D, M>,
     connection: DuplexConnection,
+    connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+    serializers: ?PayloadSerializers<D, M>,
+    requestHandler: ?PartialResponder<D, M>,
   ) {
     this._connection = connection;
     this._nextStreamId = role === 'CLIENT' ? 1 : 2;
     this._receivers = new Map();
+    this._subscriptions = new Map();
     this._serializers = serializers || (IdentitySerializers: any);
+    this._requestHandler = new ResponderWrapper(requestHandler);
 
     // Subscribe to completion/errors before sending anything
-    this._connection.receive().subscribe({
+    connectionPublisher({
+      onComplete: this._handleTransportClose,
+      onError: this._handleError,
       onNext: this._handleFrame,
       onSubscribe: subscription =>
         subscription.request(Number.MAX_SAFE_INTEGER),
@@ -308,7 +403,19 @@ export class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
   _handleStreamFrame(streamId: number, frame: Frame): void {
     switch (frame.type) {
       case FRAME_TYPES.CANCEL:
-        // TODO #18064706: cancel requests from server
+        this._handleCancel(streamId, frame);
+        break;
+      case FRAME_TYPES.REQUEST_N:
+        this._handleRequestN(streamId, frame);
+        break;
+      case FRAME_TYPES.REQUEST_FNF:
+        this._handleFireAndForget(streamId, frame);
+        break;
+      case FRAME_TYPES.REQUEST_RESPONSE:
+        this._handleRequestResponse(streamId, frame);
+        break;
+      case FRAME_TYPES.REQUEST_STREAM:
+        this._handleRequestStream(streamId, frame);
         break;
       case FRAME_TYPES.ERROR:
         const error = createErrorFromFrame(frame);
@@ -330,9 +437,6 @@ export class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
           }
         }
         break;
-      case FRAME_TYPES.REQUEST_N:
-        // TODO #18064706: handle requests from server
-        break;
       default:
         if (__DEV__) {
           console.log(
@@ -345,6 +449,103 @@ export class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
     }
   }
 
+  _handleCancel(streamId: number, frame: CancelFrame): void {
+    const subscription = this._subscriptions.get(streamId);
+    if (subscription) {
+      subscription.cancel();
+      this._subscriptions.delete(streamId);
+    }
+  }
+
+  _handleRequestN(streamId: number, frame: RequestNFrame): void {
+    const subscription = this._subscriptions.get(streamId);
+    if (subscription) {
+      subscription.request(frame.requestN);
+    }
+  }
+
+  _handleFireAndForget(streamId: number, frame: RequestFnfFrame): void {
+    const payload = this._deserializePayload(frame);
+    this._requestHandler.fireAndForget(payload);
+  }
+
+  _handleRequestResponse(streamId: number, frame: RequestResponseFrame): void {
+    const payload = this._deserializePayload(frame);
+    this._requestHandler.requestResponse(payload).subscribe({
+      onComplete: payload => {
+        this._sendStreamPayload(streamId, payload, true);
+      },
+      onError: error => this._sendStreamError(streamId, error),
+      onSubscribe: cancel => {
+        const subscription = {
+          cancel,
+          request: emptyFunction,
+        };
+        this._subscriptions.set(streamId, subscription);
+      },
+    });
+  }
+
+  _handleRequestStream(streamId: number, frame: RequestStreamFrame): void {
+    const payload = this._deserializePayload(frame);
+    this._requestHandler.requestStream(payload).subscribe({
+      onComplete: () => this._sendStreamComplete(streamId),
+      onError: error => this._sendStreamError(streamId, error),
+      onNext: payload => this._sendStreamPayload(streamId, payload),
+      onSubscribe: subscription => {
+        this._subscriptions.set(streamId, subscription);
+        subscription.request(frame.requestN);
+      },
+    });
+  }
+
+  _sendStreamComplete(streamId: number): void {
+    this._subscriptions.delete(streamId);
+    this._connection.sendOne({
+      data: null,
+      flags: FLAGS.COMPLETE,
+      metadata: null,
+      streamId,
+      type: FRAME_TYPES.PAYLOAD,
+    });
+  }
+
+  _sendStreamError(streamId: number, error: Error): void {
+    this._subscriptions.delete(streamId);
+    this._connection.sendOne({
+      code: ERROR_CODES.APPLICATION_ERROR,
+      flags: 0,
+      message: error.message,
+      streamId,
+      type: FRAME_TYPES.ERROR,
+    });
+  }
+
+  _sendStreamPayload(
+    streamId: number,
+    payload: Payload<D, M>,
+    complete?: boolean = false,
+  ): void {
+    let flags = FLAGS.NEXT;
+    if (complete) {
+      flags |= FLAGS.COMPLETE;
+      this._subscriptions.delete(streamId);
+    }
+    const data = this._serializers.data.serialize(payload.data);
+    const metadata = this._serializers.metadata.serialize(payload.metadata);
+    this._connection.sendOne({
+      data,
+      flags,
+      metadata,
+      streamId,
+      type: FRAME_TYPES.PAYLOAD,
+    });
+  }
+
+  _deserializePayload(frame: FrameWithData): Payload<D, M> {
+    return deserializePayload(this._serializers, frame);
+  }
+
   /**
    * Handle an error specific to a stream.
    */
@@ -355,4 +556,14 @@ export class RSocketMachine<D, M> implements ReactiveSocket<D, M> {
       receiver.onError(error);
     }
   }
+}
+
+function deserializePayload<D, M>(
+  serializers: PayloadSerializers<D, M>,
+  frame: FrameWithData,
+): Payload<D, M> {
+  return {
+    data: serializers.data.deserialize(frame.data),
+    metadata: serializers.metadata.deserialize(frame.metadata),
+  };
 }

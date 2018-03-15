@@ -12,7 +12,7 @@
 'use strict';
 
 import Deferred from 'fbjs/lib/Deferred';
-import type {ReactiveSocket, ConnectionStatus, Payload} from 'rsocket-types';
+import type {PartialResponder, ConnectionStatus, Payload} from 'rsocket-types';
 import {RSocketClient} from 'rsocket-core';
 import {RSocketServer} from 'rsocket-core';
 import {Flowable, Single} from 'rsocket-flowable';
@@ -74,7 +74,7 @@ function logRequest(type: string, payload: Payload<string, string>) {
   );
 }
 
-class Responder implements ReactiveSocket<string, string> {
+class Responder implements PartialResponder<string, string> {
   /**
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
@@ -118,21 +118,6 @@ class Responder implements ReactiveSocket<string, string> {
   metadataPush(payload): Single<void> {
     logRequest('metadataPush', payload);
     return Single.error(new Error());
-  }
-
-  /**
-   * Close this `ReactiveSocket` and the underlying transport connection.
-   */
-  close(): void {}
-
-  /**
-   * Returns a Flowable that immediately publishes the current connection
-   * status and thereafter updates as it changes. Once a connection is in
-   * the CLOSED or ERROR state, it may not be connected again.
-   * Implementations must publish values per the comments on ConnectionStatus.
-   */
-  connectionStatus(): Flowable<ConnectionStatus> {
-    return Flowable.error(new Error());
   }
 }
 
