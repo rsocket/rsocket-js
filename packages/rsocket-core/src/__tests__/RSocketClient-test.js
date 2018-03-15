@@ -382,7 +382,7 @@ describe('RSocketClient', () => {
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
-        expect(error.message).toBe('RSocketClient: The connection was closed.');
+        expect(error.message).toBe('RSocket: The connection was closed.');
       });
 
       // open -> transport.close() -> closed (errors)
@@ -392,7 +392,7 @@ describe('RSocketClient', () => {
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
-        expect(error.message).toBe('RSocketClient: The connection was closed.');
+        expect(error.message).toBe('RSocket: The connection was closed.');
       });
 
       // open -> transport.error() -> closed (errors)
@@ -675,7 +675,7 @@ describe('RSocketClient', () => {
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
-        expect(error.message).toBe('RSocketClient: The connection was closed.');
+        expect(error.message).toBe('RSocket: The connection was closed.');
       });
 
       // open -> socket.close() -> closed (errors)
@@ -687,7 +687,7 @@ describe('RSocketClient', () => {
         jest.runAllTimers();
         expect(subscriber.onError.mock.calls.length).toBe(1);
         const error = subscriber.onError.mock.calls[0][0];
-        expect(error.message).toBe('RSocketClient: The connection was closed.');
+        expect(error.message).toBe('RSocket: The connection was closed.');
       });
 
       // waiting -> transport.error() -> closed (errors)

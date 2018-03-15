@@ -25,6 +25,11 @@ export type Serializer<T> = {|
   serialize: (data: ?T) => ?Encodable,
 |};
 
+export type PayloadSerializers<D, M> = {|
+  data: Serializer<D>,
+  metadata: Serializer<M>,
+|};
+
 // JSON serializer
 export const JsonSerializer: Serializer<*> = {
   deserialize: data => {
