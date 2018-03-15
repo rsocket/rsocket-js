@@ -52,7 +52,7 @@
     "eslint-plugin-react": "^6.10.3",
     "fbjs": "^0.8.1",
     "fbjs-scripts": "^0.7.1",
-    "flow-bin": "^0.43.1",
+    "flow-bin": "^0.66.0",
     "glob": "^7.1.1",
     "jest": "^19.0.2",
     "lerna": "^2.0.0-rc.3",

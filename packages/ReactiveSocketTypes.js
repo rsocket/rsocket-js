@@ -163,7 +163,8 @@ export type Frame =
   | RequestStreamFrame
   | ResumeFrame
   | ResumeOkFrame
-  | SetupFrame;
+  | SetupFrame
+  | UnsupportedFrame;
 
 // prettier-ignore
 export type CancelFrame = {|
@@ -277,4 +278,10 @@ export type SetupFrame = {|
   streamId: 0,
   majorVersion: number,
   minorVersion: number,
+|};
+// prettier-ignore
+export type UnsupportedFrame = {|
+  type: 0x3f | 0x0c | 0x00,
+  streamId: 0,
+  flags: number,
 |};
