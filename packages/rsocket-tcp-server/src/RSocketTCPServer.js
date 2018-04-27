@@ -22,6 +22,7 @@ import {Flowable} from 'rsocket-flowable';
 export type ServerOptions = {|
   host?: string,
   port: number,
+  serverFactory?: (onConnect: (socket: net.Socket) => void) => net.Server,
 |};
 
 /**
@@ -64,7 +65,8 @@ export default class RSocketTCPServer implements TransportServer {
         },
         request: n => {
           if (!server) {
-            server = net.createServer(onConnection);
+            const factory = this._options.serverFactory || net.createServer;
+            server = factory(onConnection);
             server.listen(this._options.port, this._options.host);
             server.on('error', onError);
             this._emitter.on('close', onClose);
