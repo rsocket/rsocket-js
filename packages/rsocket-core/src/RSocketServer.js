@@ -116,7 +116,6 @@ export default class RSocketServer<D, M> {
         onNext: frame => {
           switch (frame.type) {
             case FRAME_TYPES.RESUME:
-              subscription && subscription.cancel();
               connection.sendOne({
                 code: ERROR_CODES.REJECTED_RESUME,
                 flags: 0,
@@ -124,10 +123,10 @@ export default class RSocketServer<D, M> {
                 streamId: CONNECTION_STREAM_ID,
                 type: FRAME_TYPES.ERROR,
               });
+              connection.close();
               break;
             case FRAME_TYPES.SETUP:
               const serializers = this._getSerializers();
-              // TODO: Handle getRequestHandler() throwing
               const serverMachine = createServerMachine(
                 connection,
                 subscriber => {
@@ -135,13 +134,25 @@ export default class RSocketServer<D, M> {
                 },
                 serializers,
               );
-              const requestHandler = this._config.getRequestHandler(
-                serverMachine,
-                deserializePayload(serializers, frame),
-              );
-              serverMachine.setRequestHandler(requestHandler);
+              try {
+                const requestHandler = this._config.getRequestHandler(
+                  serverMachine,
+                  deserializePayload(serializers, frame),
+                );
+                serverMachine.setRequestHandler(requestHandler);
+                this._connections.add(serverMachine);
+              } catch (error) {
+                connection.sendOne({
+                  code: ERROR_CODES.REJECTED_SETUP,
+                  flags: 0,
+                  message: 'Application rejected setup, reason: ' +
+                    error.message,
+                  streamId: CONNECTION_STREAM_ID,
+                  type: FRAME_TYPES.ERROR,
+                });
+                connection.close();
+              }
 
-              this._connections.add(serverMachine);
               // TODO(blom): We should subscribe to connection status
               // so we can remove the connection when it goes away
               break;

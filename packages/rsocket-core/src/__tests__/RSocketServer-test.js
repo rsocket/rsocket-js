@@ -17,6 +17,7 @@ import {
   FLAGS_MASK,
   FRAME_TYPES,
   MAX_REQUEST_N,
+  CONNECTION_STREAM_ID,
 } from '../RSocketFrame';
 import RSocketServer from '../RSocketServer';
 import {JsonSerializers} from '../RSocketSerialization';
@@ -32,12 +33,14 @@ describe('RSocketServer', () => {
     jest.clearAllTimers();
   });
 
+  let connection;
+
   function genMockTransportServer() {
     const publisher = genMockPublisher();
     return {
       mock: {
         connect() {
-          const connection = genMockConnection();
+          connection = genMockConnection();
           publisher.onNext(connection);
           return connection;
         },
@@ -68,6 +71,43 @@ describe('RSocketServer', () => {
       });
       server.start();
       expect(() => server.start()).toThrow();
+    });
+  });
+
+  describe('RequestHandler', () => {
+    it('sends error if getRequestHandler throws', () => {
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          throw new Error('No like');
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      expect(connection.close.mock.calls.length).toBe(1);
+      expect(connection.sendOne.mock.calls.length).toBe(1);
+      expect(connection.sendOne.mock.frame).toEqual({
+        code: ERROR_CODES.REJECTED_SETUP,
+        flags: 0,
+        message: 'Application rejected setup, reason: No like',
+        streamId: CONNECTION_STREAM_ID,
+        type: FRAME_TYPES.ERROR,
+      });
     });
   });
 });
