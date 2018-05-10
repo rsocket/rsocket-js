@@ -63,40 +63,64 @@ class ResponderWrapper<D, M> implements Responder<D, M> {
 
   fireAndForget(payload: Payload<D, M>): void {
     if (this._responder.fireAndForget) {
-      this._responder.fireAndForget(payload);
+      try {
+        this._responder.fireAndForget(payload);
+      } catch (error) {
+        console.error('fireAndForget threw an exception', error);
+      }
     }
   }
 
   requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
+    let error: ?Error;
     if (this._responder.requestResponse) {
-      return this._responder.requestResponse(payload);
-    } else {
-      return Single.error(new Error('not implemented'));
+      try {
+        return this._responder.requestResponse(payload);
+      } catch (_error) {
+        console.error('requestResponse threw an exception', _error);
+        error = _error;
+      }
     }
+    return Single.error(error || new Error('not implemented'));
   }
 
   requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>> {
+    let error: ?Error;
     if (this._responder.requestStream) {
-      return this._responder.requestStream(payload);
-    } else {
-      return Flowable.error(new Error('not implemented'));
+      try {
+        return this._responder.requestStream(payload);
+      } catch (_error) {
+        console.error('requestStream threw an exception', _error);
+        error = _error;
+      }
     }
+    return Flowable.error(error || new Error('not implemented'));
   }
 
   requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
+    let error: ?Error;
     if (this._responder.requestChannel) {
-      return this._responder.requestChannel(payloads);
-    } else {
-      return Flowable.error(new Error('not implemented'));
+      try {
+        return this._responder.requestChannel(payloads);
+      } catch (_error) {
+        console.error('requestChannel threw an exception', _error);
+        error = _error;
+      }
     }
+    return Flowable.error(error || new Error('not implemented'));
   }
 
   metadataPush(payload: Payload<D, M>): Single<void> {
+    let error: ?Error;
     if (this._responder.metadataPush) {
-      return this._responder.metadataPush(payload);
-    } else {
-      return Single.error(new Error('not implemented'));
+      try {
+        return this._responder.metadataPush(payload);
+      } catch (_error) {
+        console.error('metadataPush threw an exception', _error);
+        error = _error;
+      }
     }
+    return Single.error(error || new Error('not implemented'));
   }
 }
 

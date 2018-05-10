@@ -109,5 +109,55 @@ describe('RSocketServer', () => {
         type: FRAME_TYPES.ERROR,
       });
     });
+
+    it('sends error if request handler throws', () => {
+      console.error = jest.fn()
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {
+            requestResponse: () => {
+              throw new Error('No like');
+            },
+          };
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      jest.runAllTimers();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.REQUEST_RESPONSE,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        streamId: 1,
+      });
+      expect(connection.sendOne.mock.calls.length).toBe(1);
+      expect(connection.sendOne.mock.frame).toEqual({
+        code: ERROR_CODES.APPLICATION_ERROR,
+        flags: 0,
+        message: 'No like',
+        streamId: 1,
+        type: FRAME_TYPES.ERROR,
+      });
+      expect(console.error).toHaveBeenCalled();
+    });
   });
 });
