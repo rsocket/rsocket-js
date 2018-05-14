@@ -3,6 +3,7 @@
 .*/build/haste/.*
 .*/packages/.*/node_modules/.*
 .*/node_modules/conventional-changelog-core/.*
+.*/node_modules/config-chain/test/.*
 
 [include]
 ./node_modules/fbjs/lib
