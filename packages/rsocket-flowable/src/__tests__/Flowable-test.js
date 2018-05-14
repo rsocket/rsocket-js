@@ -257,34 +257,30 @@ describe('Flowable', () => {
       expect(request.mock.calls[0][0]).toBe(1);
     });
 
-    it('queues calls to request() from within onNext()', () => {
+    it('calls request() inline from onNext()', () => {
+      let _subscriber;
       const request = jest.fn();
-      const source = sub => {
-        sub.onSubscribe({request});
-        sub.onNext(42);
+      request.mockImplementationOnce(() => {
+        _subscriber.onNext(1);
+      });
+      const source = subscriber => {
+        _subscriber = subscriber;
+        _subscriber.onSubscribe({request});
       };
       const flowable = new Flowable(source);
-      let sub;
-      const subscriber = genMockSubscriber({
-        onNext() {
-          sub.request(2);
+      let _subscription;
+      flowable.subscribe({
+        onNext(value) {
+          _subscription.request(1);
         },
-        onSubscribe(_sub) {
-          sub = _sub;
-          sub.request(1);
+        onSubscribe(subscription) {
+          _subscription = subscription;
+          _subscription.request(1);
         },
       });
-      flowable.subscribe(subscriber);
-      expect(warning.mock.calls.length).toBe(0);
-      expect(subscriber.onComplete.mock.calls.length).toBe(0);
-      expect(subscriber.onError.mock.calls.length).toBe(0);
-      expect(subscriber.onNext.mock.calls.length).toBe(1);
-      expect(subscriber.onNext.mock.calls[0][0]).toBe(42);
-      expect(request.mock.calls.length).toBe(1); // not immediately called a second time
+      expect(request.mock.calls.length).toBe(2);
       expect(request.mock.calls[0][0]).toBe(1);
-      jest.runAllTimers();
-      expect(request.mock.calls.length).toBe(2); // called after timeout
-      expect(request.mock.calls[1][0]).toBe(2);
+      expect(request.mock.calls[1][0]).toBe(1);
     });
 
     it('calls onError() if onNext() throws', () => {

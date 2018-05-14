@@ -111,7 +111,7 @@ describe('RSocketServer', () => {
     });
 
     it('sends error if request handler throws', () => {
-      console.error = jest.fn()
+      console.error = jest.fn();
       const transport = genMockTransportServer();
       const server = new RSocketServer({
         getRequestHandler: () => {

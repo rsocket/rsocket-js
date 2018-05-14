@@ -117,7 +117,6 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   constructor(subscriber?: ?IPartialSubscriber<T>, max: number) {
     this._active = false;
-    this._emitting = false;
     this._max = max;
     this._pending = 0;
     this._started = false;
@@ -184,7 +183,6 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
       );
       return;
     }
-    this._emitting = true;
     if (this._pending !== this._max) {
       this._pending--;
     }
@@ -196,7 +194,6 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
       }
       this.onError(error);
     }
-    this._emitting = false;
   }
 
   onSubscribe(subscription?: ?ISubscription): void {
@@ -243,25 +240,16 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
     if (!this._active) {
       return;
     }
-    if (this._emitting) {
-      // Prevent onNext -> request -> onNext -> request -> ... cycles in a
-      // single event loop by deferring any requests within an onNext invocation
-      // to the end of the current event loop. Uses `request` instead of
-      // `callbacks.request` to update `_pending` at the appropriate time and account
-      // for the possibility of an intervening cancellation.
-      setTimeout(() => this._request(n), 0);
+    if (n === this._max) {
+      this._pending = this._max;
     } else {
-      if (n === this._max) {
+      this._pending += n;
+      if (this._pending >= this._max) {
         this._pending = this._max;
-      } else {
-        this._pending += n;
-        if (this._pending >= this._max) {
-          this._pending = this._max;
-        }
       }
-      if (this._subscription) {
-        this._subscription.request(n);
-      }
+    }
+    if (this._subscription) {
+      this._subscription.request(n);
     }
   };
 }
