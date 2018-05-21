@@ -25,6 +25,7 @@ import {RSocketServer} from 'rsocket-core';
 import {Flowable, Single} from 'rsocket-flowable';
 
 import RSocketWebSocketServer from 'rsocket-websocket-server';
+import RSocketWebSocketClient from 'rsocket-websocket-client';
 import RSocketTCPServer from 'rsocket-tcp-server';
 import RSocketTcpClient from 'rsocket-tcp-client';
 
@@ -112,16 +113,16 @@ class SymmetricResponder implements PartialResponder<string, string> {
 }
 
 type ServerOptions = {
-  host?: string,
+  host: string,
   port: number,
 };
 
 function getServerTransport(protocol: string, options: ServerOptions) {
   switch (protocol) {
     case 'tcp':
+    default:
       return new RSocketTCPServer({...options});
     case 'ws':
-    default:
       return new RSocketWebSocketServer({...options});
   }
 }
@@ -149,6 +150,10 @@ function getClientTransport(protocol: string, options: ServerOptions) {
     case 'tcp':
     default:
       return new RSocketTcpClient({...options});
+    case 'ws':
+      return new RSocketWebSocketClient({
+        url: 'ws://' + options.host + ':' + options.port,
+      });
   }
 }
 

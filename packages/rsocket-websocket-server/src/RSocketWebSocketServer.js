@@ -122,9 +122,9 @@ class WSDuplexConnection implements DuplexConnection {
         if (!initialized) {
           return;
         }
-        this._socket.off('close', onSocketClosed);
-        this._socket.off('error', onSocketError);
-        this._socket.off('message', onMessage);
+        this._socket.removeListener('close', onSocketClosed);
+        this._socket.removeListener('error', onSocketError);
+        this._socket.removeListener('message', onMessage);
         this._socket.close();
       };
       const onSocketClosed = () => {

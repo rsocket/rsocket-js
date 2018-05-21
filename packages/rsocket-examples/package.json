@@ -14,6 +14,7 @@
     "rsocket-flowable": "^0.0.6",
     "rsocket-tcp-server": "^0.0.6",
     "rsocket-types": "^0.0.6",
-    "rsocket-websocket-server": "^0.0.6"
+    "rsocket-websocket-server": "^0.0.6",
+    "rsocket-websocket-client": "^0.0.6"
   }
 }
