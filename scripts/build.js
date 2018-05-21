@@ -42,6 +42,20 @@ function getBabelOptions(options) {
       'transform-class-properties',
       options && options.modules ? 'transform-es2015-modules-commonjs' : null,
       'transform-async-to-generator',
+      [
+        'minify-replace',
+        {
+          replacements: [
+            {
+              identifierName: '__DEV__',
+              replacement: {
+                type: 'booleanLiteral',
+                value: false,
+              },
+            },
+          ],
+        },
+      ],
     ].filter(p => !!p),
     retainLines: true,
   };
