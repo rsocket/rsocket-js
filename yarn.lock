@@ -1616,7 +1616,7 @@ eslint-config-fbjs@^2.0.0-alpha.1:
   version "2.0.0-alpha.1"
   resolved eslint-config-fbjs-2.0.0-alpha.1.tgz#addda12e1e68cec9271436df01ddcfe67bd1e88d
 
-eslint-plugin-babel@^4.0.0, eslint-plugin-babel@^4.1.1:
+eslint-plugin-babel@^4.0.0:
   version "4.1.1"
   resolved eslint-plugin-babel-4.1.1.tgz#ef285c87039b67beb3bbd227f5b0eed4fb376b87
 

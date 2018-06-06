@@ -47,7 +47,6 @@
     "chalk": "^1.1.3",
     "eslint": "^3.17.1",
     "eslint-config-fb-strict": "^19.0.1",
-    "eslint-plugin-babel": "^4.1.1",
     "eslint-plugin-flowtype": "^2.30.3",
     "eslint-plugin-jasmine": "^2.2.0",
     "eslint-plugin-prefer-object-spread": "^1.1.0",
