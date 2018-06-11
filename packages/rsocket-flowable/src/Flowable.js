@@ -80,7 +80,15 @@ export default class Flowable<T> implements IPublisher<T> {
     this._source = source;
   }
 
-  subscribe(partialSubscriber?: ?IPartialSubscriber<T>): void {
+  subscribe(
+    subscriberOrCallback?: ?(IPartialSubscriber<T> | ((T) => void)),
+  ): void {
+    let partialSubscriber: ?IPartialSubscriber<T>;
+    if (typeof subscriberOrCallback === 'function') {
+      partialSubscriber = this._wrapCallback(subscriberOrCallback);
+    } else {
+      partialSubscriber = subscriberOrCallback;
+    }
     const subscriber = new FlowableSubscriber(partialSubscriber, this._max);
     this._source(subscriber);
   }
@@ -100,6 +108,16 @@ export default class Flowable<T> implements IPublisher<T> {
     return this.lift(
       subscriber => new FlowableTakeOperator(subscriber, toTake),
     );
+  }
+
+  _wrapCallback(callback: (T) => void): IPartialSubscriber<T> {
+    const max = this._max;
+    return {
+      onNext: callback,
+      onSubscribe(subscription) {
+        subscription.request(max);
+      },
+    };
   }
 }
 

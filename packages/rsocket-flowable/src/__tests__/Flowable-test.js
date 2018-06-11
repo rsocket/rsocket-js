@@ -257,6 +257,25 @@ describe('Flowable', () => {
       expect(request.mock.calls[0][0]).toBe(1);
     });
 
+    it('allows simple callback', () => {
+      let _subscriber;
+      const request = jest.fn();
+      request.mockImplementationOnce(() => {
+        _subscriber.onNext(1);
+      });
+      const source = subscriber => {
+        _subscriber = subscriber;
+        _subscriber.onSubscribe({request});
+      };
+      const flowable = new Flowable(source);
+      const callback = jest.fn();
+      flowable.subscribe(callback);
+      expect(request.mock.calls.length).toBe(1);
+      expect(request.mock.calls[0][0]).toBe(Number.MAX_SAFE_INTEGER);
+      expect(callback.mock.calls.length).toBe(1);
+      expect(callback.mock.calls[0][0]).toBe(1);
+    });
+
     it('calls request() inline from onNext()', () => {
       let _subscriber;
       const request = jest.fn();
