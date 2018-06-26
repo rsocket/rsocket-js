@@ -39,35 +39,41 @@ export default class RSocketWebSocketClient implements DuplexConnection {
   _url: string;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
+  _wsCreator: (url: string, options: ClientOptions) => any;
   _receivers: Set<ISubscriber<Frame>>;
   _senders: Set<ISubscription>;
   _socket: ?WebSocket;
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(url: string, options: ClientOptions, encoders: ?Encoders<*>) {
-    this._url = url;
-    this._encoders = encoders;
-    this._options = options;
-    this._receivers = new Set();
-    this._senders = new Set();
-    this._socket = null;
-    this._status = CONNECTION_STATUS.NOT_CONNECTED;
-    this._statusSubscribers = new Set();
+  constructor(url: string,
+    options: ClientOptions,
+    wsCreator: (url: string, options: ClientOptions) => any,
+    encoders: ?Encoders<*>) {
+
+      this._url = url;
+      this._encoders = encoders;
+      this._options = options;
+      this._wsCreator = wsCreator;
+      this._receivers = new Set();
+      this._senders = new Set();
+      this._socket = null;
+      this._status = CONNECTION_STATUS.NOT_CONNECTED;
+      this._statusSubscribers = new Set();
   }
 
   close(): void {
     this._close();
   }
 
-  connect(WebSocketCreator: (url: string, options: ClientOptions) => any): void {
+  connect(): void {
     invariant(
       this._status.kind === 'NOT_CONNECTED',
       'RSocketWebSocketClient: Cannot connect(), a connection is already ' +
         'established.',
     );
     this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-    const socket = (this._socket = WebSocketCreator(this._url, this._options));
+    const socket = (this._socket = this._wsCreator(this._url, this._options));
     socket.binaryType = 'arraybuffer';
 
     (socket.addEventListener: $FlowIssue)('close', this._handleClosed);

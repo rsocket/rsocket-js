@@ -115,7 +115,7 @@ export interface DuplexConnection {
    * Open the underlying connection. Throws if the connection is already in
    * the CLOSED or ERROR state.
    */
-  connect(any): void,
+  connect(): void,
 
   /**
    * Returns a Flowable that immediately publishes the current connection
