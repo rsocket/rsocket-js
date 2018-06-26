@@ -36,6 +36,7 @@ export type ClientOptions = {|
  * A WebSocket transport client for use in browser environments.
  */
 export default class RSocketWebSocketClient implements DuplexConnection {
+  _url: string;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
   _receivers: Set<ISubscriber<Frame>>;
@@ -59,14 +60,14 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     this._close();
   }
 
-  connect(): void {
+  connect(WebSocketCreator: (url: string, options: ClientOptions) => any): void {
     invariant(
       this._status.kind === 'NOT_CONNECTED',
       'RSocketWebSocketClient: Cannot connect(), a connection is already ' +
         'established.',
     );
     this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-    const socket = (this._socket = new WebSocket(this._url, this._options);
+    const socket = (this._socket = WebSocketCreator(this._url, this._options));
     socket.binaryType = 'arraybuffer';
 
     (socket.addEventListener: $FlowIssue)('close', this._handleClosed);
