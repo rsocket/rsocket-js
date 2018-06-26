@@ -50,7 +50,6 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     options: ClientOptions,
     wsCreator: (url: string, options: ClientOptions) => any,
     encoders: ?Encoders<*>) {
-
       this._url = url;
       this._encoders = encoders;
       this._options = options;
