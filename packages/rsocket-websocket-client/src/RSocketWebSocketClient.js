@@ -28,6 +28,9 @@ import {
 import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type ClientOptions = {|
+  url: string,
+  wsOptions?: {},
+  wsCreator?: (url: string, wsOptions?: {}) => WebSocket;
   debug?: boolean,
   lengthPrefixedFrames?: boolean,
 |};
@@ -36,24 +39,17 @@ export type ClientOptions = {|
  * A WebSocket transport client for use in browser environments.
  */
 export default class RSocketWebSocketClient implements DuplexConnection {
-  _url: string;
   _encoders: ?Encoders<*>;
   _options: ClientOptions;
-  _wsCreator: (url: string, options: ClientOptions) => any;
   _receivers: Set<ISubscriber<Frame>>;
   _senders: Set<ISubscription>;
   _socket: ?WebSocket;
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(url: string,
-    options: ClientOptions,
-    wsCreator: (url: string, options: ClientOptions) => any,
-    encoders: ?Encoders<*>) {
-      this._url = url;
+  constructor(options: ClientOptions, encoders: ?Encoders<*>) {
       this._encoders = encoders;
       this._options = options;
-      this._wsCreator = wsCreator;
       this._receivers = new Set();
       this._senders = new Set();
       this._socket = null;
@@ -72,7 +68,17 @@ export default class RSocketWebSocketClient implements DuplexConnection {
         'established.',
     );
     this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-    const socket = (this._socket = this._wsCreator(this._url, this._options));
+
+    const wsCreator = this._options.wsCreator;
+    const url = this._options.url;
+    const wsOptions = this._options.wsOptions;
+    if (wsCreator) {
+      this._socket = wsCreator(url, wsOptions);
+    } else {
+      this._socket = new WebSocket(url);
+    }
+
+    const socket = this._socket;
     socket.binaryType = 'arraybuffer';
 
     (socket.addEventListener: $FlowIssue)('close', this._handleClosed);
