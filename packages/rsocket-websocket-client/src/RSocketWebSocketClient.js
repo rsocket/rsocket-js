@@ -29,8 +29,7 @@ import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type ClientOptions = {|
   url: string,
-  wsOptions?: {},
-  wsCreator?: (url: string, wsOptions?: {}) => WebSocket;
+  wsCreator?: (url: string) => WebSocket;
   debug?: boolean,
   lengthPrefixedFrames?: boolean,
 |};
@@ -48,13 +47,13 @@ export default class RSocketWebSocketClient implements DuplexConnection {
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
   constructor(options: ClientOptions, encoders: ?Encoders<*>) {
-      this._encoders = encoders;
-      this._options = options;
-      this._receivers = new Set();
-      this._senders = new Set();
-      this._socket = null;
-      this._status = CONNECTION_STATUS.NOT_CONNECTED;
-      this._statusSubscribers = new Set();
+    this._encoders = encoders;
+    this._options = options;
+    this._receivers = new Set();
+    this._senders = new Set();
+    this._socket = null;
+    this._status = CONNECTION_STATUS.NOT_CONNECTED;
+    this._statusSubscribers = new Set();
   }
 
   close(): void {
@@ -71,12 +70,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
 
     const wsCreator = this._options.wsCreator;
     const url = this._options.url;
-    const wsOptions = this._options.wsOptions;
-    if (wsCreator) {
-      this._socket = wsCreator(url, wsOptions);
-    } else {
-      this._socket = new WebSocket(url);
-    }
+    this._socket = wsCreator ? wsCreator(url) : new WebSocket(url);
 
     const socket = this._socket;
     socket.binaryType = 'arraybuffer';
