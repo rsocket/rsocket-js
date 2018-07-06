@@ -36,6 +36,7 @@ import RSocketTCPServer from 'rsocket-tcp-server';
 import RSocketTcpClient from 'rsocket-tcp-client';
 
 import yargs from 'yargs';
+import WebSocket from 'ws';
 
 const argv = yargs
   .usage('$0 --host <host> --port <port>')
@@ -159,6 +160,9 @@ function getClientTransport(protocol: string, options: ServerOptions) {
     case 'ws':
       return new RSocketWebSocketClient({
         url: 'ws://' + options.host + ':' + options.port,
+        wsCreator: url => {
+          return new WebSocket(url);
+        },
       });
   }
 }
@@ -226,6 +230,9 @@ async function run(options) {
       options.protocol,
       serverOptions,
     );
+    socket.connectionStatus().subscribe(status => {
+      console.log('Connection status:', status);
+    });
 
     return runOperation(socket, options);
   }

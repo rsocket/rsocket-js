@@ -35,7 +35,7 @@ import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type ClientOptions = {|
   url: string,
-  wsCreator?: (url: string) => WebSocket;
+  wsCreator?: (url: string) => WebSocket,
   debug?: boolean,
   lengthPrefixedFrames?: boolean,
 |};
@@ -82,7 +82,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     socket.binaryType = 'arraybuffer';
 
     (socket.addEventListener: $FlowIssue)('close', this._handleClosed);
-    (socket.addEventListener: $FlowIssue)('error', this._handleClosed);
+    (socket.addEventListener: $FlowIssue)('error', this._handleError);
     (socket.addEventListener: $FlowIssue)('open', this._handleOpened);
     (socket.addEventListener: $FlowIssue)('message', this._handleMessage);
   }
@@ -170,14 +170,16 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     this._statusSubscribers.forEach(subscriber => subscriber.onNext(status));
   }
 
-  _handleClosed = (): void => {
+  _handleClosed = (e: {reason?: string}): void => {
     this._close(
-      new Error('RSocketWebSocketClient: Socket closed unexpectedly.'),
+      new Error(
+        e.reason || 'RSocketWebSocketClient: Socket closed unexpectedly.',
+      ),
     );
   };
 
-  _handleError = (error: Error): void => {
-    this._close(error);
+  _handleError = (e: {error: Error}): void => {
+    this._close(e.error);
   };
 
   _handleOpened = (): void => {
@@ -189,7 +191,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
       const frame = this._readFrame(message);
       this._receivers.forEach(subscriber => subscriber.onNext(frame));
     } catch (error) {
-      this._handleError(error);
+      this._close(error);
     }
   };
 
@@ -222,7 +224,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
       );
       this._socket.send(buffer);
     } catch (error) {
-      this._handleError(error);
+      this._close(error);
     }
   }
 }

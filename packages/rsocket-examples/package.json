@@ -15,6 +15,7 @@
     "rsocket-tcp-server": "^0.0.7",
     "rsocket-types": "^0.0.7",
     "rsocket-websocket-client": "^0.0.7",
-    "rsocket-websocket-server": "^0.0.7"
+    "rsocket-websocket-server": "^0.0.7",
+    "ws": "^5.2.1"
   }
 }
