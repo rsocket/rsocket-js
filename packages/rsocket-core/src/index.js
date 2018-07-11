@@ -25,7 +25,7 @@ export type {Encodable} from 'rsocket-types';
 
 export type {Encoder, Encoders} from './RSocketEncoding';
 
-export type {Serializer} from './RSocketSerialization';
+export type {Serializer, PayloadSerializers} from './RSocketSerialization';
 
 import RSocketClient from './RSocketClient';
 export {RSocketClient};
