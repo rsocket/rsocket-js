@@ -126,7 +126,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
       },
       onError: error => {
         subscription && this._senders.delete(subscription);
-        this._handleError(error);
+        this._close(error);
       },
       onNext: frame => this._writeFrame(frame),
       onSubscribe: _subscription => {

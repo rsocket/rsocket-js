@@ -44,12 +44,12 @@ class WebSocket {
       this._emitter.emit('open');
     },
 
-    close: () => {
-      this._emitter.emit('close');
+    close: reason => {
+      this._emitter.emit('close', {reason});
     },
 
     error: error => {
-      this._emitter.emit('error', error);
+      this._emitter.emit('error', {error});
     },
 
     message: data => {

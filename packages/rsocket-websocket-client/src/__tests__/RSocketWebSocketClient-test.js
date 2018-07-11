@@ -59,11 +59,9 @@ describe('RSocketWebSocketClient', () => {
 
     it('returns ERROR if the socket errors', () => {
       client.connect();
-      WebSocket.socket.mock.error();
+      WebSocket.socket.mock.error(new Error('oopsie'));
       expect(status.kind).toBe('ERROR');
-      expect(status.error.message).toBe(
-        'RSocketWebSocketClient: Socket closed unexpectedly.',
-      );
+      expect(status.error.message).toBe('oopsie');
     });
 
     it('returns CLOSED if explicitly closed', () => {
@@ -270,12 +268,10 @@ describe('RSocketWebSocketClient', () => {
           },
         });
         client.receive().subscribe(subscriber);
-        socket.mock.error();
+        socket.mock.error(new Error('oops'));
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(1);
-        expect(subscriber.onError.mock.calls[0][0].message).toBe(
-          'RSocketWebSocketClient: Socket closed unexpectedly.',
-        );
+        expect(subscriber.onError.mock.calls[0][0].message).toBe('oops');
         expect(subscriber.onNext.mock.calls.length).toBe(0);
       });
     });
