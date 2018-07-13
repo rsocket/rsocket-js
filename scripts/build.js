@@ -172,8 +172,8 @@ function buildHasteRollup(pkg) {
           preferBuiltins: false,
           jail: ROOT_DIR,
         }),
-        rollupCommonJS(),
         rollupBabel(getBabelOptions()),
+        rollupCommonJS(),
       ],
       onwarn: warning => {
         process.stdout.write('Warning for package ' + packageName + '\n');
