@@ -1,7 +1,7 @@
 language: node_js
-
 node_js:
   - "9"
+cache: yarn
 
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash
@@ -9,3 +9,6 @@ before_install:
   
 script:
   - yarn build && yarn test
+
+notifications:
+  webhooks: https://code.facebook.com/travis/webhook/
