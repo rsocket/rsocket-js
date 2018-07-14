@@ -269,8 +269,6 @@ describe('RSocketTcpClient', () => {
 
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(1);
-        const error = subscriber.onError.mock.calls[0][0];
-        expect(error.message.toLowerCase()).toBe('index out of range');
         expect(subscriber.onNext.mock.calls.length).toBe(0);
       });
 
