@@ -26,7 +26,7 @@ Packages are published to npm:
 * [rsocket-tcp-client](https://www.npmjs.com/package/rsocket-tcp-client)
 * [rsocket-tcp-server](https://www.npmjs.com/package/rsocket-tcp-server)
 * [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
-* [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
+* [rsocket-websocket-client](https://www.npmjs.com/package/rsocket-websocket-client)
 
 
 ## Contributing
