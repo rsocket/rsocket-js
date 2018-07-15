@@ -1,5 +1,7 @@
 # [rsocket-js](https://github.com/rsocket/rsocket-js)
 
+[![Build Status](https://travis-ci.org/rsocket/rsocket-js.svg?branch=master)](https://travis-ci.org/rsocket/rsocket-js)
+
 A JavaScript implementation of the [RSocket](https://github.com/rsocket/rsocket)
 protocol intended for use in browsers and/or Node.js. From [reactivesocket.io](http://reactivesocket.io/):
 
@@ -18,7 +20,14 @@ protocol intended for use in browsers and/or Node.js. From [reactivesocket.io](h
 
 ## Install
 
-Coming soon.
+Packages are published to npm:
+* [rsocket-core](https://www.npmjs.com/package/rsocket-core)
+* [rsocket-flowable](https://www.npmjs.com/package/rsocket-flowable)
+* [rsocket-tcp-client](https://www.npmjs.com/package/rsocket-tcp-client)
+* [rsocket-tcp-server](https://www.npmjs.com/package/rsocket-tcp-server)
+* [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
+* [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
+
 
 ## Contributing
 
@@ -28,5 +37,7 @@ See the `CONTRIBUTING.md` file for how to help out.
 
 Work in progress, see the [docs](./docs/00-index.md).
 
+Also see the [example](https://github.com/rsocket/rsocket-js/tree/master/packages/rsocket-examples).
+
 ## License
-rsocket-js is BSD-licensed. We also provide an additional patent grant.
+rsocket-js is Apache-licensed. We also provide an additional patent grant.
