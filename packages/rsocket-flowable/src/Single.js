@@ -42,7 +42,7 @@ export interface IFutureSubject<T> {
 /**
  * Represents a lazy computation that will either produce a value of type T
  * or fail with an error. Calling `subscribe()` starts the
- * computation and return a subscription object, which has an `unsubscribe()`
+ * computation and returns a subscription object, which has an `unsubscribe()`
  * method that can be called to prevent completion/error callbacks from being
  * invoked and, where supported, to also cancel the computation.
  * Implementations may optionally implement cancellation; if they do not
