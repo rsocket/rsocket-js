@@ -19,7 +19,7 @@
 
 /* eslint-disable no-bitwise */
 
-import {Buffer} from 'buffer'; // rewritten for browsers
+import {LiteBuffer as Buffer} from './LiteBuffer';
 import invariant from 'fbjs/lib/invariant';
 
 export type Encoding = 'ascii' | 'base64' | 'hex' | 'utf8';
@@ -109,6 +109,9 @@ export function toBuffer(data: mixed): Buffer {
 /**
  * Function to create a buffer of a given sized filled with zeros.
  */
-export const createBuffer = typeof Buffer.alloc === 'function'
-  ? (length: number) => Buffer.alloc(length)
-  : (length: number) => new Buffer(length).fill(0);
+
+export const createBuffer: (...args: any[]) => Buffer =
+  typeof Buffer.alloc === 'function'
+    ? (length: number) => Buffer.alloc(length)
+    : // $FlowFixMe
+      (length: number) => new Buffer(length).fill(0);

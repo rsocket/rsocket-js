@@ -9,7 +9,6 @@
   "license": "BSD-3-Clause",
   "main": "build/index.js",
   "dependencies": {
-    "buffer": "^5.0.6",
     "fbjs": "^0.8.12",
     "rsocket-flowable": "^0.0.8",
     "rsocket-types": "^0.0.8"

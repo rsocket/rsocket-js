@@ -18,7 +18,7 @@
 
 import type {Encodable} from 'rsocket-types';
 
-import {Buffer} from 'buffer'; // rewritten for browsers
+import {LiteBuffer as Buffer} from './LiteBuffer';
 import invariant from 'fbjs/lib/invariant';
 
 /**
@@ -47,7 +47,7 @@ export const JsonSerializer: Serializer<*> = {
       const buffer: Buffer = data;
       str = buffer.toString('utf8');
     } else {
-      const buffer = Buffer.from(data);
+      const buffer: Buffer = Buffer.from(data);
       str = buffer.toString('utf8');
     }
     return JSON.parse(str);
