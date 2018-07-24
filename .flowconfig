@@ -1,6 +1,7 @@
 [ignore]
 .*/__tests__/.*
 .*/build/haste/.*
+.*/build/.*
 .*/packages/.*/node_modules/.*
 .*/node_modules/conventional-changelog-core/.*
 .*/node_modules/config-chain/test/.*
