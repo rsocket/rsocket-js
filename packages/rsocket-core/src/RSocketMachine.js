@@ -15,6 +15,7 @@
  * @flow
  */
 
+
 'use strict';
 
 import type {
@@ -31,6 +32,7 @@ import type {
   RequestNFrame,
   RequestResponseFrame,
   RequestStreamFrame,
+  RequestChannelFrame,
 } from 'rsocket-types';
 import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
 import type {PayloadSerializers} from './RSocketSerialization';
@@ -53,6 +55,7 @@ import {
   MAX_STREAM_ID,
 } from './RSocketFrame';
 import {IdentitySerializers} from './RSocketSerialization';
+import type { Encodable } from "../../rsocket-types/src";
 
 type Role = 'CLIENT' | 'SERVER';
 
@@ -330,8 +333,103 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
-    // TODO #18065296: implement requestChannel
-    throw new Error('requestChannel() is not implemented');
+    const streamId = this._getNextStreamId();
+    let payloadsSubscribed = false;
+    return new Flowable(
+      subscriber => {
+        try{
+          this._receivers.set(streamId, subscriber);
+
+          let initialized = false;
+
+          subscriber.onSubscribe({
+            cancel: () => {
+              this._receivers.delete(streamId);
+              if (!initialized) {
+                return;
+              }
+              const cancelFrame = {
+                flags: 0,
+                streamId,
+                type: FRAME_TYPES.CANCEL,
+              };
+              this._connection.sendOne(cancelFrame);
+            },
+            request: n => {
+              if (n > MAX_REQUEST_N) {
+                warning(
+                  false,
+                  'RSocketClient: Invalid request value `%s`, the maximum ' +
+                  'value supported by the RSocket protocol is `%s`. Sending ' +
+                  'the maximum supported value instead.',
+                  n,
+                  MAX_REQUEST_N,
+                );
+                n = MAX_REQUEST_N;
+              }
+              if (initialized) {
+                const requestNFrame = {
+                  flags: 0,
+                  requestN: n,
+                  streamId,
+                  type: FRAME_TYPES.REQUEST_N,
+                };
+                this._connection.sendOne(requestNFrame);
+              } else {
+                if(!payloadsSubscribed){
+                  payloadsSubscribed = true;
+                  payloads.subscribe({
+                    //Subscriber methods
+                    onNext: payload => {
+                      const data = this._serializers.data.serialize(payload.data);
+                      const metadata = this._serializers.metadata.serialize(
+                        payload.metadata,
+                      );
+                      if(!initialized){
+                        initialized = true;
+                        const requestChannelFrame = {
+                          data,
+                          flags: payload.metadata !== undefined ? FLAGS.METADATA : 0,
+                          metadata,
+                          requestN: n,
+                          streamId,
+                          type: FRAME_TYPES.REQUEST_CHANNEL,
+                        };
+                        this._connection.sendOne(requestChannelFrame);
+                      } else {
+                        const payloadFrame = {
+                          data,
+                          flags: FLAGS.NEXT | (payload.metadata !== undefined ? FLAGS.METADATA : 0),
+                          metadata,
+                          streamId,
+                          type: FRAME_TYPES.PAYLOAD,
+                        };
+                        this._connection.sendOne(payloadFrame);
+                      }
+                    },
+                    onError: error => {
+                      this._sendStreamError(streamId, error);
+                    },
+                    onComplete: () => {
+                      this._sendStreamComplete(streamId);
+                    },
+                    onSubscribe: subscription => {
+                      this._subscriptions.set(streamId, subscription);
+                      subscription.request(1);
+                    }
+                  });
+                } else {
+                  warning(false, 'RSocketClient: re-entrant call to request n before initial channel established.');
+                }
+              }
+            },
+          });
+        } catch (err){
+          console.warn("Exception while subscribing to channel flowable:" + err);
+        }
+      },
+      MAX_REQUEST_N,
+    );
   }
 
   metadataPush(payload: Payload<D, M>): Single<void> {
@@ -455,6 +553,9 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       case FRAME_TYPES.REQUEST_STREAM:
         this._handleRequestStream(streamId, frame);
         break;
+      case FRAME_TYPES.REQUEST_CHANNEL:
+        this._handleRequestChannel(streamId, frame);
+        break;
       case FRAME_TYPES.ERROR:
         const error = createErrorFromFrame(frame);
         this._handleStreamError(streamId, error);
@@ -527,6 +628,78 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _handleRequestStream(streamId: number, frame: RequestStreamFrame): void {
     const payload = this._deserializePayload(frame);
     this._requestHandler.requestStream(payload).subscribe({
+      onComplete: () => this._sendStreamComplete(streamId),
+      onError: error => this._sendStreamError(streamId, error),
+      onNext: payload => this._sendStreamPayload(streamId, payload),
+      onSubscribe: subscription => {
+        this._subscriptions.set(streamId, subscription);
+        subscription.request(frame.requestN);
+      },
+    });
+  }
+
+  _handleRequestChannel(streamId: number, frame: RequestChannelFrame): void {
+    const existingSubscription = this._subscriptions.get(streamId);
+    if(existingSubscription){
+      //I think this scenario is that we're talking to ourselves. The current
+      //state machine doesn't support this
+      throw new Error('requestChannel() cannot be called and served by the same RSocketMachine');
+    }
+
+    const payloads = new Flowable(
+      subscriber => {
+        this._receivers.set(streamId, subscriber);
+
+        let firstRequest = true;
+
+        subscriber.onSubscribe({
+          cancel: () => {
+            this._receivers.delete(streamId);
+            const cancelFrame = {
+              flags: 0,
+              streamId,
+              type: FRAME_TYPES.CANCEL,
+            };
+            this._connection.sendOne(cancelFrame);
+          },
+          request: n => {
+            if (n > MAX_REQUEST_N) {
+              warning(
+                false,
+                'RSocketClient: Invalid request value `%s`, the maximum ' +
+                'value supported by the RSocket protocol is `%s`. Sending ' +
+                'the maximum supported value instead.',
+                n,
+                MAX_REQUEST_N,
+              );
+              n = MAX_REQUEST_N;
+            }
+            if(firstRequest){
+              n--;
+            }
+
+            if(n > 0){
+              const requestNFrame = {
+                flags: 0,
+                requestN: n,
+                streamId,
+                type: FRAME_TYPES.REQUEST_N,
+              };
+              this._connection.sendOne(requestNFrame);
+            }
+            //critically, if n is 0 now, that's okay because we eagerly decremented it
+            if(firstRequest && n >= 0){
+              firstRequest = false;
+              //release the initial frame we received in frame form due to map operator
+              subscriber.onNext(frame);
+            }
+          },
+        });
+      },
+      MAX_REQUEST_N,
+    ).map(frame => this._deserializePayload(frame));
+
+    this._requestHandler.requestChannel(payloads).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
       onError: error => this._sendStreamError(streamId, error),
       onNext: payload => this._sendStreamPayload(streamId, payload),
