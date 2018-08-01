@@ -37,7 +37,7 @@ import type {
 import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
 import type {PayloadSerializers} from './RSocketSerialization';
 
-import {Flowable, Single} from 'rsocket-flowable';
+import {Flowable, FlowableProcessor, Single} from 'rsocket-flowable';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
 import warning from 'fbjs/lib/warning';
@@ -55,7 +55,6 @@ import {
   MAX_STREAM_ID,
 } from './RSocketFrame';
 import {IdentitySerializers} from './RSocketSerialization';
-import type { Encodable } from "../../rsocket-types/src";
 
 type Role = 'CLIENT' | 'SERVER';
 
@@ -648,8 +647,6 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
 
     const payloads = new Flowable(
       subscriber => {
-        this._receivers.set(streamId, subscriber);
-
         let firstRequest = true;
 
         subscriber.onSubscribe({
@@ -697,9 +694,13 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
         });
       },
       MAX_REQUEST_N,
-    ).map(frame => this._deserializePayload(frame));
+    );
+    //.map(frame => this._deserializePayload(frame));
+    const framesToPayloads = new FlowableProcessor(payloads, frame => this._deserializePayload(frame));
+    this._receivers.set(streamId, framesToPayloads);
 
-    this._requestHandler.requestChannel(payloads).subscribe({
+
+    this._requestHandler.requestChannel(framesToPayloads).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
       onError: error => this._sendStreamError(streamId, error),
       onNext: payload => this._sendStreamPayload(streamId, payload),
