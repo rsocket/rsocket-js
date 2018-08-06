@@ -38,7 +38,6 @@ import type {PayloadSerializers} from './RSocketSerialization';
 import {Flowable, Single} from 'rsocket-flowable';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
-import warning from 'fbjs/lib/warning';
 import {
   createErrorFromFrame,
   getFrameTypeName,
@@ -288,14 +287,6 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
           },
           request: n => {
             if (n > MAX_REQUEST_N) {
-              warning(
-                false,
-                'RSocketClient: Invalid request value `%s`, the maximum ' +
-                  'value supported by the RSocket protocol is `%s`. Sending ' +
-                  'the maximum supported value instead.',
-                n,
-                MAX_REQUEST_N,
-              );
               n = MAX_REQUEST_N;
             }
             if (initialized) {
