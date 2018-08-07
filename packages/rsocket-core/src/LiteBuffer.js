@@ -16,8 +16,8 @@ function createBuffer(length): Buffer {
   return buf;
 }
 
-const bufferExists =
-  typeof global !== 'undefined' && global.hasOwnProperty('Buffer');
+const bufferExists = typeof global !== 'undefined' &&
+  global.hasOwnProperty('Buffer');
 // export const LiteBuffer =  bufferExists ? gloval.Buffer : Buffer;
 export const LiteBuffer = bufferExists ? global.Buffer : Buffer;
 export function Buffer(arg: any, encodingOrOffset?: number, length?: number) {
@@ -282,7 +282,7 @@ Buffer.prototype.readUInt16BE = function readUInt16BE(
 ) {
   offset = offset >>> 0;
   if (!noAssert) checkOffset(offset, 2, this.length);
-  return (this[offset] << 8) | this[offset + 1];
+  return this[offset] << 8 | this[offset + 1];
 };
 
 Buffer.prototype.readUInt32BE = function readUInt32BE(
@@ -292,10 +292,8 @@ Buffer.prototype.readUInt32BE = function readUInt32BE(
   offset = offset >>> 0;
   if (!noAssert) checkOffset(offset, 4, this.length);
 
-  return (
-    this[offset] * 0x1000000 +
-    ((this[offset + 1] << 16) | (this[offset + 2] << 8) | this[offset + 3])
-  );
+  return this[offset] * 0x1000000 +
+    (this[offset + 1] << 16 | this[offset + 2] << 8 | this[offset + 3]);
 };
 
 Buffer.prototype.readInt8 = function readInt8(
@@ -314,7 +312,7 @@ Buffer.prototype.readInt16BE = function readInt16BE(
 ) {
   offset = offset >>> 0;
   if (!noAssert) checkOffset(offset, 2, this.length);
-  let val = this[offset + 1] | (this[offset] << 8);
+  let val = this[offset + 1] | this[offset] << 8;
   return val & 0x8000 ? val | 0xffff0000 : val;
 };
 
@@ -325,12 +323,10 @@ Buffer.prototype.readInt32BE = function readInt32BE(
   offset = offset >>> 0;
   if (!noAssert) checkOffset(offset, 4, this.length);
 
-  return (
-    (this[offset] << 24) |
-    (this[offset + 1] << 16) |
-    (this[offset + 2] << 8) |
-    this[offset + 3]
-  );
+  return this[offset] << 24 |
+    this[offset + 1] << 16 |
+    this[offset + 2] << 8 |
+    this[offset + 3];
 };
 
 function checkInt(buf, value, offset, ext, max, min) {
@@ -498,8 +494,7 @@ function utf8ToBytes(str: string, pUnits: number = Infinity) {
       }
 
       // valid surrogate pair
-      codePoint =
-        (((leadSurrogate - 0xd800) << 10) | (codePoint - 0xdc00)) + 0x10000;
+      codePoint = (leadSurrogate - 0xd800 << 10 | codePoint - 0xdc00) + 0x10000;
     } else if (leadSurrogate) {
       // valid bmp char, but last char was a lead
       if ((units -= 3) > -1) bytes.push(0xef, 0xbf, 0xbd);
@@ -513,21 +508,21 @@ function utf8ToBytes(str: string, pUnits: number = Infinity) {
       bytes.push(codePoint);
     } else if (codePoint < 0x800) {
       if ((units -= 2) < 0) break;
-      bytes.push((codePoint >> 0x6) | 0xc0, (codePoint & 0x3f) | 0x80);
+      bytes.push(codePoint >> 0x6 | 0xc0, codePoint & 0x3f | 0x80);
     } else if (codePoint < 0x10000) {
       if ((units -= 3) < 0) break;
       bytes.push(
-        (codePoint >> 0xc) | 0xe0,
-        ((codePoint >> 0x6) & 0x3f) | 0x80,
-        (codePoint & 0x3f) | 0x80,
+        codePoint >> 0xc | 0xe0,
+        codePoint >> 0x6 & 0x3f | 0x80,
+        codePoint & 0x3f | 0x80,
       );
     } else if (codePoint < 0x110000) {
       if ((units -= 4) < 0) break;
       bytes.push(
-        (codePoint >> 0x12) | 0xf0,
-        ((codePoint >> 0xc) & 0x3f) | 0x80,
-        ((codePoint >> 0x6) & 0x3f) | 0x80,
-        (codePoint & 0x3f) | 0x80,
+        codePoint >> 0x12 | 0xf0,
+        codePoint >> 0xc & 0x3f | 0x80,
+        codePoint >> 0x6 & 0x3f | 0x80,
+        codePoint & 0x3f | 0x80,
       );
     } else {
       throw new Error('Invalid code point');
@@ -585,8 +580,9 @@ function utf8Slice(buf, start, end) {
   while (i < end) {
     let firstByte = buf[i];
     let codePoint = null;
-    let bytesPerSequence =
-      firstByte > 0xef ? 4 : firstByte > 0xdf ? 3 : firstByte > 0xbf ? 2 : 1;
+    let bytesPerSequence = firstByte > 0xef
+      ? 4
+      : firstByte > 0xdf ? 3 : firstByte > 0xbf ? 2 : 1;
 
     if (i + bytesPerSequence <= end) {
       let secondByte, thirdByte, fourthByte, tempCodePoint;
@@ -600,7 +596,7 @@ function utf8Slice(buf, start, end) {
         case 2:
           secondByte = buf[i + 1];
           if ((secondByte & 0xc0) === 0x80) {
-            tempCodePoint = ((firstByte & 0x1f) << 0x6) | (secondByte & 0x3f);
+            tempCodePoint = (firstByte & 0x1f) << 0x6 | secondByte & 0x3f;
             if (tempCodePoint > 0x7f) {
               codePoint = tempCodePoint;
             }
@@ -610,10 +606,9 @@ function utf8Slice(buf, start, end) {
           secondByte = buf[i + 1];
           thirdByte = buf[i + 2];
           if ((secondByte & 0xc0) === 0x80 && (thirdByte & 0xc0) === 0x80) {
-            tempCodePoint =
-              ((firstByte & 0xf) << 0xc) |
-              ((secondByte & 0x3f) << 0x6) |
-              (thirdByte & 0x3f);
+            tempCodePoint = (firstByte & 0xf) << 0xc |
+              (secondByte & 0x3f) << 0x6 |
+              thirdByte & 0x3f;
             if (
               tempCodePoint > 0x7ff &&
               (tempCodePoint < 0xd800 || tempCodePoint > 0xdfff)
@@ -631,11 +626,10 @@ function utf8Slice(buf, start, end) {
             (thirdByte & 0xc0) === 0x80 &&
             (fourthByte & 0xc0) === 0x80
           ) {
-            tempCodePoint =
-              ((firstByte & 0xf) << 0x12) |
-              ((secondByte & 0x3f) << 0xc) |
-              ((thirdByte & 0x3f) << 0x6) |
-              (fourthByte & 0x3f);
+            tempCodePoint = (firstByte & 0xf) << 0x12 |
+              (secondByte & 0x3f) << 0xc |
+              (thirdByte & 0x3f) << 0x6 |
+              fourthByte & 0x3f;
             if (tempCodePoint > 0xffff && tempCodePoint < 0x110000) {
               codePoint = tempCodePoint;
             }
@@ -651,8 +645,8 @@ function utf8Slice(buf, start, end) {
     } else if (codePoint > 0xffff) {
       // encode to utf16 (surrogate pair dance)
       codePoint -= 0x10000;
-      res.push(((codePoint >>> 10) & 0x3ff) | 0xd800);
-      codePoint = 0xdc00 | (codePoint & 0x3ff);
+      res.push(codePoint >>> 10 & 0x3ff | 0xd800);
+      codePoint = 0xdc00 | codePoint & 0x3ff;
     }
 
     res.push(codePoint);
@@ -698,8 +692,7 @@ Buffer.prototype.copy = function copy(
   let len = end - start;
 
   if (
-    this === target &&
-    typeof Uint8Array.prototype.copyWithin === 'function'
+    this === target && typeof Uint8Array.prototype.copyWithin === 'function'
   ) {
     // Use built-in when available, missing from IE11
     this.copyWithin(targetStart, start, end);
@@ -720,13 +713,11 @@ Buffer.prototype.copy = function copy(
 };
 
 function isInstance(obj, type) {
-  return (
-    obj instanceof type ||
+  return obj instanceof type ||
     (obj != null &&
       obj.constructor != null &&
       obj.constructor.name != null &&
-      obj.constructor.name === type.name)
-  );
+      obj.constructor.name === type.name);
 }
 function numberIsNaN(obj) {
   // For IE11 support

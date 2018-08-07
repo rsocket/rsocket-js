@@ -28,8 +28,8 @@ import RSocketClient from '../RSocketClient';
 import {JsonSerializers} from '../RSocketSerialization';
 import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
-import {genMockPublisher} from 'MockFlowableSubscription';
-import {Single} from 'rsocket-flowable';
+import {genMockPublisher, genMockSubscription} from 'MockFlowableSubscription';
+import {Flowable, Single} from 'rsocket-flowable';
 
 jest.useFakeTimers();
 
@@ -211,6 +211,7 @@ describe('RSocketClient', () => {
     let transport;
     let client;
     let payload;
+    let payloads;
     let socket;
     let subscriber;
 
@@ -243,6 +244,7 @@ describe('RSocketClient', () => {
         data: JSON.stringify({data: true}),
         metadata: JSON.stringify({metadata: true}),
       });
+      payloads = Flowable.just(payload, payload);
       subscriber = genMockSubscriber({
         onSubscribe(subscription) {
           subscription.request && subscription.request(Number.MAX_SAFE_INTEGER);
@@ -718,7 +720,342 @@ describe('RSocketClient', () => {
       });
     });
 
-    describe('requestChannel()', () => {});
+    describe('requestChannel()', () => {
+      beforeEach(() => {
+        // don't automatically `request` data in onSubscribe
+        subscriber = genMockSubscriber();
+      });
+
+      // -> waiting
+      it('does not immediately send any frames', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        expect(transport.sendOne.mock.calls.length).toBe(0);
+        expect(transport.send.mock.calls.length).toBe(0);
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+        expect(subscriber.onNext.mock.calls.length).toBe(0);
+      });
+
+      // waiting -> request() -> open (requests)
+      it('sends a request frame on the first request', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.REQUEST_CHANNEL,
+          data: payload.data,
+          flags: FLAGS.METADATA,
+          requestN: 42,
+          metadata: payload.metadata,
+          streamId: 1,
+        });
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+        expect(subscriber.onNext.mock.calls.length).toBe(0);
+      });
+
+      it('sends the payload with serialized data', () => {
+        ({socket, transport} = createSocket(JsonSerializers));
+        payload = {
+          data: {data: true},
+          metadata: {metadata: true},
+        };
+        payloads = Flowable.just(payload, payload);
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.REQUEST_CHANNEL,
+          data: '{"data":true}',
+          flags: FLAGS.METADATA,
+          metadata: '{"metadata":true}',
+          requestN: 42,
+          streamId: 1,
+        });
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      // waiting -> request(> max) -> open (request max)
+      it('sends a max request frame on the first request', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(MAX_REQUEST_N);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.REQUEST_CHANNEL,
+          data: payload.data,
+          flags: FLAGS.METADATA,
+          requestN: MAX_REQUEST_N,
+          metadata: payload.metadata,
+          streamId: 1,
+        });
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+        expect(subscriber.onNext.mock.calls.length).toBe(0);
+      });
+
+      // waiting -> cancel() -> closed (n/a)
+      it('does not send a cancellation frame if cancelled before making a request', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.cancel();
+        expect(transport.sendOne.mock.calls.length).toBe(0);
+        expect(transport.send.mock.calls.length).toBe(0);
+      });
+
+      // open -> response.error() -> closed (errors)
+      it('errors when an error payload is received', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        const errorFrame = {
+          code: 0x00000201, // application error
+          flags: 0,
+          type: FRAME_TYPES.ERROR,
+          message: '<error>',
+          streamId: 1,
+        };
+        transport.receive.mock.publisher.onNext(errorFrame);
+        expect(subscriber.onError.mock.calls.length).toBe(1);
+        const error = subscriber.onError.mock.calls[0][0];
+        expect(error.message).toBe(
+          'RSocket error 0x201 (APPLICATION_ERROR): <error>. See error `source` property for details.',
+        );
+        expect(error.source.code).toBe(0x00000201);
+        expect(error.source.explanation).toBe('APPLICATION_ERROR');
+        expect(error.source.message).toBe('<error>');
+      });
+
+      // open -> response.next/complete() -> closed
+      it('publishes and completes when a next/completed payload is received', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        const responseFrame = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.COMPLETE | FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame);
+        expect(subscriber.onNext.mock.calls.length).toBe(1);
+        const response = subscriber.onNext.mock.calls[0][0];
+        expect(response.data).toBe(responseFrame.data);
+        expect(response.metadata).toBe(responseFrame.metadata);
+        expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      });
+
+      // open -> response.next() -> response.next/complete() -> closed
+      it('publishes and completes when next+completed payloads are received', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        const responseFrame = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame);
+        expect(subscriber.onNext.mock.calls.length).toBe(1);
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+
+        const responseFrame2 = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.COMPLETE | FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame2);
+        expect(subscriber.onNext.mock.calls.length).toBe(2);
+        const response = subscriber.onNext.mock.calls[1][0];
+        expect(response.data).toBe(responseFrame2.data);
+        expect(response.metadata).toBe(responseFrame2.metadata);
+        expect(subscriber.onComplete.mock.calls.length).toBe(1);
+      });
+
+      // open -> response.next() -> open (publishes)
+      it('publishes when a next/non-completed payload is received', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        const responseFrame = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame);
+        expect(subscriber.onNext.mock.calls.length).toBe(1);
+        const response = subscriber.onNext.mock.calls[0][0];
+        expect(response.data).toBe(responseFrame.data);
+        expect(response.metadata).toBe(responseFrame.metadata);
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      // open -> response.next() (2x) -> open (publishes)
+      it('publishes multiple next/non-completed payloads', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        const responseFrame = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame);
+        expect(subscriber.onNext.mock.calls.length).toBe(1);
+        const response = subscriber.onNext.mock.calls[0][0];
+        expect(response.data).toBe(responseFrame.data);
+        expect(response.metadata).toBe(responseFrame.metadata);
+
+        const responseFrame2 = {
+          streamId: 1,
+          type: FRAME_TYPES.PAYLOAD,
+          flags: FLAGS.NEXT,
+          data: '{}',
+          metadata: '{}',
+        };
+        transport.receive.mock.publisher.onNext(responseFrame2);
+        expect(subscriber.onNext.mock.calls.length).toBe(2);
+        const response2 = subscriber.onNext.mock.calls[1][0];
+        expect(response2.data).toBe(responseFrame2.data);
+        expect(response2.metadata).toBe(responseFrame2.metadata);
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      // open -> request() -> open (requests)
+      it('sends a request n frame on subsequent requests', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        transport.mockClear();
+        subscriber.mock.request(43);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.REQUEST_N,
+          flags: 0,
+          streamId: 1,
+          requestN: 43,
+        });
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      // open -> request(max) -> open (requests max)
+      it('sends a request n frame on subsequent requests', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        transport.mockClear();
+        subscriber.mock.request(MAX_REQUEST_N);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.REQUEST_N,
+          flags: 0,
+          streamId: 1,
+          requestN: MAX_REQUEST_N,
+        });
+
+        expect(subscriber.onComplete.mock.calls.length).toBe(0);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      // open -> cancel() -> closed (sends cancel)
+      it('sends a cancellation frame when cancelled', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        transport.mockClear();
+        subscriber.mock.cancel();
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.CANCEL,
+          flags: 0,
+          streamId: 1,
+        });
+      });
+
+      //TODO: I couldn't seem to intercept the subscription in a way that kept the underlying
+      //TODO: flowable happy - circumventing its _pending check was proving impossible
+      //TODO: I have an integration test that uses channels and proved out that things work
+      //TODO: but obviously unit test coverage would be preferable. Looking for help with this!
+      // open -> response.next/complete() -> closed
+      // it('delivers more payloads on requests from server', () => {
+      //   ({socket, transport} = createSocket(JsonSerializers));
+      //   let payloadSubscriber;
+      //   //Capture the payload subscription so we can forcibly invoke it
+      //   payloads = Flowable.just(payload, payload, payload).lift(subscriber => {
+      //     console.log("lifting subscriber into mock");
+      //     console.log(JSON.stringify(subscriber));
+      //     payloadSubscriber = genMockSubscriber(subscriber);
+      //     return payloadSubscriber;
+      //   });
+      //   socket.requestChannel(payloads).subscribe(subscriber);
+      //   console.log("Requesting 1 from Server");
+      //   subscriber.mock.request(1);
+      //   console.log("Requesting 1 from Client");
+      //   payloadSubscriber.mock.request(1);
+      //   const payloadFrame = {
+      //     streamId: 1,
+      //     type: FRAME_TYPES.PAYLOAD,
+      //     flags: FLAGS.NEXT | FLAGS.METADATA,
+      //     data: '{"data":true}',
+      //     metadata: '{"metadata":true}',
+      //   };
+      //   expect(transport.sendOne.mock.calls.length).toBe(2);
+      //   expect(transport.sendOne.mock.frame).toEqual(payloadFrame);
+      //   console.log("Requesting 1 from Client");
+      //   payloadSubscriber.mock.request(1);
+      //   const payloadAndCompleteFrame = {
+      //     streamId: 1,
+      //     type: FRAME_TYPES.PAYLOAD,
+      //     flags: FLAGS.NEXT | FLAGS.METADATA | FLAGS.COMPLETE,
+      //     data: '{"data":true}',
+      //     metadata: '{"metadata":true}',
+      //   };
+      //   expect(transport.sendOne.mock.calls.length).toBe(3);
+      //   expect(transport.sendOne.mock.frame).toEqual(payloadAndCompleteFrame);
+      // });
+
+      // open -> client.close() -> closed (errors)
+      it('errors if the socket is closed', () => {
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        transport.mockClear();
+        client.close();
+        jest.runAllTimers();
+        expect(subscriber.onError.mock.calls.length).toBe(1);
+        const error = subscriber.onError.mock.calls[0][0];
+        expect(error.message).toBe('RSocket: The connection was closed.');
+      });
+
+      // waiting -> transport.error() -> closed (errors)
+      it('errors if the connection terminates with an error', () => {
+        const error = new Error('wtf');
+        socket.requestChannel(payloads).subscribe(subscriber);
+        transport.mock.closeWithError(error);
+        jest.runAllTimers();
+        expect(subscriber.onError.mock.calls.length).toBe(1);
+        expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      });
+
+      // open -> transport.error() -> closed (errors)
+      it('errors if the connection terminates with an error after requesting data', () => {
+        const error = new Error('wtf');
+        socket.requestChannel(payloads).subscribe(subscriber);
+        subscriber.mock.request(42);
+        transport.mock.closeWithError(error);
+        jest.runAllTimers();
+        expect(subscriber.onError.mock.calls.length).toBe(1);
+        expect(subscriber.onError.mock.calls[0][0]).toBe(error);
+      });
+    });
 
     describe('metadataPush()', () => {});
 

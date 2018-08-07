@@ -110,8 +110,8 @@ export function toBuffer(data: mixed): Buffer {
  * Function to create a buffer of a given sized filled with zeros.
  */
 
-export const createBuffer: (...args: any[]) => Buffer =
-  typeof Buffer.alloc === 'function'
-    ? (length: number) => Buffer.alloc(length)
-    : // $FlowFixMe
-      (length: number) => new Buffer(length).fill(0);
+export const createBuffer: (...args: any[]) => Buffer = typeof Buffer.alloc ===
+  'function'
+  ? (length: number) => Buffer.alloc(length)
+  : // $FlowFixMe
+    (length: number) => new Buffer(length).fill(0);
