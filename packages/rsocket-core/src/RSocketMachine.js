@@ -346,14 +346,6 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
             },
             request: n => {
               if (n > MAX_REQUEST_N) {
-                warning(
-                  false,
-                  'RSocketClient: Invalid request value `%s`, the maximum ' +
-                    'value supported by the RSocket protocol is `%s`. Sending ' +
-                    'the maximum supported value instead.',
-                  n,
-                  MAX_REQUEST_N,
-                );
                 n = MAX_REQUEST_N;
               }
               if (initialized) {
@@ -643,11 +635,8 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _handleRequestChannel(streamId: number, frame: RequestChannelFrame): void {
     const existingSubscription = this._subscriptions.get(streamId);
     if (existingSubscription) {
-      //I think this scenario is that we're talking to ourselves. The current
-      //state machine doesn't support this
-      throw new Error(
-        'requestChannel() cannot be called and served by the same RSocketMachine',
-      );
+      //Likely a duplicate REQUEST_CHANNEL frame, ignore per spec
+      return;
     }
 
     const payloads = new Flowable(
@@ -666,14 +655,6 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
           },
           request: n => {
             if (n > MAX_REQUEST_N) {
-              warning(
-                false,
-                'RSocketClient: Invalid request value `%s`, the maximum ' +
-                  'value supported by the RSocket protocol is `%s`. Sending ' +
-                  'the maximum supported value instead.',
-                n,
-                MAX_REQUEST_N,
-              );
               n = MAX_REQUEST_N;
             }
             if (firstRequest) {
