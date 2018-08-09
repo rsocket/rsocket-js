@@ -1,5 +1,6 @@
 .DS_STORE
 .eslintcache
+.idea
 *.swp
 *~
 /node_modules
