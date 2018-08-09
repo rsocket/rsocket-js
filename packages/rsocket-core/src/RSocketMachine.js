@@ -39,6 +39,7 @@ import type {PayloadSerializers} from './RSocketSerialization';
 import {Flowable, FlowableProcessor, Single} from 'rsocket-flowable';
 import emptyFunction from 'fbjs/lib/emptyFunction';
 import invariant from 'fbjs/lib/invariant';
+import warning from 'fbjs/lib/warning';
 import {
   createErrorFromFrame,
   getFrameTypeName,
