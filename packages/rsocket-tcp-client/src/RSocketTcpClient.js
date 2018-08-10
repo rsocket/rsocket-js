@@ -17,12 +17,12 @@
 
 'use strict';
 
-import type {connect as SocketOptions} from 'net';
 import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
 import type {ISubject, ISubscriber, ISubscription} from 'rsocket-types';
 import type {Encoders} from 'rsocket-core';
 
 import net from 'net';
+import tls from 'tls';
 import {Flowable} from 'rsocket-flowable';
 import invariant from 'fbjs/lib/invariant';
 import {
@@ -38,14 +38,13 @@ import {CONNECTION_STATUS} from 'rsocket-types';
 export class RSocketTcpConnection implements DuplexConnection {
   _buffer: Buffer;
   _encoders: ?Encoders<*>;
-  _options: SocketOptions;
   _receivers: Set<ISubscriber<Frame>>;
   _senders: Set<ISubscription>;
-  _socket: ?net.Socket;
+  _socket: ?net$Socket;
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(socket: ?net.Socket, encoders: ?Encoders<*>) {
+  constructor(socket: ?net$Socket, encoders: ?Encoders<*>) {
     this._buffer = createBuffer(0);
     this._encoders = encoders;
     this._receivers = new Set();
@@ -69,7 +68,7 @@ export class RSocketTcpConnection implements DuplexConnection {
     throw new Error('not supported');
   }
 
-  setupSocket(socket: net.Socket) {
+  setupSocket(socket: net$Socket) {
     this._socket = socket;
     socket.on('close', this._handleError);
     socket.on('end', this._handleError);
@@ -204,9 +203,9 @@ export class RSocketTcpConnection implements DuplexConnection {
  * A TCP transport client for use in node environments.
  */
 export class RSocketTcpClient extends RSocketTcpConnection {
-  _options: SocketOptions;
+  _options: net$connectOptions;
 
-  constructor(options: SocketOptions, encoders: ?Encoders<*>) {
+  constructor(options: net$connectOptions, encoders: ?Encoders<*>) {
     super(null, encoders);
     this._options = options;
   }
@@ -215,10 +214,39 @@ export class RSocketTcpClient extends RSocketTcpConnection {
     invariant(
       this.getConnectionState().kind === 'NOT_CONNECTED',
       'RSocketTcpClient: Cannot connect(), a connection is already ' +
-        'established.',
+      'established.',
     );
     this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     const socket = net.connect(this._options);
+
+    this.setupSocket(socket);
+    socket.on('connect', this._handleOpened);
+  }
+
+  _handleOpened = (): void => {
+    this.setConnectionStatus(CONNECTION_STATUS.CONNECTED);
+  };
+}
+
+/**
+ * A TLS transport client for use in node environments.
+ */
+export class RSocketTlsClient extends RSocketTcpConnection {
+  _options: tls$connectOptions;
+
+  constructor(options: tls$connectOptions, encoders: ?Encoders<*>) {
+    super(null, encoders);
+    this._options = options;
+  }
+
+  connect(): void {
+    invariant(
+      this.getConnectionState().kind === 'NOT_CONNECTED',
+      'RSocketTlsClient: Cannot connect(), a connection is already ' +
+      'established.',
+    );
+    this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
+    const socket = tls.connect(this._options);
 
     this.setupSocket(socket);
     socket.on('connect', this._handleOpened);
