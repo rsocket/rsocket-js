@@ -203,6 +203,47 @@ Buffer.prototype.includes = function includes(
   return this.indexOf(val, byteOffset, encoding) !== -1;
 };
 
+function blitBuffer(
+  src: number[],
+  dst: number[],
+  offset: number,
+  length: number,
+) {
+  for (var i = 0; i < length; ++i) {
+    if (i + offset >= dst.length || i >= src.length) break;
+    dst[i + offset] = src[i];
+  }
+  return i;
+}
+
+function utf8Write(
+  buf: number[],
+  input: string,
+  offset: number,
+  length: number,
+) {
+  return blitBuffer(
+    utf8ToBytes(input, buf.length - offset),
+    buf,
+    offset,
+    length,
+  );
+}
+
+Buffer.prototype.write = function write(
+  input: string,
+  offset: number,
+  length: number,
+  encoding: 'utf8',
+) {
+  switch (encoding) {
+    case 'utf8':
+      return utf8Write(this, input, offset, length);
+    default:
+      throw new TypeError('Unknown encoding: ' + encoding);
+  }
+};
+
 let MAX_ARGUMENTS_LENGTH = 0x1000;
 
 function decodeCodePointsArray(codePoints) {
