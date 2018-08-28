@@ -17,11 +17,26 @@
 
 import {
   byteLength,
+  toArrayLike,
   readUInt24BE,
   readUInt64BE,
   writeUInt24BE,
   writeUInt64BE,
 } from '../RSocketBufferUtils';
+import LiteBuffer from '../LiteBuffer';
+
+function toArray(a: mixed) {
+  if (a.constructor === Uint8Array) return a;
+  if (
+    a.constructor === ArrayBuffer ||
+    a.constructor === Buffer ||
+    a.constructor === Array
+  )
+    return new Uint8Array(a);
+  else {
+    throw new TypeError();
+  }
+}
 
 describe('RSocketBufferUtils', () => {
   describe('byteLength', () => {
@@ -37,6 +52,22 @@ describe('RSocketBufferUtils', () => {
 
     it('returns zero for null', () => {
       expect(byteLength(null, 'utf8')).toBe(0);
+    });
+  });
+
+  describe('toBufferLike', () => {
+    it('to return itself', () => {
+      const buffer = new Buffer('hello');
+      expect(toArrayLike(buffer)).toBe(buffer);
+    });
+
+    it('looks like an ArrayLike', () => {
+      const c = (c: string) => {
+        return c.charCodeAt(0);
+      };
+      const array = Uint8Array.of(c('h'), c('e'), c('l'), c('l'), c('o'));
+      expect(toArray(toArrayLike(new Buffer('hello')))).toEqual(array);
+      expect(toArray(toArrayLike(LiteBuffer.from('hello')))).toEqual(array);
     });
   });
 

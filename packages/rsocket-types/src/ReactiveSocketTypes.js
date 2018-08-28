@@ -132,6 +132,50 @@ export interface DuplexConnection {
   connectionStatus(): Flowable<ConnectionStatus>,
 }
 
+export interface RSocketBuffer {
+  +length: number,
+
+  write(
+    input: string,
+    offset: number,
+    length: number,
+    encoding: 'utf8',
+  ): number,
+
+  slice(start: number, end: number): RSocketBuffer,
+
+  readUInt8(offset: number): number,
+
+  readUInt16BE(offset: number): number,
+
+  readUInt32BE(offset: number): number,
+
+  readInt8(offset: number): number,
+
+  readInt16BE(offset: number): number,
+
+  readInt32BE(offset: number): number,
+
+  writeUInt8(value: number, offset: number): number,
+
+  writeUInt16BE(value: number, offset: number): number,
+
+  writeUInt32BE(value: number, offset: number): number,
+
+  writeInt16BE(value: number, offset: number): number,
+
+  writeInt32BE(value: number, offset: number): number,
+
+  toString(encoding?: 'utf8', start?: number, end?: number): string,
+
+  copy(
+    target: self,
+    targetStart?: number,
+    start?: number,
+    end?: number,
+  ): number,
+}
+
 /**
  * Describes the connection status of a ReactiveSocket/DuplexConnection.
  * - NOT_CONNECTED: no connection established or pending.
@@ -158,7 +202,7 @@ export const CONNECTION_STATUS = {
 /**
  * A type that can be written to a buffer.
  */
-export type Encodable = string | Buffer | Uint8Array;
+export type Encodable = string | RSocketBuffer;
 
 /**
  * A single unit of data exchanged between the peers of a `ReactiveSocket`.

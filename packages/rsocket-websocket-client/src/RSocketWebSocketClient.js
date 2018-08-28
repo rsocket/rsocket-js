@@ -30,6 +30,7 @@ import {
   serializeFrame,
   serializeFrameWithLength,
   toBuffer,
+  toArrayLike,
 } from 'rsocket-core';
 import {CONNECTION_STATUS} from 'rsocket-types';
 
@@ -222,7 +223,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
         this._socket,
         'RSocketWebSocketClient: Cannot send frame, not connected.',
       );
-      this._socket.send(buffer);
+      this._socket.send(toArrayLike(buffer));
     } catch (error) {
       this._close(error);
     }

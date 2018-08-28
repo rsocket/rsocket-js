@@ -1,11 +1,10 @@
 'use strict';
-import {Buffer as B} from '../LiteBuffer';
+import LiteBuffer from '../LiteBuffer';
 
-describe('Lite B', () => {
+describe('LiteBuffer', () => {
   it('large values do not improperly roll over', function() {
     const nums = [-25589992, -633756690, -898146932];
-    const out = new B(12);
-    out.fill(0);
+    const out = LiteBuffer.create(12);
     out.writeInt32BE(nums[0], 0);
     let newNum = out.readInt32BE(0);
     expect(nums[0]).toEqual(newNum);
@@ -18,7 +17,7 @@ describe('Lite B', () => {
   });
 
   it('writeUInt32BE and readUInt32BE should work', function() {
-    const buf = B.from([0x12, 0x34, 0x56, 0x78]);
+    const buf = LiteBuffer.from([0x12, 0x34, 0x56, 0x78]);
 
     expect(buf.readUInt32BE(0).toString(16)).toEqual('12345678');
     buf.writeUInt32BE(0x56, 0);
@@ -26,7 +25,7 @@ describe('Lite B', () => {
   });
 
   it('writeUInt8 and readUInt8 should work', function() {
-    const b = new B(3);
+    const b = LiteBuffer.create(3);
     b.writeUInt8(1, 0);
     b.writeUInt8(2, 1);
     b.writeUInt8(3, 2);
@@ -37,7 +36,7 @@ describe('Lite B', () => {
   });
 
   it('writeUInt16BE and readUInt16BE should work', function() {
-    const buf = new B(4);
+    const buf = LiteBuffer.create(4);
 
     buf.writeUInt16BE(0xdead, 0);
     buf.writeUInt16BE(0xbeef, 2);
@@ -47,11 +46,11 @@ describe('Lite B', () => {
   });
 
   it('supports copy, slice and length', function() {
-    const b = new B(3);
+    const b = LiteBuffer.create(3);
     b.writeUInt8(1, 0);
     b.writeUInt8(2, 1);
     b.writeUInt8(3, 2);
-    const buf2 = B(3);
+    const buf2 = LiteBuffer.create(3);
     b.copy(buf2, 0, 1);
     expect(buf2.readUInt8(0)).toEqual(2);
     expect(buf2.readUInt8(1)).toEqual(3);
@@ -60,15 +59,19 @@ describe('Lite B', () => {
     expect(buf2.slice(1, 2).readUInt8(0)).toEqual(3);
   });
 
-  it('supports toString and B.isBuffer', () => {
-    const buf1 = new B(26);
+  it('supports toString', () => {
+    const buf1 = LiteBuffer.create(26);
 
     for (let i = 0; i < 26; i++) {
       // 97 is the decimal ASCII value for 'a'
-      buf1[i] = i + 97;
+      buf1.writeUInt8(i + 97, i);
     }
 
     expect(buf1.toString('utf8')).toEqual('abcdefghijklmnopqrstuvwxyz');
-    expect(B.isBuffer(buf1)).toBe(true);
+  });
+
+  it('from and toString', () => {
+    const buf1 = LiteBuffer.from('hello');
+    expect(buf1.toString('utf8')).toEqual('hello');
   });
 });

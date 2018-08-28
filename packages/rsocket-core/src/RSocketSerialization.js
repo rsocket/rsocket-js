@@ -16,9 +16,9 @@
  */
 'use strict';
 
-import type {Encodable} from 'rsocket-types';
+import type {Encodable, RSocketBuffer} from 'rsocket-types';
 
-import {LiteBuffer as Buffer} from './LiteBuffer';
+import {isBuffer, toBuffer} from './RSocketBufferUtils';
 import invariant from 'fbjs/lib/invariant';
 
 /**
@@ -43,11 +43,12 @@ export const JsonSerializer: Serializer<*> = {
       return null;
     } else if (typeof data === 'string') {
       str = data;
-    } else if (Buffer.isBuffer(data)) {
-      const buffer: Buffer = data;
+      // FIXME: verify this is called
+    } else if (isBuffer(data)) {
+      const buffer: RSocketBuffer = data;
       str = buffer.toString('utf8');
     } else {
-      const buffer: Buffer = Buffer.from(data);
+      const buffer: RSocketBuffer = toBuffer(data);
       str = buffer.toString('utf8');
     }
     return JSON.parse(str);

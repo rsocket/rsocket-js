@@ -74,6 +74,7 @@ export {
   createBuffer,
   readUInt24BE,
   toBuffer,
+  toArrayLike,
   writeUInt24BE,
 } from './RSocketBufferUtils';
 export {

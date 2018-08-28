@@ -34,6 +34,7 @@ import type {
   ResumeFrame,
   ResumeOkFrame,
   SetupFrame,
+  RSocketBuffer,
 } from 'rsocket-types';
 import type {Encoders} from './RSocketEncoding';
 
@@ -77,7 +78,7 @@ const UINT24_SIZE = 3;
  * Reads a frame from a buffer that is prefixed with the frame length.
  */
 export function deserializeFrameWithLength(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   encoders?: ?Encoders<*>,
 ): Frame {
   const frameLength = readUInt24BE(buffer, 0);
@@ -93,9 +94,9 @@ export function deserializeFrameWithLength(
  * the frames and a buffer of the leftover bytes.
  */
 export function deserializeFrames(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   encoders?: ?Encoders<*>,
-): [Array<Frame>, Buffer] {
+): [Array<Frame>, RSocketBuffer] {
   const frames = [];
   let offset = 0;
   while (offset + UINT24_SIZE < buffer.length) {
@@ -120,7 +121,7 @@ export function deserializeFrames(
 export function serializeFrameWithLength(
   frame: Frame,
   encoders?: ?Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const buffer = serializeFrame(frame, encoders);
   const lengthPrefixed = createBuffer(buffer.length + UINT24_SIZE);
   writeUInt24BE(lengthPrefixed, buffer.length, 0);
@@ -132,7 +133,7 @@ export function serializeFrameWithLength(
  * Read a frame from the buffer.
  */
 export function deserializeFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   encoders?: ?Encoders<*>,
 ): Frame {
   encoders = encoders || Utf8Encoders;
@@ -187,7 +188,10 @@ export function deserializeFrame(
 /**
  * Convert the frame to a (binary) buffer.
  */
-export function serializeFrame(frame: Frame, encoders?: ?Encoders<*>): Buffer {
+export function serializeFrame(
+  frame: Frame,
+  encoders?: ?Encoders<*>,
+): RSocketBuffer {
   encoders = encoders || Utf8Encoders;
   switch (frame.type) {
     case FRAME_TYPES.SETUP:
@@ -234,7 +238,10 @@ export function serializeFrame(frame: Frame, encoders?: ?Encoders<*>): Buffer {
  */
 const SETUP_FIXED_SIZE = 14;
 const RESUME_TOKEN_LENGTH_SIZE = 2;
-function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
+function serializeSetupFrame(
+  frame: SetupFrame,
+  encoders: Encoders<*>,
+): RSocketBuffer {
   const resumeTokenLength = frame.resumeToken != null
     ? encoders.resumeToken.byteLength(frame.resumeToken)
     : 0;
@@ -299,7 +306,7 @@ function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
  * Reads a SETUP frame from the buffer and returns it.
  */
 function deserializeSetupFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -396,7 +403,10 @@ function deserializeSetupFrame(
  * Prefix size is for the error code (uint32 = 4).
  */
 const ERROR_FIXED_SIZE = 4;
-function serializeErrorFrame(frame: ErrorFrame, encoders: Encoders<*>): Buffer {
+function serializeErrorFrame(
+  frame: ErrorFrame,
+  encoders: Encoders<*>,
+): RSocketBuffer {
   const messageLength = frame.message != null
     ? encoders.message.byteLength(frame.message)
     : 0;
@@ -420,7 +430,7 @@ function serializeErrorFrame(frame: ErrorFrame, encoders: Encoders<*>): Buffer {
  * Reads an ERROR frame from the buffer and returns it.
  */
 function deserializeErrorFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -459,7 +469,7 @@ const KEEPALIVE_FIXED_SIZE = 8;
 function serializeKeepAliveFrame(
   frame: KeepAliveFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const dataLength = frame.data != null
     ? encoders.data.byteLength(frame.data)
     : 0;
@@ -478,7 +488,7 @@ function serializeKeepAliveFrame(
  * Reads a KEEPALIVE frame from the buffer and returns it.
  */
 function deserializeKeepAliveFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -511,7 +521,10 @@ function deserializeKeepAliveFrame(
  * Prefix size is for the ttl (uint32) and requestcount (uint32).
  */
 const LEASE_FIXED_SIZE = 8;
-function serializeLeaseFrame(frame: LeaseFrame, encoders: Encoders<*>): Buffer {
+function serializeLeaseFrame(
+  frame: LeaseFrame,
+  encoders: Encoders<*>,
+): RSocketBuffer {
   const metaLength = frame.metadata != null
     ? encoders.metadata.byteLength(frame.metadata)
     : 0;
@@ -536,7 +549,7 @@ function serializeLeaseFrame(frame: LeaseFrame, encoders: Encoders<*>): Buffer {
  * Reads a LEASE frame from the buffer and returns it.
  */
 function deserializeLeaseFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -574,7 +587,7 @@ function deserializeLeaseFrame(
 function serializeRequestFrame(
   frame: RequestFnfFrame | RequestResponseFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const payloadLength = getPayloadLength(frame, encoders);
   const buffer = createBuffer(FRAME_HEADER_SIZE + payloadLength);
   const offset = writeHeader(frame, buffer);
@@ -583,7 +596,7 @@ function serializeRequestFrame(
 }
 
 function deserializeRequestFnfFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -604,7 +617,7 @@ function deserializeRequestFnfFrame(
 }
 
 function deserializeRequestResponseFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -636,7 +649,7 @@ const REQUEST_MANY_HEADER = 4;
 function serializeRequestManyFrame(
   frame: RequestStreamFrame | RequestChannelFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const payloadLength = getPayloadLength(frame, encoders);
   const buffer = createBuffer(
     FRAME_HEADER_SIZE + REQUEST_MANY_HEADER + payloadLength,
@@ -648,7 +661,7 @@ function serializeRequestManyFrame(
 }
 
 function deserializeRequestStreamFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -678,7 +691,7 @@ function deserializeRequestStreamFrame(
 }
 
 function deserializeRequestChannelFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -716,7 +729,7 @@ const REQUEST_N_HEADER = 4;
 function serializeRequestNFrame(
   frame: RequestNFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const buffer = createBuffer(FRAME_HEADER_SIZE + REQUEST_N_HEADER);
   const offset = writeHeader(frame, buffer);
   buffer.writeUInt32BE(frame.requestN, offset);
@@ -724,7 +737,7 @@ function serializeRequestNFrame(
 }
 
 function deserializeRequestNFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -753,14 +766,14 @@ function deserializeRequestNFrame(
 function serializeCancelFrame(
   frame: CancelFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const buffer = createBuffer(FRAME_HEADER_SIZE);
   writeHeader(frame, buffer);
   return buffer;
 }
 
 function deserializeCancelFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -782,7 +795,7 @@ function deserializeCancelFrame(
 function serializePayloadFrame(
   frame: PayloadFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const payloadLength = getPayloadLength(frame, encoders);
   const buffer = createBuffer(FRAME_HEADER_SIZE + payloadLength);
   const offset = writeHeader(frame, buffer);
@@ -791,7 +804,7 @@ function serializePayloadFrame(
 }
 
 function deserializePayloadFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -825,7 +838,7 @@ const RESUME_FIXED_SIZE = 22;
 function serializeResumeFrame(
   frame: ResumeFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const resumeTokenLength = encoders.resumeToken.byteLength(frame.resumeToken);
   const buffer = createBuffer(
     FRAME_HEADER_SIZE + RESUME_FIXED_SIZE + resumeTokenLength,
@@ -846,7 +859,7 @@ function serializeResumeFrame(
 }
 
 function deserializeResumeFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -903,7 +916,7 @@ const RESUME_OK_FIXED_SIZE = 8;
 function serializeResumeOkFrame(
   frame: ResumeOkFrame,
   encoders: Encoders<*>,
-): Buffer {
+): RSocketBuffer {
   const buffer = createBuffer(FRAME_HEADER_SIZE + RESUME_OK_FIXED_SIZE);
   const offset = writeHeader(frame, buffer);
   writeUInt64BE(buffer, frame.clientPosition, offset);
@@ -911,7 +924,7 @@ function serializeResumeOkFrame(
 }
 
 function deserializeResumeOkFrame(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   streamId: number,
   flags: number,
   encoders: Encoders<*>,
@@ -933,7 +946,7 @@ function deserializeResumeOkFrame(
 /**
  * Write the header of the frame into the buffer.
  */
-function writeHeader(frame: Frame, buffer: Buffer): number {
+function writeHeader(frame: Frame, buffer: RSocketBuffer): number {
   const offset = buffer.writeInt32BE(frame.streamId, 0);
   // shift frame to high 6 bits, extract lowest 10 bits from flags
   return buffer.writeUInt16BE(
@@ -969,7 +982,7 @@ function getPayloadLength(
  */
 function writePayload(
   frame: FrameWithPayload,
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   encoders: Encoders<*>,
   offset: number,
 ): void {
@@ -997,7 +1010,7 @@ function writePayload(
  * frame types that MAY have both metadata and data.
  */
 function readPayload(
-  buffer: Buffer,
+  buffer: RSocketBuffer,
   frame: FrameWithPayload,
   encoders: Encoders<*>,
   offset: number,
