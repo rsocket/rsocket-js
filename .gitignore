@@ -13,3 +13,4 @@ lerna-debug.log
 lerna-debug.log*
 npm-debug.log
 npm-debug.log*
+/.git
