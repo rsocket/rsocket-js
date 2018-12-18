@@ -459,6 +459,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       receiver.onError(error);
     });
     this._receivers.clear();
+    // Cancel any active subscriptions
+    this._subscriptions.forEach(subscription => {
+      subscription.cancel();
+    });
+    this._subscriptions.clear();
   };
 
   _handleConnectionError(error: Error): void {

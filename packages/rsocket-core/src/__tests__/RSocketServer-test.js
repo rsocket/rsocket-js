@@ -30,7 +30,7 @@ import {JsonSerializers} from '../RSocketSerialization';
 import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
 import {genMockPublisher} from 'MockFlowableSubscription';
-import {Single} from 'rsocket-flowable';
+import {Single, Flowable} from 'rsocket-flowable';
 
 jest.useFakeTimers();
 
@@ -164,6 +164,57 @@ describe('RSocketServer', () => {
         type: FRAME_TYPES.ERROR,
       });
       expect(console.error).toHaveBeenCalled();
+    });
+
+    it('call subscription.cancel() for all active subscriptions', () => {
+      let cancelled = false;
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {
+            requestStream: () => {
+              return new Flowable(subscriber => {
+                subscriber.onSubscribe({
+                  cancel: () => {
+                    cancelled = true;
+                  },
+                  request: n => { },
+                });
+              })
+            },
+          };
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      jest.runAllTimers();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.REQUEST_STREAM,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        streamId: 1,
+        requestN: 1
+      });
+      connection.close();
+      expect(cancelled).toBeTruthy();
     });
   });
 });
