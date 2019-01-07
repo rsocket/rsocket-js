@@ -17,7 +17,7 @@
 
 'use strict';
 
-import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
+import type {ISubject, ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
 import type {Encoders, TransportServer} from 'rsocket-core';
 
 import EventEmitter from 'events';
@@ -26,6 +26,7 @@ import invariant from 'fbjs/lib/invariant';
 import {Flowable} from 'rsocket-flowable';
 import Deferred from 'fbjs/lib/Deferred';
 import {deserializeFrame, serializeFrame} from 'rsocket-core';
+import {CONNECTION_STATUS} from 'rsocket-types';
 
 export type ServerOptions = {|
   host?: string,
@@ -105,12 +106,21 @@ class WSDuplexConnection implements DuplexConnection {
   _encoders: ?Encoders<*>;
   _socket: ws.Socket;
   _receiver: Flowable<Frame>;
+  _status: ConnectionStatus;
+  _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
   constructor(socket: ws.Socket, encoders: ?Encoders<*>) {
     this._active = true;
     this._close = new Deferred();
     this._encoders = encoders;
     this._socket = socket;
+    this._statusSubscribers = new Set();
+
+    if (socket) {
+      this._status = CONNECTION_STATUS.CONNECTED;
+    } else {
+      this._status = CONNECTION_STATUS.NOT_CONNECTED;
+    }
 
     // If _receiver has been `subscribe()`-ed already
     let isSubscribed = false;
@@ -138,10 +148,13 @@ class WSDuplexConnection implements DuplexConnection {
         subscriber.onError(
           new Error('RSocketWebSocketServer: Socket closed unexpectedly.'),
         );
+        this._setConnectionStatus(CONNECTION_STATUS.CLOSED);
       };
       const onSocketError = error => {
         closeSocket();
         subscriber.onError(error);
+        const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
+        this._setConnectionStatus(status);
       };
       const onMessage = (data: Buffer) => {
         try {
@@ -169,14 +182,19 @@ class WSDuplexConnection implements DuplexConnection {
   }
 
   connect(): void {
-    // TODO: Do we need this?
+    throw new Error('not supported');
   }
 
   connectionStatus(): Flowable<ConnectionStatus> {
     return new Flowable(subscriber => {
       subscriber.onSubscribe({
-        cancel: () => {},
-        request: () => {},
+        cancel: () => {
+          this._statusSubscribers.delete(subscriber);
+        },
+        request: () => {
+          this._statusSubscribers.add(subscriber);
+          subscriber.onNext(this._status);
+        },
       });
     });
   }
@@ -219,5 +237,10 @@ class WSDuplexConnection implements DuplexConnection {
 
   _handleError(error: Error): void {
     this._socket.emit('error', error);
+  }
+
+  _setConnectionStatus(status: ConnectionStatus): void {
+    this._status = status;
+    this._statusSubscribers.forEach(subscriber => subscriber.onNext(status));
   }
 }
