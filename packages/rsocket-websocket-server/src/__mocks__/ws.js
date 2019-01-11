@@ -23,10 +23,9 @@ class MyServer extends EventEmitter {
   }
 }
 
-
 const ws = {
   Server: MyServer,
-  servers
+  servers,
 };
 
 module.exports = ws;

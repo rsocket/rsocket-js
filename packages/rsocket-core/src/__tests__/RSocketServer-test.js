@@ -178,9 +178,9 @@ describe('RSocketServer', () => {
                   cancel: () => {
                     cancelled = true;
                   },
-                  request: n => { },
+                  request: n => {},
                 });
-              })
+              });
             },
           };
         },
@@ -211,7 +211,7 @@ describe('RSocketServer', () => {
         metadata: undefined,
         metadataMimeType: '<metadataMimeType>',
         streamId: 1,
-        requestN: 1
+        requestN: 1,
       });
       connection.close();
       expect(cancelled).toBeTruthy();

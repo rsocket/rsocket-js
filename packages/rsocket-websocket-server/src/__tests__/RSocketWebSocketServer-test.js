@@ -43,8 +43,7 @@ describe('RSocketWebSocketServer', () => {
       emitter.close = () => {};
       emitter.error = () => {};
       server = new RSocketWebSocketServer({port: 8080});
-      server.start()
-            .subscribe(_connection => connection = _connection);
+      server.start().subscribe(_connection => connection = _connection);
       ws.servers[0].emit('connection', emitter);
       connection.connectionStatus().subscribe({
         onNext: _status => status = _status,
@@ -68,15 +67,15 @@ describe('RSocketWebSocketServer', () => {
     });
 
     it('returns ERROR if the socket errors', () => {
-      connection.receive().subscribe(() => {})
+      connection.receive().subscribe(() => {});
       const error = new Error('wtf');
-      emitter.emit('error', error)
+      emitter.emit('error', error);
       expect(status.kind).toBe('ERROR');
       expect(status.error).toBe(error);
     });
 
     it('returns CLOSED if explicitly closed', () => {
-      connection.receive().subscribe(() => {})
+      connection.receive().subscribe(() => {});
       connection.close();
       expect(status.kind).toBe('CLOSED');
     });
