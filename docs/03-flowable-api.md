@@ -20,7 +20,7 @@ const flowable = new Flowable(subscriber => {
     request: n => {
       while (n--) {
         if (values.length) {
-          const next = values.unshift();
+          const next = values.shift();
           // Can't publish values until request() is called
           subscriber.onNext(next);
         } else {
