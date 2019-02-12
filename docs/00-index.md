@@ -1,6 +1,6 @@
 # rsocket-js
 
-`rsocket-js` implements the 1.0 version of the [rsocket protocol](https://github.com/rsocket/rsocket)
+`rsocket-js` implements the 1.0 version of the [RSocket protocol](https://github.com/rsocket/rsocket)
 and is designed for use in Node.js and browsers. From [reactivesocket.io](http://reactivesocket.io/):
 
 > ReactiveSocket is an application protocol providing Reactive Streams semantics
@@ -31,7 +31,7 @@ The following features are not yet implemented:
 ## Reactive Streams
 
 rsocket-js includes an implementation of the [Reactive Streams](http://www.reactive-streams.org/) 
-API in JavaScrpt. Note that unlike standard Rx Observables, Reactive Streams are
+API in JavaScript. Note that unlike standard Rx Observables, Reactive Streams are
 *lazy*, *pull-based*, and support *back-pressure*. Two types are implemented:
 
 - `Flowable`: An implementation of the Reactive Streams `Publisher` type,
