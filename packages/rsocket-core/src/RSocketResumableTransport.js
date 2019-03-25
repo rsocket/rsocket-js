@@ -35,10 +35,11 @@ import {
   FRAME_TYPES,
 } from './RSocketFrame';
 import {CONNECTION_STATUS} from 'rsocket-types';
+import type {Encodable} from 'rsocket-types';
 
 export type Options = {|
   bufferSize: number,
-  resumeToken: string,
+  resumeToken: Encodable,
 |};
 
 /**
@@ -109,7 +110,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _receiveSubscription: ?ISubscription;
   _pendingFrames: Array<Frame>;
   _receivers: Set<ISubject<Frame>>;
-  _resumeToken: string;
+  _resumeToken: Encodable;
   _senders: Set<ISubscription>;
   _sentFrames: Array<Frame>;
   _setupFrame: ?SetupFrame;
@@ -171,8 +172,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
             } else {
               this._handleResume(connection);
             }
-          } else {
-            // CONNECTED -> (other)
+          } else if (this._isTerminationStatus(status)) {
             this._disconnect();
             this._setConnectionStatus(CONNECTION_STATUS.NOT_CONNECTED);
           }
@@ -357,7 +357,12 @@ export default class RSocketResumableTransport implements DuplexConnection {
   }
 
   _isTerminated(): boolean {
-    return this._status.kind === 'CLOSED' || this._status.kind === 'ERROR';
+    return this._isTerminationStatus(this._status);
+  }
+
+  _isTerminationStatus(status: ConnectionStatus): boolean {
+    const kind = status.kind;
+    return kind === 'CLOSED' || kind === 'ERROR';
   }
 
   _setConnectionStatus(status: ConnectionStatus): void {
@@ -386,14 +391,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _writeFrame(frame: Frame): void {
     // Ensure that SETUP frames contain the resume token
     if (frame.type === FRAME_TYPES.SETUP) {
-      invariant(
-        frame.majorVersion > 1 ||
-          (frame.majorVersion === 1 && frame.minorVersion > 0),
-        'RSocketResumableTransport: Unsupported protocol version %s.%s. ' +
-          'This class implements the v1.1 resumption protocol.',
-        frame.majorVersion,
-        frame.minorVersion,
-      );
       frame = {
         ...frame,
         flags: frame.flags | FLAGS.RESUME_ENABLE, // eslint-disable-line no-bitwise

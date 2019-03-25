@@ -51,7 +51,7 @@ describe('RSocketResumableTransport', () => {
     jest.clearAllTimers();
 
     bufferSize = 10;
-    resumeToken = '<resumeToken>';
+    resumeToken = Buffer.from('<resumeToken>');
     currentTransport = genMockConnection();
     transportSource = jest.fn(() => currentTransport);
     resumableTransport = new RSocketResumableTransport(transportSource, {
@@ -120,7 +120,7 @@ describe('RSocketResumableTransport', () => {
     expect(resumableStatus.kind).toBe('NOT_CONNECTED');
   });
 
-  it('errors for v1.0 setup frames', () => {
+  it('it succeeds for v1.0 setup frames', () => {
     resumableTransport.connect();
     currentTransport.mock.connect();
     expect(resumableStatus.kind).toBe('CONNECTED');
@@ -129,11 +129,7 @@ describe('RSocketResumableTransport', () => {
       majorVersion: 1,
       minorVersion: 0,
     });
-    expect(resumableStatus.kind).toBe('ERROR');
-    expect(resumableStatus.error.message).toBe(
-      'RSocketResumableTransport: Unsupported protocol version 1.0. This ' +
-        'class implements the v1.1 resumption protocol.',
-    );
+    expect(resumableStatus.kind).toBe('CONNECTED');
   });
 
   describe('buffering disabled (bufferSize === 0)', () => {
@@ -307,11 +303,6 @@ describe('RSocketResumableTransport', () => {
     beforeEach(() => {
       resumableTransport.connect();
       currentTransport.mock.connect();
-    });
-
-    it('on transport CONNECTING it updates to NOT_CONNECTED state', () => {
-      currentTransport.mock.connecting();
-      expect(resumableStatus.kind).toBe('NOT_CONNECTED');
     });
 
     it('on transport CLOSED it updates to NOT_CONNECTED state', () => {

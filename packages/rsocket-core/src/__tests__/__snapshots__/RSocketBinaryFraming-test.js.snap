@@ -66,7 +66,7 @@ exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames wi
 
 exports[`RSocketBinaryFraming REQUEST_STREAM serializes REQUEST_STREAM frames without metadata 1`] = `"0a0b0c0d1800010203043c646174613e"`;
 
-exports[`RSocketBinaryFraming RESUME serializes RESUME frames 1`] = `"000000003740002a0018000d3c726573756d65546f6b656e3e000000000000002b0000000000000022"`;
+exports[`RSocketBinaryFraming RESUME serializes RESUME frames 1`] = `"000000003740002a0018000d3c726573756d65546f6b656e3e0000000000000022000000000000002b"`;
 
 exports[`RSocketBinaryFraming RESUME_OK serializes RESUME_OK frames 1`] = `"000000003b40000000000000002b"`;
 

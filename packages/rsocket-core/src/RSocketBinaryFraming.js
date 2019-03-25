@@ -840,8 +840,8 @@ function serializeResumeFrame(
     offset,
     offset + resumeTokenLength,
   );
-  offset = writeUInt64BE(buffer, frame.clientPosition, offset);
-  writeUInt64BE(buffer, frame.serverPosition, offset);
+  offset = writeUInt64BE(buffer, frame.serverPosition, offset);
+  writeUInt64BE(buffer, frame.clientPosition, offset);
   return buffer;
 }
 
@@ -877,9 +877,9 @@ function deserializeResumeFrame(
     offset + resumeTokenLength,
   );
   offset += resumeTokenLength;
-  const clientPosition = readUInt64BE(buffer, offset);
-  offset += 8;
   const serverPosition = readUInt64BE(buffer, offset);
+  offset += 8;
+  const clientPosition = readUInt64BE(buffer, offset);
   offset += 8;
   return {
     clientPosition,
