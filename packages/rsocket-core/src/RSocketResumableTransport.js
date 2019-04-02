@@ -36,6 +36,8 @@ import {
 } from './RSocketFrame';
 import {CONNECTION_STATUS} from 'rsocket-types';
 import type {Encodable} from 'rsocket-types';
+import {sizeOfFrame} from './RSocketBinaryFraming';
+import type {Encoders} from './RSocketEncoding';
 
 export type Options = {|
   bufferSize: number,
@@ -100,7 +102,10 @@ export type Options = {|
  * have failed and the connection is set to the ERROR status.
  */
 export default class RSocketResumableTransport implements DuplexConnection {
+  _encoders: ?Encoders<*>;
   _bufferSize: number;
+  _sentFramesSize: number;
+  _pendingFramesSize: number;
   _position: {
     client: number, // earliest client frame still buffered
     server: number, // latest server frame received
@@ -118,13 +123,20 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(source: () => DuplexConnection, options: Options) {
+  constructor(
+    source: () => DuplexConnection,
+    options: Options,
+    encoders: ?Encoders<*>,
+  ) {
     invariant(
       options.bufferSize >= 0,
       'RSocketResumableTransport: bufferSize option must be >= 0, got `%s`.',
       options.bufferSize,
     );
+    this._encoders = encoders;
     this._bufferSize = options.bufferSize;
+    this._sentFramesSize = 0;
+    this._pendingFramesSize = 0;
     this._position = {
       client: 0,
       server: 0,
@@ -308,17 +320,31 @@ export default class RSocketResumableTransport implements DuplexConnection {
               );
               return;
             }
-            // Extract "sent" frames that the server hasn't received...
-            const unreceivedSentFrames = this._sentFrames.slice(
-              clientPosition - this._position.client,
-            );
+            // remove tail frames of total length = remoteImpliedPos-localPos
+            let removeSize = clientPosition - this._position.client;
+            let index = 0;
+            while (removeSize > 0) {
+              const frameSize = this._onReleasedTailFrame(
+                this._sentFrames[index],
+              );
+              if (!frameSize) {
+                this._close(this._absentLengthError(frame));
+                return;
+              }
+              removeSize -= frameSize;
+              index++;
+            }
+            // Drop sent frames that the server has received
+            if (index > 0) {
+              this._sentFrames.splice(0, index);
+            }
+            const unreceivedSentFrames = this._sentFrames;
             // ...and mark them as pending again
             this._pendingFrames = [
               ...unreceivedSentFrames,
               ...this._pendingFrames,
             ];
-            // Drop sent frames that the server has received
-            this._sentFrames.length = clientPosition - this._position.client;
+
             // Continue connecting, which will flush pending frames
             this._handleConnected(connection);
           } else {
@@ -356,6 +382,12 @@ export default class RSocketResumableTransport implements DuplexConnection {
     });
   }
 
+  _absentLengthError(frame: Frame) {
+    return new Error(
+      'RSocketResumableTransport: absent frame.length for type ' + frame.type,
+    );
+  }
+
   _isTerminated(): boolean {
     return this._isTerminationStatus(this._status);
   }
@@ -375,7 +407,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
 
   _receiveFrame(frame: Frame): void {
     if (isResumePositionFrameType(frame.type)) {
-      this._position.server++;
+      this._position.server += frame.length;
     }
     // TODO: trim _sentFrames on KEEPALIVE frame
     this._receivers.forEach(subscriber => subscriber.onNext(frame));
@@ -384,7 +416,24 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _flushFrames(): void {
     // Writes all pending frames to the transport so long as a connection is available
     while (this._pendingFrames.length && this._currentConnection) {
-      this._writeFrame(this._pendingFrames.shift());
+      let frame = this._pendingFrames.shift();
+      let frameLength = frame.length;
+      if (frameLength) {
+        this._pendingFramesSize -= frameLength;
+        this._writeFrame(frame);
+      } else {
+        this._close(this._absentLengthError(frame));
+        return;
+      }
+    }
+  }
+
+  _onReleasedTailFrame(frame: Frame): ?number {
+    const removedFrameSize = frame.length;
+    if (removedFrameSize) {
+      this._sentFramesSize -= removedFrameSize;
+      this._position.client += removedFrameSize;
+      return removedFrameSize;
     }
   }
 
@@ -398,18 +447,39 @@ export default class RSocketResumableTransport implements DuplexConnection {
       };
       this._setupFrame = (frame: $FlowIssue); // frame can only be a SetupFrame
     }
+    frame.length = sizeOfFrame(frame, this._encoders);
     // If connected, immediately write frames to the low-level transport
     // and consider them "sent". The resumption protocol will figure out
     // which frames may not have been received and recover.
     const currentConnection = this._currentConnection;
     if (currentConnection) {
       if (isResumePositionFrameType(frame.type)) {
-        this._sentFrames.push(frame);
-        if (this._sentFrames.length > this._bufferSize) {
-          // Buffer overflows are acceptable here, since the
-          // assumption is that most frames will reach the server
-          this._sentFrames.shift();
-          this._position.client++;
+        let available = this._bufferSize - this._sentFramesSize;
+        const frameSize = frame.length;
+        if (frameSize) {
+          // remove tail until there is space for new frame
+          while (available < frameSize) {
+            const removedFrame = this._sentFrames.shift();
+            if (removedFrame) {
+              const removedFrameSize = this._onReleasedTailFrame(removedFrame);
+              if (!removedFrameSize) {
+                this._close(this._absentLengthError(frame));
+                return;
+              }
+              available += removedFrameSize;
+            } else {
+              break;
+            }
+          }
+          if (available >= frameSize) {
+            this._sentFrames.push(frame);
+            this._sentFramesSize += frameSize;
+          } else {
+            this._position.client += frameSize;
+          }
+        } else {
+          this._close(this._absentLengthError(frame));
+          return;
         }
       }
       currentConnection.sendOne(frame);
@@ -418,11 +488,12 @@ export default class RSocketResumableTransport implements DuplexConnection {
       // to continue interacting with a ReactiveSocket during momentary
       // losses of connection.
       invariant(
-        this._pendingFrames.length < this._bufferSize,
+        this._pendingFramesSize < this._bufferSize,
         'RSocketResumableTransport: Buffer size of `%s` exceeded.',
         this._bufferSize,
       );
       this._pendingFrames.push(frame);
+      this._pendingFramesSize += frame.length;
     } else {
       invariant(
         false,

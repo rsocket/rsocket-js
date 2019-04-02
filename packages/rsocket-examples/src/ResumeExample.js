@@ -41,6 +41,7 @@ let resumableTransport = new RSocketResumableTransport(
     bufferSize, // max number of sent & pending frames to buffer before failing
     resumeToken, // unique identifier the session across connections
   },
+  BufferEncoders,
 );
 
 const client = new RSocketClient({

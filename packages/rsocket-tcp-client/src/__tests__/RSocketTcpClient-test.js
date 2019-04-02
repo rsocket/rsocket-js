@@ -129,7 +129,11 @@ describe('RSocketTcpClient', () => {
         client.sendOne(frame);
         expect(socket.write.mock.calls.length).toBe(1);
         const buffer = socket.write.mock.calls[0][0];
-        expect(deserializeFrameWithLength(buffer)).toEqual(frame);
+        const lengthPrefixSize = 3;
+        expect(deserializeFrameWithLength(buffer)).toEqual({
+          ...frame,
+          length: buffer.length - lengthPrefixSize,
+        });
       });
 
       it('calls receive.onError if the frame cannot be sent', () => {
@@ -154,9 +158,16 @@ describe('RSocketTcpClient', () => {
         publisher.onNext(frame2);
         expect(socket.write.mock.calls.length).toBe(2);
         const buffer = socket.write.mock.calls[0][0];
-        expect(deserializeFrameWithLength(buffer)).toEqual(frame);
+        const lengthPrefixSize = 3;
+        expect(deserializeFrameWithLength(buffer)).toEqual({
+          ...frame,
+          length: buffer.length - lengthPrefixSize,
+        });
         const buffer2 = socket.write.mock.calls[1][0];
-        expect(deserializeFrameWithLength(buffer2)).toEqual(frame2);
+        expect(deserializeFrameWithLength(buffer2)).toEqual({
+          ...frame2,
+          length: buffer2.length - lengthPrefixSize,
+        });
       });
 
       it('calls receive.onError if frames cannot be sent', () => {
@@ -194,7 +205,7 @@ describe('RSocketTcpClient', () => {
         socket.mock.data(serializeFrameWithLength(frame));
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const nextFrame = subscriber.onNext.mock.calls[0][0];
-        expect(nextFrame).toEqual(frame);
+        expect(nextFrame).toEqual({...frame, length: nextFrame.length});
 
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(0);
@@ -219,7 +230,7 @@ describe('RSocketTcpClient', () => {
         net.socket.mock.data(buffer.slice(buffer.length - 1, buffer.length));
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const nextFrame = subscriber.onNext.mock.calls[0][0];
-        expect(nextFrame).toEqual(frame);
+        expect(nextFrame).toEqual({...frame, length: nextFrame.length});
 
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(0);
