@@ -1,12 +1,12 @@
 # Client Configuration
 
-Creating a client requires specifying rsocket settings as well as a transport
+Creating a client requires that you specify rsocket settings as well as a transport
 client.
 
 ## Browser Example
 
 For browser usage, a client will typically be configured to use WebSocket as the
-transport layer and send/receive JSON objects:
+transport layer and to send/receive JSON objects:
 
 ```javascript
 import {
@@ -51,8 +51,8 @@ client.connect().subscribe({
 ## Node.js Example
 
 For Node.js, usage will typically involve the TCP client. The following example
-demonstrates the TCP client usage and sending/receiving Buffer objects. See the
-above example for how to send/receive JSOn objects instead):
+demonstrates the TCP client usage and sending/receiving Buffer objects (see the
+above example for how to send/receive JSON objects instead):
 
 ```javascript
 import {
