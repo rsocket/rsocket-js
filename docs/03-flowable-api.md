@@ -4,11 +4,11 @@
 
 ## Flowable (class)
 
-Implements the ReactiveStream `Publisher` interface with Rx-style operators.
+This class implements the ReactiveStream `Publisher` interface with Rx-style operators.
 
 ### Example
 
-Creates a `Flowable` that publishes the numbers 0, 1, 2, 3 on demand and then
+This example creates a `Flowable` that publishes the numbers 0, 1, 2, 3 on demand and then
 completes.
 
 ```javascript
@@ -66,7 +66,7 @@ type Subscription = {
 
 ### subscribe() (method)
 
-Connects the Flowable (publisher) to a subscriber of values. Subscribing alone
+This method connects the Flowable (publisher) to a subscriber of values. Subscribing alone
 does not indicate demand: rather, it connects publisher & subscriber and allows
 the subscriber to begin expressing demand for values via a `Subscription`
 object. Note that `PartialSubscriber` differs from the above `Subscriber` only
@@ -85,7 +85,7 @@ type PartialSubscriber<T> = {
 
 ### map() (method)
 
-Applies a transform function to values produced by this Flowable. Similar to
+This method applies a transform function to values produced by this `Flowable`. This is similar to
 `Array.prototype.map`, `Observable.prototype.map`, etc.
 
 ```javascript
@@ -94,13 +94,13 @@ map<U>(fn: (data: T) => U): Flowable<U>
 
 ## Single (class)
 
-Similar to `Flowable` but represents a single value that is produced on demand
+This class is similar to `Flowable` but represents a single value that is produced on demand
 (when subscribed). From a practical perspective this is a lazy, cancellable
 Promise that supports operators (e.g. `map()`).
 
 ### Example: Network Request
 
-Creates a `Single` that resolves to the result of an XHR request. The `fetch`
+This example creates a `Single` that resolves to the result of an XHR request. The `fetch`
 API does not support cancellation, so no cancel callback is passed to
 `onSubscribe()`. The user may still call `cancel()` to ignore the fetch 
 results and stop `onComplete()` or `onError()` from being called.
@@ -124,7 +124,7 @@ single.subscribe({
 
 ### Example: Timer
 
-Creates a `Single` that resolves to a string after a timeout, passing a
+This example creates a `Single` that resolves to a string after a timeout, passing a
 cancellation callback to stop the timer in case the user cancels the `Single`:
 
 ```javascript
@@ -163,7 +163,7 @@ type CancelCallback = () => void;
 
 ### subscribe() (method)
 
-Connects the `Single` to a subscriber of values. Unlike `Flowable`, subscribe
+This method connects the `Single` to a subscriber of values. Unlike `Flowable`, with `Single` a subscribe
 also implicitly indicates demand. `PartialSubscriber` differs from `Subscriber`
 only in that methods are optional.
 
@@ -179,7 +179,7 @@ type PartialSubscriber<T> = {
 
 ### map() (method)
 
-Applies a transform function to values produced by this Single. Similar to
+This method applies a transform function to values produced by this `Single`. This is similar to
 `Array.prototype.map`, `Observable.prototype.map`, etc.
 
 ```javascript
