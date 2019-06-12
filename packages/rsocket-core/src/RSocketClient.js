@@ -39,6 +39,7 @@ export type ClientConfig<D, M> = {|
     dataMimeType: string,
     keepAlive: number,
     lifetime: number,
+    metadata?: string,
     metadataMimeType: string,
   |},
   transport: DuplexConnection,
@@ -169,16 +170,21 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       dataMimeType,
       keepAlive,
       lifetime,
+      metadata,
       metadataMimeType,
     } = config.setup;
+    let flags = 0;
+    if (metadata !== undefined) {
+      flags |= FLAGS.METADATA;
+    }
     return {
       data: undefined,
       dataMimeType,
-      flags: 0,
+      flags,
       keepAlive,
       lifetime,
       majorVersion: MAJOR_VERSION,
-      metadata: undefined,
+      metadata,
       metadataMimeType,
       minorVersion: MINOR_VERSION,
       resumeToken: null,
