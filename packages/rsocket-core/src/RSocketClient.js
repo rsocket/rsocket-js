@@ -122,7 +122,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     let responderLeaseHandler: ?ResponderLeaseHandler;
 
     const leasesSupplier = config.leases;
-    if (leasesSupplier !== undefined) {
+    if (leasesSupplier) {
       const lease = leasesSupplier();
       requesterLeaseHandler = new RequesterLeaseHandler(lease._receiver);
       responderLeaseHandler = new ResponderLeaseHandler(
@@ -212,7 +212,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     return {
       data: undefined,
       dataMimeType,
-      flags: flags | (config.leases !== undefined ? FLAGS.LEASE : 0),
+      flags: flags | (config.leases ? FLAGS.LEASE : 0),
       keepAlive,
       lifetime,
       majorVersion: MAJOR_VERSION,
