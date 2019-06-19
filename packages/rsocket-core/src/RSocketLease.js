@@ -116,7 +116,7 @@ export class RequesterLeaseHandler implements LeaseHandler, Disposable {
     leaseReceiver(
       new Flowable(subscriber => {
         if (this._subscriber) {
-          subscriber.onError(Error('only 1 subscriber is allowed'));
+          subscriber.onError(new Error('only 1 subscriber is allowed'));
           return;
         }
         if (this.isDisposed()) {
@@ -131,7 +131,7 @@ export class RequesterLeaseHandler implements LeaseHandler, Disposable {
           request: n => {
             if (n <= 0) {
               subscriber.onError(
-                Error(`request demand must be positive: ${n}`),
+                new Error(`request demand must be positive: ${n}`),
               );
             }
             if (!this.isDisposed()) {
