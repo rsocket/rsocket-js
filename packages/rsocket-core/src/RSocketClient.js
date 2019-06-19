@@ -32,6 +32,8 @@ import invariant from 'fbjs/lib/invariant';
 import {CONNECTION_STREAM_ID, FLAGS, FRAME_TYPES} from './RSocketFrame';
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {createClientMachine} from './RSocketMachine';
+import {Leases} from './RSocketLease';
+import {RequesterLeaseHandler, ResponderLeaseHandler} from './RSocketLease';
 
 export type ClientConfig<D, M> = {|
   serializers?: PayloadSerializers<D, M>,
@@ -44,6 +46,7 @@ export type ClientConfig<D, M> = {|
   |},
   transport: DuplexConnection,
   responder?: Responder<D, M>,
+  leases?: () => Leases<*>,
 |};
 
 /**
@@ -115,11 +118,25 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
   _machine: ReactiveSocket<D, M>;
 
   constructor(config: ClientConfig<D, M>, connection: DuplexConnection) {
+    let requesterLeaseHandler: ?RequesterLeaseHandler;
+    let responderLeaseHandler: ?ResponderLeaseHandler;
+
+    const leasesSupplier = config.leases;
+    if (leasesSupplier !== undefined) {
+      const lease = leasesSupplier();
+      requesterLeaseHandler = new RequesterLeaseHandler(lease._receiver);
+      responderLeaseHandler = new ResponderLeaseHandler(
+        lease._sender,
+        lease._stats,
+      );
+    }
     this._machine = createClientMachine(
       connection,
       subscriber => connection.receive().subscribe(subscriber),
       config.serializers,
       config.responder,
+      requesterLeaseHandler,
+      responderLeaseHandler,
     );
 
     // Send SETUP
@@ -176,6 +193,10 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     return this._machine.connectionStatus();
   }
 
+  availability(): number {
+    return this._machine.availability();
+  }
+
   _buildSetupFrame(config: ClientConfig<D, M>): SetupFrame {
     const {
       dataMimeType,
@@ -191,7 +212,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     return {
       data: undefined,
       dataMimeType,
-      flags,
+      flags: flags | (config.leases !== undefined ? FLAGS.LEASE : 0),
       keepAlive,
       lifetime,
       majorVersion: MAJOR_VERSION,
