@@ -76,6 +76,12 @@ export interface ReactiveSocket<D, M> extends Responder<D, M> {
    * Implementations must publish values per the comments on ConnectionStatus.
    */
   connectionStatus(): Flowable<ConnectionStatus>,
+
+  /**
+   * Returns positive number representing the availability of RSocket requester. Higher is better, 0.0
+   * means not available.
+   */
+  availability(): number,
 }
 
 /**

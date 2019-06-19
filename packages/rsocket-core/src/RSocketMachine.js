@@ -54,6 +54,12 @@ import {
   MAX_STREAM_ID,
 } from './RSocketFrame';
 import {IdentitySerializers} from './RSocketSerialization';
+import {
+  LeaseHandler,
+  RequesterLeaseHandler,
+  ResponderLeaseHandler,
+  Disposable,
+} from './RSocketLease';
 
 type Role = 'CLIENT' | 'SERVER';
 
@@ -139,14 +145,17 @@ export function createServerMachine<D, M>(
   connection: DuplexConnection,
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
-  requestHandler?: ?PartialResponder<D, M>,
+  requesterLeaseHandler?: ?RequesterLeaseHandler,
+  responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
   return new RSocketMachineImpl(
     'SERVER',
     connection,
     connectionPublisher,
     serializers,
-    requestHandler,
+    undefined,
+    requesterLeaseHandler,
+    responderLeaseHandler,
   );
 }
 
@@ -155,6 +164,8 @@ export function createClientMachine<D, M>(
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
   requestHandler?: ?PartialResponder<D, M>,
+  requesterLeaseHandler?: ?RequesterLeaseHandler,
+  responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
   return new RSocketMachineImpl(
     'CLIENT',
@@ -162,6 +173,8 @@ export function createClientMachine<D, M>(
     connectionPublisher,
     serializers,
     requestHandler,
+    requesterLeaseHandler,
+    responderLeaseHandler,
   );
 }
 
@@ -172,6 +185,10 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _receivers: Map<number, ISubject<Payload<D, M>>>;
   _subscriptions: Map<number, ISubscription>;
   _serializers: PayloadSerializers<D, M>;
+  _connectionAvailability: number = 1.0;
+  _requesterLeaseHandler: ?RequesterLeaseHandler;
+  _responderLeaseHandler: ?ResponderLeaseHandler;
+  _responderLeaseSenderDisposable: ?Disposable;
 
   constructor(
     role: Role,
@@ -179,8 +196,12 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
     serializers: ?PayloadSerializers<D, M>,
     requestHandler: ?PartialResponder<D, M>,
+    requesterLeaseHandler?: ?RequesterLeaseHandler,
+    responderLeaseHandler?: ?ResponderLeaseHandler,
   ) {
     this._connection = connection;
+    this._requesterLeaseHandler = requesterLeaseHandler;
+    this._responderLeaseHandler = responderLeaseHandler;
     this._nextStreamId = role === 'CLIENT' ? 1 : 2;
     this._receivers = new Map();
     this._subscriptions = new Map();
@@ -196,6 +217,12 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
         subscription.request(Number.MAX_SAFE_INTEGER),
     });
 
+    const responderHandler = this._responderLeaseHandler;
+    if (responderHandler) {
+      this._responderLeaseSenderDisposable = responderHandler.send(
+        this._leaseFrameSender(),
+      );
+    }
     // Cleanup when the connection closes
     this._connection.connectionStatus().subscribe({
       onNext: status => {
@@ -222,7 +249,18 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     return this._connection.connectionStatus();
   }
 
+  availability(): number {
+    const r = this._requesterLeaseHandler;
+    const requesterAvailability = r ? r.availability() : 1.0;
+    return Math.min(this._connectionAvailability, requesterAvailability);
+  }
+
   fireAndForget(payload: Payload<D, M>): void {
+    if (this._useLeaseOrError(this._requesterLeaseHandler)) {
+      //todo need to signal error to user provided error handler
+      return;
+    }
+
     const streamId = this._getNextStreamId();
     const data = this._serializers.data.serialize(payload.data);
     const metadata = this._serializers.metadata.serialize(payload.metadata);
@@ -237,6 +275,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
+    const leaseError = this._useLeaseOrError(this._requesterLeaseHandler);
+    if (leaseError) {
+      return Single.error(new Error(leaseError));
+    }
+
     const streamId = this._getNextStreamId();
     return new Single(subscriber => {
       this._receivers.set(streamId, {
@@ -268,6 +311,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>> {
+    const leaseError = this._useLeaseOrError(this._requesterLeaseHandler);
+    if (leaseError) {
+      return Flowable.error(new Error(leaseError));
+    }
+
     const streamId = this._getNextStreamId();
     return new Flowable(
       subscriber => {
@@ -323,6 +371,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
+    const leaseError = this._useLeaseOrError(this._requesterLeaseHandler);
+    if (leaseError) {
+      return Flowable.error(new Error(leaseError));
+    }
+
     const streamId = this._getNextStreamId();
     let payloadsSubscribed = false;
     return new Flowable(
@@ -365,7 +418,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
                       this._sendStreamComplete(streamId);
                     },
                     onError: error => {
-                      this._sendStreamError(streamId, error);
+                      this._sendStreamError(streamId, error.message);
                     },
                     //Subscriber methods
                     onNext: payload => {
@@ -443,6 +496,46 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     return streamId;
   }
 
+  _useLeaseOrError(leaseHandler: ?LeaseHandler): ?string {
+    if (leaseHandler) {
+      if (!leaseHandler.use()) {
+        return leaseHandler.errorMessage();
+      }
+    }
+  }
+
+  _leaseFrameSender() {
+    return lease =>
+      this._connection.sendOne({
+        type: FRAME_TYPES.LEASE,
+        flags: 0,
+        ttl: lease.timeToLiveMillis,
+        requestCount: lease.allowedRequests,
+        metadata: lease.metadata,
+        streamId: CONNECTION_STREAM_ID,
+      });
+  }
+
+  _dispose(...disposables: Array<?Disposable>) {
+    disposables.forEach(d => {
+      if (d) {
+        d.dispose();
+      }
+    });
+  }
+
+  _isRequest(frameType: number) {
+    switch (frameType) {
+      case FRAME_TYPES.REQUEST_FNF:
+      case FRAME_TYPES.REQUEST_RESPONSE:
+      case FRAME_TYPES.REQUEST_STREAM:
+      case FRAME_TYPES.REQUEST_CHANNEL:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /**
    * Handle the connection closing normally: this is an error for any open streams.
    */
@@ -464,6 +557,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       subscription.cancel();
     });
     this._subscriptions.clear();
+    this._connectionAvailability = 0.0;
+    this._dispose(
+      this._requesterLeaseHandler,
+      this._responderLeaseSenderDisposable,
+    );
   };
 
   _handleConnectionError(error: Error): void {
@@ -505,7 +603,10 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
         }
         break;
       case FRAME_TYPES.LEASE:
-        // TODO #18064860: support lease
+        const r = this._requesterLeaseHandler;
+        if (r) {
+          r.receive(frame);
+        }
         break;
       case FRAME_TYPES.METADATA_PUSH:
       case FRAME_TYPES.REQUEST_CHANNEL:
@@ -537,6 +638,13 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
    * Handle stream-specific frames (stream id !== 0).
    */
   _handleStreamFrame(streamId: number, frame: Frame): void {
+    if (this._isRequest(frame.type)) {
+      const leaseError = this._useLeaseOrError(this._responderLeaseHandler);
+      if (leaseError) {
+        this._sendStreamError(streamId, leaseError);
+        return;
+      }
+    }
     switch (frame.type) {
       case FRAME_TYPES.CANCEL:
         this._handleCancel(streamId, frame);
@@ -614,7 +722,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       onComplete: payload => {
         this._sendStreamPayload(streamId, payload, true);
       },
-      onError: error => this._sendStreamError(streamId, error),
+      onError: error => this._sendStreamError(streamId, error.message),
       onSubscribe: cancel => {
         const subscription = {
           cancel,
@@ -629,7 +737,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     const payload = this._deserializePayload(frame);
     this._requestHandler.requestStream(payload).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
-      onError: error => this._sendStreamError(streamId, error),
+      onError: error => this._sendStreamError(streamId, error.message),
       onNext: payload => this._sendStreamPayload(streamId, payload),
       onSubscribe: subscription => {
         this._subscriptions.set(streamId, subscription);
@@ -693,7 +801,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
 
     this._requestHandler.requestChannel(framesToPayloads).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
-      onError: error => this._sendStreamError(streamId, error),
+      onError: error => this._sendStreamError(streamId, error.message),
       onNext: payload => this._sendStreamPayload(streamId, payload),
       onSubscribe: subscription => {
         this._subscriptions.set(streamId, subscription);
@@ -713,12 +821,12 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     });
   }
 
-  _sendStreamError(streamId: number, error: Error): void {
+  _sendStreamError(streamId: number, errorMessage: string): void {
     this._subscriptions.delete(streamId);
     this._connection.sendOne({
       code: ERROR_CODES.APPLICATION_ERROR,
       flags: 0,
-      message: error.message,
+      message: errorMessage,
       streamId,
       type: FRAME_TYPES.ERROR,
     });
