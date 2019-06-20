@@ -234,12 +234,15 @@ export class ResponderLeaseHandler implements LeaseHandler {
     return _errorMessage(this._lease);
   }
 
-  send(sender: (Lease) => void): Disposable {
+  send(send: (Lease) => void): Disposable {
     let subscription: ?ISubscription;
     let isDisposed: boolean;
 
     this._leaseSender(this._stats).subscribe({
-      onNext: lease => sender(lease),
+      onNext: lease => {
+        this._lease = lease;
+        send(lease);
+      },
       onComplete: () => this._onStatsEvent(),
       onError: error => {
         this._onStatsEvent();
