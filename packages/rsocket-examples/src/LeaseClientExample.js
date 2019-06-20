@@ -19,7 +19,7 @@
 
 'use strict';
 
-import type {PartialResponder, Payload} from 'rsocket-types';
+import type {Responder, Payload} from 'rsocket-types';
 import {Leases, Lease, RSocketClient} from 'rsocket-core';
 import {Flowable, Single, every} from 'rsocket-flowable';
 import RSocketTcpClient from 'rsocket-tcp-client';
@@ -34,28 +34,29 @@ function make(data: string): Payload<string, string> {
 }
 
 function logRequest(type: string, payload: Payload<string, string>) {
-  console.log(
-    `got ${type} with payload: data: ${payload.data || 'null'},
-      metadata: ${payload.metadata || 'null'}`,
-  );
+  console.log(`Responder response to ${type}, data: ${payload.data || 'null'}`);
 }
 
-class EchoResponder implements PartialResponder<string, string> {
+class EchoResponder implements Responder<string, string> {
+  metadataPush(payload: Payload<string, string>): Single<void> {
+    return Single.error(new Error('not implemented'));
+  }
+
   fireAndForget(payload: Payload<string, string>): void {
-    logRequest('fnf', payload);
+    logRequest('fire-and-forget', payload);
   }
 
   requestResponse(
     payload: Payload<string, string>,
   ): Single<Payload<string, string>> {
-    logRequest('requestResponse', payload);
+    logRequest('request-response', payload);
     return Single.of(make('client response'));
   }
 
   requestStream(
     payload: Payload<string, string>,
   ): Flowable<Payload<string, string>> {
-    logRequest('requestStream', payload);
+    logRequest('request-stream', payload);
     return Flowable.just(make('client stream response'));
   }
 
@@ -78,19 +79,33 @@ const receivedLeasesLogger: (Flowable<Lease>) => void = lease =>
     onSubscribe: s => s.request(Number.MAX_SAFE_INTEGER),
     onNext: lease =>
       console.log(
-        `Received lease. Ttl: ${lease.timeToLiveMillis}, requests: ${lease.allowedRequests}`,
+        `Received lease - ttl: ${lease.timeToLiveMillis}, requests: ${lease.allowedRequests}`,
       ),
   });
+
+function periodicLeaseSender(
+  intervalMillis: number,
+  ttl: number,
+  allowedRequests: number,
+): Flowable<Lease> {
+  return every(intervalMillis).map(v => {
+    console.log(`Sent lease - ttl: ${ttl}, requests: ${allowedRequests}`);
+    return new Lease(ttl, allowedRequests);
+  });
+}
 
 const client = new RSocketClient({
   setup: {
     dataMimeType: 'text/plain',
-    keepAlive: 1000000, // avoid sending during test
+    keepAlive: 1000000,
     lifetime: 100000,
     metadataMimeType: 'text/plain',
   },
-  //responder: new EchoResponder(),
-  leases: () => new Leases().receiver(receivedLeasesLogger),
+  responder: new EchoResponder(),
+  leases: () =>
+    new Leases()
+      .receiver(receivedLeasesLogger)
+      .sender(stats => periodicLeaseSender(10000, 7000, 10)),
   transport: getClientTransport(address.host, address.port),
 });
 
@@ -98,9 +113,7 @@ client.connect().subscribe({
   onComplete: rSocket => {
     every(1000).subscribe({
       onNext: time => {
-        console.log(
-          `RSocket requester availability: ${rSocket.availability()}`,
-        );
+        console.log(`Requester availability: ${rSocket.availability()}`);
         rSocket
           .requestResponse({
             data: time.toString(),
@@ -110,11 +123,10 @@ client.connect().subscribe({
             onComplete: response => {
               const data = response.data;
               if (data) {
-                console.log(`RSocket requester response: ${data}`);
+                console.log(`Requester response: ${data}`);
               }
             },
-            onError: error =>
-              console.log(`RSocket requester error: ${error.message}`),
+            onError: error => console.log(`Requester error: ${error.message}`),
           });
       },
       onSubscribe: subscription =>
