@@ -250,7 +250,6 @@ export class ResponderLeaseHandler implements LeaseHandler {
       },
       onSubscribe: s => {
         if (isDisposed) {
-          this._onStatsEvent();
           s.cancel();
           return;
         }
@@ -263,8 +262,8 @@ export class ResponderLeaseHandler implements LeaseHandler {
       dispose(): void {
         if (!isDisposed) {
           isDisposed = true;
+          this._onStatsEvent();
           if (subscription) {
-            this._onStatsEvent();
             subscription.cancel();
           }
         }
