@@ -216,12 +216,16 @@ export default class RSocketResumableTransport implements DuplexConnection {
 
   receive(): Flowable<Frame> {
     return new Flowable(subject => {
+      let added = false;
       subject.onSubscribe({
         cancel: () => {
           this._receivers.delete(subject);
         },
         request: () => {
-          this._receivers.add(subject);
+          if (!added) {
+            added = true;
+            this._receivers.add(subject);
+          }
         },
       });
     });
@@ -263,6 +267,17 @@ export default class RSocketResumableTransport implements DuplexConnection {
     } else {
       this._setConnectionStatus(CONNECTION_STATUS.CLOSED);
     }
+    const receivers = this._receivers;
+    receivers.forEach(r => r.onComplete());
+    receivers.clear();
+
+    const senders = this._senders;
+    senders.forEach(s => s.cancel());
+    senders.clear();
+
+    this._sentFrames.length = 0;
+    this._pendingFrames.length = 0;
+
     this._disconnect();
   }
 
