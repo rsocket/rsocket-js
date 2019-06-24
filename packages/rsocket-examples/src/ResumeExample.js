@@ -28,10 +28,15 @@ import RSocketTcpClient from 'rsocket-tcp-client';
 
 const maxRSocketRequestN = 2147483647;
 const host = '127.0.0.1';
-const port = 5001;
+const port = 7000;
 const resumeToken = Buffer.from('abc123');
 const bufferSize = 128;
 const reconnectIntervalMillis = 5000;
+const sessionDurationSeconds = 20000;
+const keepAlive = 60000;
+const lifetime = 180000;
+const dataMimeType = 'application/octet-stream';
+const metadataMimeType = 'application/octet-stream';
 
 // Create an instance of a client
 let resumableTransport = new RSocketResumableTransport(
@@ -40,16 +45,17 @@ let resumableTransport = new RSocketResumableTransport(
   {
     bufferSize, // max number of sent & pending frames to buffer before failing
     resumeToken, // unique identifier the session across connections
+    sessionDurationSeconds,
   },
   BufferEncoders,
 );
 
 const client = new RSocketClient({
   setup: {
-    keepAlive: 60000,
-    lifetime: 180000,
-    dataMimeType: 'application/octet-stream',
-    metadataMimeType: 'application/octet-stream',
+    keepAlive,
+    lifetime,
+    dataMimeType,
+    metadataMimeType,
   },
   transport: resumableTransport,
 });

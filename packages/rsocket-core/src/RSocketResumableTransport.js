@@ -42,6 +42,7 @@ import type {Encoders} from './RSocketEncoding';
 export type Options = {|
   bufferSize: number,
   resumeToken: Encodable,
+  sessionDurationSeconds: number,
 |};
 
 /**
@@ -116,6 +117,8 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _pendingFrames: Array<Frame>;
   _receivers: Set<ISubject<Frame>>;
   _resumeToken: Encodable;
+  _sessionTimeoutMillis: number;
+  _sessionTimeoutHandle: ?TimeoutID;
   _senders: Set<ISubscription>;
   _sentFrames: Array<Frame>;
   _setupFrame: ?SetupFrame;
@@ -147,6 +150,8 @@ export default class RSocketResumableTransport implements DuplexConnection {
     this._pendingFrames = [];
     this._receivers = new Set();
     this._resumeToken = options.resumeToken;
+    this._sessionTimeoutMillis = options.sessionDurationSeconds * 1000;
+    this._sessionTimeoutHandle = null;
     this._senders = new Set();
     this._sentFrames = [];
     this._setupFrame = null;
@@ -162,8 +167,9 @@ export default class RSocketResumableTransport implements DuplexConnection {
   connect(): void {
     invariant(
       !this._isTerminated(),
-      'RSocketResumableTransport: Cannot connect(), connection terminated (%s).',
+      'RSocketResumableTransport: Cannot connect(), connection terminated (%s: %s).',
       this._status.kind,
+      this._status.kind === 'ERROR' ? this._status.error.message : 'no message',
     );
     try {
       this._disconnect();
@@ -178,13 +184,24 @@ export default class RSocketResumableTransport implements DuplexConnection {
             return;
           }
           if (status.kind === 'CONNECTED') {
-            // (other) -> CONNECTED
+            if (this._sessionTimeoutHandle) {
+              clearTimeout(this._sessionTimeoutHandle);
+              this._sessionTimeoutHandle = null;
+            }
+            //Setup
             if (this._setupFrame == null) {
               this._handleConnected(connection);
+              //Resume
             } else {
               this._handleResume(connection);
             }
           } else if (this._isTerminationStatus(status)) {
+            if (!this._sessionTimeoutHandle) {
+              this._sessionTimeoutHandle = setTimeout(
+                () => this._close(new Error('resumable session timed out')),
+                this._sessionTimeoutMillis,
+              );
+            }
             this._disconnect();
             this._setConnectionStatus(CONNECTION_STATUS.NOT_CONNECTED);
           }
