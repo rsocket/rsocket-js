@@ -159,15 +159,6 @@ describe('RSocketResumableTransport', () => {
         length: sizeOfFrame(sent),
       });
     });
-
-    it('closes the transport with an error if frames are sent while not connected', () => {
-      resumableTransport.sendOne(setupFrame);
-      expect(resumableStatus.kind).toBe('ERROR');
-      expect(resumableStatus.error.message).toBe(
-        'RSocketResumableTransport: Cannot sent frames while disconnected; ' +
-          'buffering is disabled (bufferSize === 0).',
-      );
-    });
   });
 
   describe('initiating a connection (NOT_CONNECTED -> CONNECTING)', () => {
@@ -453,7 +444,7 @@ describe('RSocketResumableTransport', () => {
       expect(resumableStatus.kind).toBe('CONNECTING');
       currentTransport.mock.receiver.onNext({
         ...resumeOkFrame,
-        clientPosition: 1, // server has the one resumable frame the client sent
+        clientPosition: sizeOfFrame(requestFrame), // server has the one resumable frame the client sent
       });
       expect(resumableStatus.kind).toBe('CONNECTED');
       expect(currentTransport.sendOne.mock.calls.length).toBe(0);
@@ -471,7 +462,7 @@ describe('RSocketResumableTransport', () => {
 
       currentTransport.mock.receiver.onNext({
         ...resumeOkFrame,
-        clientPosition: 1, // server has all client frames
+        clientPosition: sizeOfFrame(requestFrame2),
       });
       expect(resumableStatus.kind).toBe('CONNECTED');
       expect(currentTransport.sendOne.mock.calls.length).toBe(1);
@@ -650,6 +641,48 @@ describe('RSocketResumableTransport', () => {
           sizeOfFrame(responseFrame), // server has all buffered frames (total bytesize)
       });
       expect(resumableStatus.kind).toBe('CONNECTED');
+      expect(currentTransport.sendOne.mock.calls.length).toBe(0);
+    });
+
+    it('rejects resume when missing frames', () => {
+      for (let i = 0; i < 10; i++) {
+        resumableTransport.sendOne(requestFrame);
+      }
+      disconnect();
+
+      resumableTransport.connect();
+      currentTransport.mock.connect();
+      currentTransport.sendOne.mockClear();
+      currentTransport.mock.receiver.onNext({
+        ...resumeOkFrame,
+        clientPosition: 0, // server received nothing
+      });
+      expect(resumableStatus.kind).toBe('ERROR');
+      expect(resumableStatus.error.message).toBe(
+        'RSocketResumableTransport: resumption failed, server is ' +
+          'missing frames that are no longer in the client buffer.',
+      );
+      expect(currentTransport.sendOne.mock.calls.length).toBe(0);
+    });
+
+    it('rejects resume when frame position is inconsistent', () => {
+      resumableTransport.sendOne(requestFrame);
+      resumableTransport.sendOne(requestFrame);
+
+      disconnect();
+
+      resumableTransport.connect();
+      currentTransport.mock.connect();
+      currentTransport.sendOne.mockClear();
+      currentTransport.mock.receiver.onNext({
+        ...resumeOkFrame,
+        clientPosition: 15, // impossible position
+      });
+      expect(resumableStatus.kind).toBe('ERROR');
+      expect(resumableStatus.error.message).toBe(
+        'RSocketResumableTransport: local frames are inconsistent ' +
+          'with remote implied position',
+      );
       expect(currentTransport.sendOne.mock.calls.length).toBe(0);
     });
   });

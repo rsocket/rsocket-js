@@ -106,7 +106,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _encoders: ?Encoders<*>;
   _bufferSize: number;
   _sentFramesSize: number;
-  _pendingFramesSize: number;
   _position: {
     client: number, // earliest client frame still buffered
     server: number, // latest server frame received
@@ -114,7 +113,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
   _currentConnection: ?DuplexConnection;
   _statusSubscription: ?ISubscription;
   _receiveSubscription: ?ISubscription;
-  _pendingFrames: Array<Frame>;
   _receivers: Set<ISubject<Frame>>;
   _resumeToken: Encodable;
   _sessionTimeoutMillis: number;
@@ -139,7 +137,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
     this._encoders = encoders;
     this._bufferSize = options.bufferSize;
     this._sentFramesSize = 0;
-    this._pendingFramesSize = 0;
     this._position = {
       client: 0,
       server: 0,
@@ -147,7 +144,6 @@ export default class RSocketResumableTransport implements DuplexConnection {
     this._currentConnection = null;
     this._statusSubscription = null;
     this._receiveSubscription = null;
-    this._pendingFrames = [];
     this._receivers = new Set();
     this._resumeToken = options.resumeToken;
     this._sessionTimeoutMillis = options.sessionDurationSeconds * 1000;
@@ -198,7 +194,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
           } else if (this._isTerminationStatus(status)) {
             if (!this._sessionTimeoutHandle) {
               this._sessionTimeoutHandle = setTimeout(
-                () => this._close(new Error('resumable session timed out')),
+                () => this._close(this._resumeTimeoutError()),
                 this._sessionTimeoutMillis,
               );
             }
@@ -291,9 +287,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
     const senders = this._senders;
     senders.forEach(s => s.cancel());
     senders.clear();
-
     this._sentFrames.length = 0;
-    this._pendingFrames.length = 0;
 
     this._disconnect();
   }
@@ -344,12 +338,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
             if (clientPosition < this._position.client) {
               // Invalid RESUME_OK frame: server asked for an older
               // client frame than is available
-              this._close(
-                new Error(
-                  'RSocketResumableTransport: Resumption failed, server is ' +
-                    'missing frames that are no longer in the client buffer.',
-                ),
-              );
+              this._close(this._nonResumableStateError());
               return;
             }
             // remove tail frames of total length = remoteImpliedPos-localPos
@@ -366,17 +355,14 @@ export default class RSocketResumableTransport implements DuplexConnection {
               removeSize -= frameSize;
               index++;
             }
+            if (removeSize !== 0) {
+              this._close(this._inconsistentImpliedPositionError());
+              return;
+            }
             // Drop sent frames that the server has received
             if (index > 0) {
               this._sentFrames.splice(0, index);
             }
-            const unreceivedSentFrames = this._sentFrames;
-            // ...and mark them as pending again
-            this._pendingFrames = [
-              ...unreceivedSentFrames,
-              ...this._pendingFrames,
-            ];
-
             // Continue connecting, which will flush pending frames
             this._handleConnected(connection);
           } else {
@@ -420,6 +406,23 @@ export default class RSocketResumableTransport implements DuplexConnection {
     );
   }
 
+  _inconsistentImpliedPositionError() {
+    return new Error(
+      'RSocketResumableTransport: local frames are inconsistent with remote implied position',
+    );
+  }
+
+  _nonResumableStateError() {
+    return new Error(
+      'RSocketResumableTransport: resumption failed, server is ' +
+        'missing frames that are no longer in the client buffer.',
+    );
+  }
+
+  _resumeTimeoutError() {
+    return new Error('RSocketResumableTransport: resumable session timed out');
+  }
+
   _isTerminated(): boolean {
     return this._isTerminationStatus(this._status);
   }
@@ -446,18 +449,12 @@ export default class RSocketResumableTransport implements DuplexConnection {
   }
 
   _flushFrames(): void {
-    // Writes all pending frames to the transport so long as a connection is available
-    while (this._pendingFrames.length && this._currentConnection) {
-      let frame = this._pendingFrames.shift();
-      let frameLength = frame.length;
-      if (frameLength) {
-        this._pendingFramesSize -= frameLength;
-        this._writeFrame(frame);
-      } else {
-        this._close(this._absentLengthError(frame));
-        return;
+    this._sentFrames.forEach(frame => {
+      let connection = this._currentConnection;
+      if (connection) {
+        connection.sendOne(frame);
       }
-    }
+    });
   }
 
   _onReleasedTailFrame(frame: Frame): ?number {
@@ -483,55 +480,38 @@ export default class RSocketResumableTransport implements DuplexConnection {
     // If connected, immediately write frames to the low-level transport
     // and consider them "sent". The resumption protocol will figure out
     // which frames may not have been received and recover.
+    if (isResumePositionFrameType(frame.type)) {
+      let available = this._bufferSize - this._sentFramesSize;
+      const frameSize = frame.length;
+      if (frameSize) {
+        // remove tail until there is space for new frame
+        while (available < frameSize) {
+          const removedFrame = this._sentFrames.shift();
+          if (removedFrame) {
+            const removedFrameSize = this._onReleasedTailFrame(removedFrame);
+            if (!removedFrameSize) {
+              this._close(this._absentLengthError(frame));
+              return;
+            }
+            available += removedFrameSize;
+          } else {
+            break;
+          }
+        }
+        if (available >= frameSize) {
+          this._sentFrames.push(frame);
+          this._sentFramesSize += frameSize;
+        } else {
+          this._position.client += frameSize;
+        }
+      } else {
+        this._close(this._absentLengthError(frame));
+        return;
+      }
+    }
     const currentConnection = this._currentConnection;
     if (currentConnection) {
-      if (isResumePositionFrameType(frame.type)) {
-        let available = this._bufferSize - this._sentFramesSize;
-        const frameSize = frame.length;
-        if (frameSize) {
-          // remove tail until there is space for new frame
-          while (available < frameSize) {
-            const removedFrame = this._sentFrames.shift();
-            if (removedFrame) {
-              const removedFrameSize = this._onReleasedTailFrame(removedFrame);
-              if (!removedFrameSize) {
-                this._close(this._absentLengthError(frame));
-                return;
-              }
-              available += removedFrameSize;
-            } else {
-              break;
-            }
-          }
-          if (available >= frameSize) {
-            this._sentFrames.push(frame);
-            this._sentFramesSize += frameSize;
-          } else {
-            this._position.client += frameSize;
-          }
-        } else {
-          this._close(this._absentLengthError(frame));
-          return;
-        }
-      }
       currentConnection.sendOne(frame);
-    } else if (this._bufferSize > 0) {
-      // Otherwise buffer pending frames. This allows an application
-      // to continue interacting with a ReactiveSocket during momentary
-      // losses of connection.
-      invariant(
-        this._pendingFramesSize < this._bufferSize,
-        'RSocketResumableTransport: Buffer size of `%s` exceeded.',
-        this._bufferSize,
-      );
-      this._pendingFrames.push(frame);
-      this._pendingFramesSize += frame.length;
-    } else {
-      invariant(
-        false,
-        'RSocketResumableTransport: Cannot sent frames while disconnected; ' +
-          'buffering is disabled (bufferSize === 0).',
-      );
     }
   }
 }
