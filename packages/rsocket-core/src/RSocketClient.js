@@ -127,6 +127,17 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
 
     // Send KEEPALIVE frames
     const {keepAlive} = config.setup;
+    if (
+      keepAlive > 30000 &&
+      navigator &&
+      navigator.userAgent &&
+      (navigator.userAgent.includes('Trident') ||
+        navigator.userAgent.includes('Edg'))
+    ) {
+      console.warn(
+        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
+      );
+    }
     const keepAliveFrames = every(keepAlive).map(() => ({
       data: null,
       flags: FLAGS.RESPOND,
