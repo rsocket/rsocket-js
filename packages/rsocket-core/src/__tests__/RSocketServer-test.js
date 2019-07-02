@@ -145,7 +145,7 @@ describe('RSocketServer', () => {
         majorVersion: 1,
         minorVersion: 0,
       });
-      jest.runAllTimers();
+      jest.runOnlyPendingTimers();
       connection.receive.mock.publisher.onNext({
         type: FRAME_TYPES.REQUEST_RESPONSE,
         data: undefined,
@@ -202,7 +202,7 @@ describe('RSocketServer', () => {
         majorVersion: 1,
         minorVersion: 0,
       });
-      jest.runAllTimers();
+      jest.runOnlyPendingTimers();
       connection.receive.mock.publisher.onNext({
         type: FRAME_TYPES.REQUEST_STREAM,
         data: undefined,

@@ -57,6 +57,7 @@ export type ServerConfig<D, M> = {|
   ) => PartialResponder<D, M>,
   serializers?: PayloadSerializers<D, M>,
   transport: TransportServer,
+  errorHandler?: (Error) => void,
   leases?: () => Leases<*>,
 |};
 
@@ -169,6 +170,8 @@ export default class RSocketServer<D, M> {
                   swapper.swap(subscriber);
                 },
                 serializers,
+                this._config.errorHandler,
+                frame.lifetime,
                 requesterLeaseHandler,
                 responderLeaseHandler,
               );

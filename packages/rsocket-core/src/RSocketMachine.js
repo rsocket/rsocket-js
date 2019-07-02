@@ -145,6 +145,8 @@ export function createServerMachine<D, M>(
   connection: DuplexConnection,
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
+  errorHandler?: (Error) => void,
+  keepAliveTimeout: number,
   requesterLeaseHandler?: ?RequesterLeaseHandler,
   responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
@@ -154,6 +156,8 @@ export function createServerMachine<D, M>(
     connectionPublisher,
     serializers,
     undefined,
+    errorHandler,
+    keepAliveTimeout,
     requesterLeaseHandler,
     responderLeaseHandler,
   );
@@ -164,6 +168,8 @@ export function createClientMachine<D, M>(
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
   serializers?: ?PayloadSerializers<D, M>,
   requestHandler?: ?PartialResponder<D, M>,
+  errorHandler?: (Error) => void,
+  keepAliveTimeout: number,
   requesterLeaseHandler?: ?RequesterLeaseHandler,
   responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
@@ -173,6 +179,8 @@ export function createClientMachine<D, M>(
     connectionPublisher,
     serializers,
     requestHandler,
+    errorHandler,
+    keepAliveTimeout,
     requesterLeaseHandler,
     responderLeaseHandler,
   );
@@ -189,6 +197,9 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _requesterLeaseHandler: ?RequesterLeaseHandler;
   _responderLeaseHandler: ?ResponderLeaseHandler;
   _responderLeaseSenderDisposable: ?Disposable;
+  _errorHandler: ?(Error) => void;
+  _keepAliveLastReceivedMillis: number;
+  _keepAliveTimerHandle: ?TimeoutID;
 
   constructor(
     role: Role,
@@ -196,6 +207,8 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
     serializers: ?PayloadSerializers<D, M>,
     requestHandler: ?PartialResponder<D, M>,
+    errorHandler?: (Error) => void,
+    keepAliveTimeout: number,
     requesterLeaseHandler?: ?RequesterLeaseHandler,
     responderLeaseHandler?: ?ResponderLeaseHandler,
   ) {
@@ -207,6 +220,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     this._subscriptions = new Map();
     this._serializers = serializers || (IdentitySerializers: any);
     this._requestHandler = new ResponderWrapper(requestHandler);
+    this._errorHandler = errorHandler;
 
     // Subscribe to completion/errors before sending anything
     connectionPublisher({
@@ -235,6 +249,24 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       onSubscribe: subscription =>
         subscription.request(Number.MAX_SAFE_INTEGER),
     });
+
+    const MIN_TICK_DURATION = 100;
+    this._keepAliveLastReceivedMillis = Date.now();
+    const keepAliveHandler = () => {
+      const now = Date.now();
+      const noKeepAliveDuration = now - this._keepAliveLastReceivedMillis;
+      if (noKeepAliveDuration >= keepAliveTimeout) {
+        this._handleConnectionError(
+          new Error(`No keep-alive acks for ${keepAliveTimeout} millis`),
+        );
+      } else {
+        this._keepAliveTimerHandle = setTimeout(
+          keepAliveHandler,
+          Math.max(MIN_TICK_DURATION, keepAliveTimeout - noKeepAliveDuration),
+        );
+      }
+    };
+    this._keepAliveTimerHandle = setTimeout(keepAliveHandler, keepAliveTimeout);
   }
 
   setRequestHandler(requestHandler: ?PartialResponder<D, M>): void {
@@ -257,7 +289,6 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
 
   fireAndForget(payload: Payload<D, M>): void {
     if (this._useLeaseOrError(this._requesterLeaseHandler)) {
-      //todo need to signal error to user provided error handler
       return;
     }
     const streamId = this._getNextStreamId(this._receivers);
@@ -559,11 +590,20 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       this._requesterLeaseHandler,
       this._responderLeaseSenderDisposable,
     );
+    const handle = this._keepAliveTimerHandle;
+    if (handle) {
+      clearTimeout(handle);
+      this._keepAliveTimerHandle = null;
+    }
   };
 
   _handleConnectionError(error: Error): void {
     this._handleError(error);
     this._connection.close();
+    const errorHandler = this._errorHandler;
+    if (errorHandler) {
+      errorHandler(error);
+    }
   }
 
   /**
@@ -591,6 +631,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
         // Extensions are not supported
         break;
       case FRAME_TYPES.KEEPALIVE:
+        this._keepAliveLastReceivedMillis = Date.now();
         if (isRespond(frame.flags)) {
           this._connection.sendOne({
             ...frame,
