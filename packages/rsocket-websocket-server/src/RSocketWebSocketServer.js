@@ -42,6 +42,8 @@ export type ServerOptions = {|
   maxPayload?: number,
 |};
 
+export type WebsocketServerFactory = (options: ServerOptions) => ws.Server
+
 /**
  * A WebSocket transport server.
  */
@@ -49,11 +51,13 @@ export default class RSocketWebSocketServer implements TransportServer {
   _emitter: EventEmitter;
   _encoders: ?Encoders<*>;
   _options: ServerOptions;
+  _factory: WebsocketServerFactory = (options: ServerOptions) => new ws.Server(options);
 
-  constructor(options: ServerOptions, encoders?: ?Encoders<*>) {
+  constructor(options: ServerOptions, encoders?: ?Encoders<*>, factory?: WebsocketServerFactory) {
     this._emitter = new EventEmitter();
     this._encoders = encoders;
     this._options = options;
+    if(factory) this._factory = factory
   }
 
   start(): Flowable<DuplexConnection> {
@@ -82,7 +86,7 @@ export default class RSocketWebSocketServer implements TransportServer {
         },
         request: n => {
           if (!server) {
-            server = new ws.Server(this._options);
+            server = this._factory(this._options);
             server.on('connection', onConnection);
             server.on('error', onError);
             this._emitter.on('close', onClose);
