@@ -223,7 +223,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   fireAndForget(payload: Payload<D, M>): void {
-    const streamId = this._getNextStreamId();
+    const streamId = this._getNextStreamId(this._receivers);
     const data = this._serializers.data.serialize(payload.data);
     const metadata = this._serializers.metadata.serialize(payload.metadata);
     const frame = {
@@ -237,7 +237,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestResponse(payload: Payload<D, M>): Single<Payload<D, M>> {
-    const streamId = this._getNextStreamId();
+    const streamId = this._getNextStreamId(this._receivers);
     return new Single(subscriber => {
       this._receivers.set(streamId, {
         onComplete: emptyFunction,
@@ -268,7 +268,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestStream(payload: Payload<D, M>): Flowable<Payload<D, M>> {
-    const streamId = this._getNextStreamId();
+    const streamId = this._getNextStreamId(this._receivers);
     return new Flowable(
       subscriber => {
         this._receivers.set(streamId, subscriber);
@@ -323,7 +323,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
-    const streamId = this._getNextStreamId();
+    const streamId = this._getNextStreamId(this._receivers);
     let payloadsSubscribed = false;
     return new Flowable(
       subscriber => {
@@ -432,14 +432,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     throw new Error('metadataPush() is not implemented');
   }
 
-  _getNextStreamId(): number {
+  _getNextStreamId(streamIds: Map<number, ISubject<Payload<D, M>>>): number {
     const streamId = this._nextStreamId;
-    invariant(
-      streamId <= MAX_STREAM_ID,
-      'RSocketClient: Cannot issue request, maximum stream id reached (%s).',
-      MAX_STREAM_ID,
-    );
-    this._nextStreamId += 2;
+    do {
+      this._nextStreamId = this._nextStreamId + 2 & MAX_STREAM_ID;
+    } while (this._nextStreamId === 0 || streamIds.has(streamId));
     return streamId;
   }
 
