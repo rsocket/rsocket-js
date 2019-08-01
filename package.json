@@ -23,6 +23,7 @@
     "prettier": "node scripts/prettier.js write",
     "tck": "yarn run build && node packages/rsocket-tck/build/index.js \"$@\"",
     "simple-cli": "yarn run build && node packages/rsocket-examples/build/SimpleCli.js \"$@\"",
+    "resume-example": "yarn run build && node packages/rsocket-examples/build/ResumeExample.js",
     "test": "f() { EXIT=0; yarn run typecheck || EXIT=$?; yarn run jest \"$@\" || EXIT=$?; exit $EXIT; }; f",
     "typecheck": "flow check packages/"
   },

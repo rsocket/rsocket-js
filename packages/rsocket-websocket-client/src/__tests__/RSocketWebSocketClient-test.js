@@ -124,7 +124,10 @@ describe('RSocketWebSocketClient', () => {
         client.sendOne(frame);
         expect(socket.send.mock.calls.length).toBe(1);
         const buffer = socket.send.mock.calls[0][0];
-        expect(deserializeFrame(buffer)).toEqual(frame);
+        expect(deserializeFrame(buffer)).toEqual({
+          ...frame,
+          length: buffer.length,
+        });
       });
 
       it('calls receive.onError if the frame cannot be sent', () => {
@@ -149,9 +152,15 @@ describe('RSocketWebSocketClient', () => {
         publisher.onNext(frame2);
         expect(socket.send.mock.calls.length).toBe(2);
         const buffer = socket.send.mock.calls[0][0];
-        expect(deserializeFrame(buffer)).toEqual(frame);
+        expect(deserializeFrame(buffer)).toEqual({
+          ...frame,
+          length: buffer.length,
+        });
         const buffer2 = socket.send.mock.calls[1][0];
-        expect(deserializeFrame(buffer2)).toEqual(frame2);
+        expect(deserializeFrame(buffer2)).toEqual({
+          ...frame2,
+          length: buffer2.length,
+        });
       });
 
       it('calls receive.onError if frames cannot be sent', () => {
@@ -189,7 +198,7 @@ describe('RSocketWebSocketClient', () => {
         socket.mock.message(serializeFrame(frame));
         expect(subscriber.onNext.mock.calls.length).toBe(1);
         const nextFrame = subscriber.onNext.mock.calls[0][0];
-        expect(nextFrame).toEqual(frame);
+        expect(nextFrame).toEqual({...frame, length: nextFrame.length});
 
         expect(subscriber.onComplete.mock.calls.length).toBe(0);
         expect(subscriber.onError.mock.calls.length).toBe(0);

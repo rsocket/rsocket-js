@@ -154,12 +154,12 @@ export function isLease(flags: number): boolean {
 export function isResumePositionFrameType(type: number): boolean {
   return type === FRAME_TYPES.CANCEL ||
     type === FRAME_TYPES.ERROR ||
-    type === FRAME_TYPES.METADATA_PUSH ||
     type === FRAME_TYPES.PAYLOAD ||
     type === FRAME_TYPES.REQUEST_CHANNEL ||
     type === FRAME_TYPES.REQUEST_FNF ||
     type === FRAME_TYPES.REQUEST_RESPONSE ||
-    type === FRAME_TYPES.REQUEST_STREAM;
+    type === FRAME_TYPES.REQUEST_STREAM ||
+    type === FRAME_TYPES.REQUEST_N;
 }
 
 export function getFrameTypeName(type: number): string {
