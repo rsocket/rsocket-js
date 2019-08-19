@@ -36,6 +36,7 @@ import {createClientMachine} from './RSocketMachine';
 export type ClientConfig<D, M> = {|
   serializers?: PayloadSerializers<D, M>,
   setup: {|
+    data?: string,
     dataMimeType: string,
     keepAlive: number,
     lifetime: number,
@@ -183,13 +184,15 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       lifetime,
       metadata,
       metadataMimeType,
+      data,
     } = config.setup;
+
     let flags = 0;
     if (metadata !== undefined) {
       flags |= FLAGS.METADATA;
     }
     return {
-      data: undefined,
+      data,
       dataMimeType,
       flags,
       keepAlive,
