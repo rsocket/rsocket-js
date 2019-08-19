@@ -39,9 +39,12 @@ import {
   CONNECTION_STREAM_ID,
   ERROR_CODES,
   FRAME_TYPES,
+  FLAGS,
 } from './RSocketFrame';
 import {IdentitySerializers} from './RSocketSerialization';
 import {createServerMachine} from './RSocketMachine';
+import {Leases} from './RSocketLease';
+import {RequesterLeaseHandler, ResponderLeaseHandler} from './RSocketLease';
 
 export interface TransportServer {
   start(): Flowable<DuplexConnection>,
@@ -54,6 +57,7 @@ export type ServerConfig<D, M> = {|
   ) => PartialResponder<D, M>,
   serializers?: PayloadSerializers<D, M>,
   transport: TransportServer,
+  leases?: () => Leases<*>,
 |};
 
 /**
@@ -132,13 +136,41 @@ export default class RSocketServer<D, M> {
               connection.close();
               break;
             case FRAME_TYPES.SETUP:
+              if (this._setupLeaseError(frame)) {
+                connection.sendOne({
+                  code: ERROR_CODES.INVALID_SETUP,
+                  flags: 0,
+                  message: 'RSocketServer: LEASE not supported.',
+                  streamId: CONNECTION_STREAM_ID,
+                  type: FRAME_TYPES.ERROR,
+                });
+                connection.close();
+                break;
+              }
               const serializers = this._getSerializers();
+
+              let requesterLeaseHandler: RequesterLeaseHandler;
+              let responderLeaseHandler: ResponderLeaseHandler;
+
+              const leasesSupplier = this._config.leases;
+              if (leasesSupplier) {
+                const lease = leasesSupplier();
+                requesterLeaseHandler = new RequesterLeaseHandler(
+                  lease._receiver,
+                );
+                responderLeaseHandler = new ResponderLeaseHandler(
+                  lease._sender,
+                  lease._stats,
+                );
+              }
               const serverMachine = createServerMachine(
                 connection,
                 subscriber => {
                   swapper.swap(subscriber);
                 },
                 serializers,
+                requesterLeaseHandler,
+                responderLeaseHandler,
               );
               try {
                 const requestHandler = this._config.getRequestHandler(
@@ -181,6 +213,12 @@ export default class RSocketServer<D, M> {
 
   _getSerializers(): PayloadSerializers<D, M> {
     return this._config.serializers || (IdentitySerializers: any);
+  }
+
+  _setupLeaseError(frame: Frame): boolean {
+    const clientLeaseEnabled = (frame.flags & FLAGS.LEASE) === FLAGS.LEASE;
+    const serverLeaseEnabled = this._config.leases;
+    return clientLeaseEnabled && !serverLeaseEnabled;
   }
 }
 

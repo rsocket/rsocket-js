@@ -88,3 +88,5 @@ export {
   JsonSerializer,
   JsonSerializers,
 } from './RSocketSerialization';
+export type {LeaseStats} from './RSocketLease';
+export {Leases, Lease} from './RSocketLease';
