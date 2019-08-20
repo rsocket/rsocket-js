@@ -55,7 +55,7 @@ describe('RSocketClient', () => {
           dataMimeType: '<dataMimeType>',
           keepAlive: 42,
           lifetime: 2017,
-          metadataMimeType: '<metadataMimeType>',
+          metadataMimeType: '<metadataMimeType>'
         },
         transport,
       });
@@ -64,7 +64,6 @@ describe('RSocketClient', () => {
       expect(transport.sendOne.mock.calls.length).toBe(1);
       expect(transport.sendOne.mock.frame).toEqual({
         type: FRAME_TYPES.SETUP,
-        data: undefined,
         dataMimeType: '<dataMimeType>',
         flags: 0,
         keepAlive: 42,
@@ -109,6 +108,38 @@ describe('RSocketClient', () => {
       });
     });
 
+    it('sends the setup frame with data', () => {
+      const transport = genMockConnection();
+      const payload = JSON.stringify({one: 42, two: {embedded: 'myvalue'}});
+      const client = new RSocketClient({
+        setup: {
+          dataMimeType: '<dataMimeType>',
+          keepAlive: 42,
+          lifetime: 2017,
+          metadataMimeType: '<metadataMimeType>',
+          data: '<data>',
+        },
+        transport,
+      });
+      client.connect().subscribe();
+      transport.mock.connect();
+      expect(transport.sendOne.mock.calls.length).toBe(1);
+      expect(transport.sendOne.mock.frame).toEqual({
+        type: FRAME_TYPES.SETUP,
+        data: '<data>',
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+    });
+
     it('resolves to a client socket if the transport connects', () => {
       const transport = genMockConnection();
       const client = new RSocketClient({
@@ -122,7 +153,7 @@ describe('RSocketClient', () => {
       });
       let socket;
       client.connect().subscribe({
-        onComplete: _socket => socket = _socket,
+        onComplete: _socket => (socket = _socket),
       });
       transport.mock.connect();
       expect(typeof socket.fireAndForget).toEqual('function');
@@ -149,7 +180,7 @@ describe('RSocketClient', () => {
       });
       let error;
       client.connect().subscribe({
-        onError: _error => error = _error,
+        onError: _error => (error = _error),
       });
       transport.mock.connect();
       expect(error).toBe(connectionError);
@@ -1109,7 +1140,7 @@ describe('RSocketClient', () => {
         client.connect().subscribe({
           onComplete: socket => {
             socket.connectionStatus().subscribe({
-              onNext: _status => status = _status,
+              onNext: _status => (status = _status),
               onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
@@ -1151,7 +1182,7 @@ describe('RSocketClient', () => {
           onComplete: _socket => {
             socket = _socket;
             socket.connectionStatus().subscribe({
-              onNext: _status => status = _status,
+              onNext: _status => (status = _status),
               onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
