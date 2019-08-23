@@ -457,7 +457,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
                     },
                     onSubscribe: subscription => {
                       this._subscriptions.set(streamId, subscription);
-                      subscription.request(1);
+                      subscription.request(Number.MAX_SAFE_INTEGER);
                     },
                   });
                 } else {
