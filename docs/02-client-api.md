@@ -103,7 +103,7 @@ requestStream(payload: Payload): Flowable<Payload>
 
 ### requestChannel() (method)
 
-Not yet implemented.
+This method establishes an understanding between a client and a server where each intends to send and receive streams of data from the other. Each actor in this relationship is responsible for signaling to the other that they are ready to receive data by invoking `request(n)`, where `n` is the max number of payloads the actor is comfortable handling. Conceptually, `requestChannel` can be thought of as two entities 'polling' from each other by signaling to the others that they are ready to accept `n` number of messages. Inversely, `requestChannel` can be leveraged to facilitate a consistent stream of data transfer payloads between client and server by each (or either) invoking `request(0x7fffffff)`, where `0x7fffffff` is the max integer value for `int32`.
 
 ```javascript
 requestChannel(payload: Flowable<Payload>): Flowable<Payload>
