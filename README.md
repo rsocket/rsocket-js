@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/rsocket/rsocket-js.svg?branch=master)](https://travis-ci.org/rsocket/rsocket-js)
 
 A JavaScript implementation of the [RSocket](https://github.com/rsocket/rsocket)
-protocol intended for use in browsers and/or Node.js. From [rsocket.io/](http://rsocket.io/):
+protocol intended for use in browsers and/or Node.js. From [rsocket.io](http://rsocket.io/):
 
 > [RSocket] is an application protocol providing
 > [Reactive Streams](http://www.reactive-streams.org/) semantics over an
