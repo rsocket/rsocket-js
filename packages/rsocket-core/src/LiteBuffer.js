@@ -18,7 +18,7 @@ function createBuffer(length): Buffer {
 
 const bufferExists = typeof global !== 'undefined' &&
   global.hasOwnProperty('Buffer');
-// export const LiteBuffer =  bufferExists ? gloval.Buffer : Buffer;
+
 export const LiteBuffer = bufferExists ? global.Buffer : Buffer;
 export function Buffer(arg: any, encodingOrOffset?: number, length?: number) {
   // Common case.
@@ -118,8 +118,8 @@ function fromArrayLike(array: any) {
   return buf;
 }
 
-function fromArrayBuffer(array: any, byteOffset?: number, length?: number) {
-  let buf;
+function fromArrayBuffer(array: any, byteOffset?: number, length?: number): Buffer {
+  let buf: Buffer;
   if (byteOffset === undefined && length === undefined) {
     buf = new Uint8Array(array);
   } else if (length === undefined) {
@@ -191,6 +191,39 @@ Buffer.isEncoding = function isEncoding(encoding) {
     default:
       return false;
   }
+};
+
+Buffer.concat = function concat(list: Uint8Array[], length?: number): Buffer {
+  if (!Array.isArray(list)) {
+    throw new TypeError('"list" argument must be an Array of Buffers');
+  }
+
+  if (list.length === 0) {
+    return Buffer.alloc(0);
+  }
+
+  let i;
+  if (length === undefined) {
+    length = 0;
+    for (i = 0; i < list.length; ++i) {
+      length += list[i].length;
+    }
+  }
+
+  const buffer = Buffer.alloc(length);
+  let pos = 0;
+  for (i = 0; i < list.length; ++i) {
+    let buf = list[i];
+    if (isInstance(buf, Uint8Array)) {
+      buf = Buffer.from(buf);
+    }
+    if (!Buffer.isBuffer(buf)) {
+      throw new TypeError('"list" argument must be an Array of Buffers');
+    }
+    buf.copy(buffer, pos);
+    pos += buf.length;
+  }
+  return buffer;
 };
 
 Buffer.prototype._isBuffer = true;
