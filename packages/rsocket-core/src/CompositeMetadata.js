@@ -111,7 +111,7 @@ export function decodeMimeAndContentBuffersSlices(
   compositeMetadata: Buffer,
   entryIndex: number,
 ): Buffer[] {
-  const mimeIdOrLength: number = compositeMetadata.readIntBE(entryIndex, 1);
+  const mimeIdOrLength: number = compositeMetadata.readInt8(entryIndex, 1);
   let mime: Buffer;
   let toSkip = entryIndex;
   if (
@@ -206,7 +206,7 @@ export function encodeCustomMetadataHeader(
   }
   // encoded length is one less than actual length, since 0 is never a valid length, which gives
   // wider representation range
-  metadataHeader.writeUIntBE(customMimeLength - 1);
+  metadataHeader.writeUInt8(customMimeLength - 1);
 
   writeUInt24BE(metadataHeader, metadataLength, customMimeLength + 1);
 
@@ -232,7 +232,7 @@ export function encodeWellKnownMetadataHeader(
 ) {
   const buffer: Buffer = Buffer.alloc(4);
 
-  buffer.writeUIntBE(mimeType | STREAM_METADATA_KNOWN_MASK);
+  buffer.writeUInt8(mimeType | STREAM_METADATA_KNOWN_MASK);
   writeUInt24BE(buffer, metadataLength, 1);
 
   return buffer;
@@ -383,7 +383,7 @@ function decodeMimeIdFromMimeBuffer(mimeBuffer: Buffer): number {
   if (!isWellKnownMimeType(mimeBuffer)) {
     return UNPARSEABLE_MIME_TYPE.identifier;
   }
-  return mimeBuffer.readIntBE() & STREAM_METADATA_LENGTH_MASK;
+  return mimeBuffer.readInt8() & STREAM_METADATA_LENGTH_MASK;
 }
 
 function computeNextEntryIndex(

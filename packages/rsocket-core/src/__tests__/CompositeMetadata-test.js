@@ -29,7 +29,7 @@ describe('Composite M', () => {
     const encoded = encodeCustomMetadataHeader(mimeString, 0);
 
     // remember actual length = encoded length + 1
-    expect(encoded.readIntBE(0)).toBe(127);
+    expect(encoded.readInt8(0)).toBe(127);
 
     const byteBufs = decodeMimeAndContentBuffersSlices(encoded, 0);
     expect(byteBufs).toHaveLength(2);
@@ -40,7 +40,7 @@ describe('Composite M', () => {
 
     expect(header.length).toBeGreaterThan(1);
 
-    expect(header.readIntBE()).toBe(128 - 1); // encoded as actual length - 1
+    expect(header.readInt8()).toBe(128 - 1); // encoded as actual length - 1
     expect(decodeMimeTypeFromMimeBuffer(header)).toBe(mimeString);
     expect(content.length).toBe(0);
   });
@@ -62,7 +62,7 @@ describe('Composite M', () => {
     metadata2.write('E');
     metadata2.write('∑');
     metadata2.write('é');
-    metadata2.writeUIntBE(true);
+    metadata2.writeUInt8(true);
     metadata2.write('W');
 
     // metadata 3: reserved but unknown
