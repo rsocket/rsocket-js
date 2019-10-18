@@ -55,7 +55,7 @@ describe('RSocketClient', () => {
           dataMimeType: '<dataMimeType>',
           keepAlive: 42,
           lifetime: 2017,
-          metadataMimeType: '<metadataMimeType>'
+          metadataMimeType: '<metadataMimeType>',
         },
         transport,
       });
@@ -153,7 +153,7 @@ describe('RSocketClient', () => {
       });
       let socket;
       client.connect().subscribe({
-        onComplete: _socket => (socket = _socket),
+        onComplete: _socket => socket = _socket,
       });
       transport.mock.connect();
       expect(typeof socket.fireAndForget).toEqual('function');
@@ -180,7 +180,7 @@ describe('RSocketClient', () => {
       });
       let error;
       client.connect().subscribe({
-        onError: _error => (error = _error),
+        onError: _error => error = _error,
       });
       transport.mock.connect();
       expect(error).toBe(connectionError);
@@ -1140,7 +1140,7 @@ describe('RSocketClient', () => {
         client.connect().subscribe({
           onComplete: socket => {
             socket.connectionStatus().subscribe({
-              onNext: _status => (status = _status),
+              onNext: _status => status = _status,
               onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
@@ -1182,7 +1182,7 @@ describe('RSocketClient', () => {
           onComplete: _socket => {
             socket = _socket;
             socket.connectionStatus().subscribe({
-              onNext: _status => (status = _status),
+              onNext: _status => status = _status,
               onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
