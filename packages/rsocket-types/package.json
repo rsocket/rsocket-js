@@ -1,7 +1,7 @@
 {
   "name": "rsocket-types",
   "description": "RSocket types",
-  "version": "0.0.14",
+  "version": "0.0.16",
   "repository": {
     "type": "git",
     "url": "https://github.com/rsocket/rsocket-js.git"
