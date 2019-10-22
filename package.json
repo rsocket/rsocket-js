@@ -16,8 +16,8 @@
     "lib/"
   ],
   "scripts": {
-    "build": "NODE_ENV=production node scripts/build.js",
-    "jest": "NODE_ENV=test jest \"$@\"",
+    "build": "cross-env NODE_ENV=production node scripts/build.js",
+    "jest": "cross-env NODE_ENV=test jest \"$@\"",
     "lint": "yarn run lint-prettier && eslint . --cache",
     "lint-prettier": "node scripts/prettier.js lint",
     "prettier": "node scripts/prettier.js write",
@@ -47,6 +47,7 @@
     "babel-runtime": "^6.6.1",
     "buffer": "^5.0.6",
     "chalk": "^1.1.3",
+    "cross-env": "^6.0.3",
     "eslint": "^3.17.1",
     "eslint-config-fb-strict": "^19.0.1",
     "eslint-plugin-babel": "^4.1.1",
