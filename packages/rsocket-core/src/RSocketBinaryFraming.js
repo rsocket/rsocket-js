@@ -434,6 +434,7 @@ function deserializeSetupFrame(
     dataMimeType,
     flags,
     keepAlive,
+    length,
     lifetime,
     majorVersion,
     metadata: null,
@@ -442,7 +443,6 @@ function deserializeSetupFrame(
     resumeToken,
     streamId,
     type: FRAME_TYPES.SETUP,
-    length,
   };
   readPayload(buffer, frame, encoders, offset);
   return frame;
@@ -510,10 +510,10 @@ function deserializeErrorFrame(
   return {
     code,
     flags,
+    length,
     message,
     streamId,
     type: FRAME_TYPES.ERROR,
-    length,
   };
 }
 
@@ -577,9 +577,9 @@ function deserializeKeepAliveFrame(
     data,
     flags,
     lastReceivedPosition,
+    length,
     streamId,
     type: FRAME_TYPES.KEEPALIVE,
-    length,
   };
 }
 
@@ -642,12 +642,12 @@ function deserializeLeaseFrame(
   }
   return {
     flags,
+    length,
     metadata,
     requestCount,
     streamId,
     ttl,
     type: FRAME_TYPES.LEASE,
-    length,
   };
 }
 
@@ -690,10 +690,10 @@ function deserializeRequestFnfFrame(
   const frame: RequestFnfFrame = {
     data: null,
     flags,
+    length,
     metadata: null,
     streamId,
     type: FRAME_TYPES.REQUEST_FNF,
-    length,
   };
   readPayload(buffer, frame, encoders, FRAME_HEADER_SIZE);
   return frame;
@@ -713,10 +713,10 @@ function deserializeRequestResponseFrame(
   const frame: RequestResponseFrame = {
     data: null,
     flags,
+    length,
     metadata: null,
     streamId,
     type: FRAME_TYPES.REQUEST_RESPONSE,
-    length,
   };
   readPayload(buffer, frame, encoders, FRAME_HEADER_SIZE);
   return frame;
@@ -775,11 +775,11 @@ function deserializeRequestStreamFrame(
   const frame: RequestStreamFrame = {
     data: null,
     flags,
+    length,
     metadata: null,
     requestN,
     streamId,
     type: FRAME_TYPES.REQUEST_STREAM,
-    length,
   };
   readPayload(buffer, frame, encoders, offset);
   return frame;
@@ -807,11 +807,11 @@ function deserializeRequestChannelFrame(
   const frame: RequestChannelFrame = {
     data: null,
     flags,
+    length,
     metadata: null,
     requestN,
     streamId,
     type: FRAME_TYPES.REQUEST_CHANNEL,
-    length,
   };
   readPayload(buffer, frame, encoders, offset);
   return frame;
@@ -859,10 +859,10 @@ function deserializeRequestNFrame(
   );
   return {
     flags,
+    length,
     requestN,
     streamId,
     type: FRAME_TYPES.REQUEST_N,
-    length,
   };
 }
 
@@ -895,9 +895,9 @@ function deserializeCancelFrame(
   const length = buffer.length;
   return {
     flags,
+    length,
     streamId,
     type: FRAME_TYPES.CANCEL,
-    length,
   };
 }
 
@@ -937,10 +937,10 @@ function deserializePayloadFrame(
   const frame: PayloadFrame = {
     data: null,
     flags,
+    length,
     metadata: null,
     streamId,
     type: FRAME_TYPES.PAYLOAD,
-    length,
   };
   readPayload(buffer, frame, encoders, FRAME_HEADER_SIZE);
   return frame;
@@ -1024,13 +1024,13 @@ function deserializeResumeFrame(
   return {
     clientPosition,
     flags,
+    length,
     majorVersion,
     minorVersion,
     resumeToken,
     serverPosition,
     streamId,
     type: FRAME_TYPES.RESUME,
-    length,
   };
 }
 
@@ -1073,9 +1073,9 @@ function deserializeResumeOkFrame(
   return {
     clientPosition,
     flags,
+    length,
     streamId,
     type: FRAME_TYPES.RESUME_OK,
-    length,
   };
 }
 

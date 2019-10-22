@@ -39,7 +39,7 @@ const dataMimeType = 'application/octet-stream';
 const metadataMimeType = 'application/octet-stream';
 
 // Create an instance of a client
-let resumableTransport = new RSocketResumableTransport(
+const resumableTransport = new RSocketResumableTransport(
   // supplier of low-level transport
   () => new RSocketTcpClient({host, port}, BufferEncoders),
   {

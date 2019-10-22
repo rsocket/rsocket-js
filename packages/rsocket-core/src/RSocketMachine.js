@@ -504,12 +504,12 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _leaseFrameSender() {
     return lease =>
       this._connection.sendOne({
-        type: FRAME_TYPES.LEASE,
         flags: 0,
-        ttl: lease.timeToLiveMillis,
-        requestCount: lease.allowedRequests,
         metadata: lease.metadata,
+        requestCount: lease.allowedRequests,
         streamId: CONNECTION_STREAM_ID,
+        ttl: lease.timeToLiveMillis,
+        type: FRAME_TYPES.LEASE,
       });
   }
 

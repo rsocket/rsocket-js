@@ -57,7 +57,7 @@ export default class RSocketWebSocketServer implements TransportServer {
     this._emitter = new EventEmitter();
     this._encoders = encoders;
     this._options = options;
-    if(factory) this._factory = factory
+    if(factory) this._factory = factory;
   }
 
   start(): Flowable<DuplexConnection> {

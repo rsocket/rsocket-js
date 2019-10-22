@@ -177,7 +177,7 @@ export class RequesterLeaseHandler implements LeaseHandler, Disposable {
   dispose(): void {
     if (!this._isDisposed) {
       this._isDisposed = true;
-      let s = this._subscriber;
+      const s = this._subscriber;
       if (s) {
         s.onComplete();
       }
@@ -239,10 +239,6 @@ export class ResponderLeaseHandler implements LeaseHandler {
     let isDisposed: boolean;
 
     this._leaseSender(this._stats).subscribe({
-      onNext: lease => {
-        this._lease = lease;
-        send(lease);
-      },
       onComplete: () => this._onStatsEvent(),
       onError: error => {
         this._onStatsEvent();
@@ -250,6 +246,10 @@ export class ResponderLeaseHandler implements LeaseHandler {
         if (errConsumer) {
           errConsumer(error);
         }
+      },
+      onNext: lease => {
+        this._lease = lease;
+        send(lease);
       },
       onSubscribe: s => {
         if (isDisposed) {

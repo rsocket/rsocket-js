@@ -145,6 +145,7 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
 
     // Send KEEPALIVE frames
     const {keepAlive} = config.setup;
+    const navigator = config.navigator;
     if (
       keepAlive > 30000 &&
       navigator &&

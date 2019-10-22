@@ -450,7 +450,7 @@ export default class RSocketResumableTransport implements DuplexConnection {
 
   _flushFrames(): void {
     this._sentFrames.forEach(frame => {
-      let connection = this._currentConnection;
+      const connection = this._currentConnection;
       if (connection) {
         connection.sendOne(frame);
       }

@@ -2,7 +2,7 @@
 import {Buffer as B} from '../LiteBuffer';
 
 describe('Lite B', () => {
-  it('large values do not improperly roll over', function() {
+  it('large values do not improperly roll over', () => {
     const nums = [-25589992, -633756690, -898146932];
     const out = new B(12);
     out.fill(0);
@@ -17,7 +17,7 @@ describe('Lite B', () => {
     expect(nums[2]).toEqual(newNum);
   });
 
-  it('writeUInt32BE and readUInt32BE should work', function() {
+  it('writeUInt32BE and readUInt32BE should work', () => {
     const buf = B.from([0x12, 0x34, 0x56, 0x78]);
 
     expect(buf.readUInt32BE(0).toString(16)).toEqual('12345678');
@@ -25,7 +25,7 @@ describe('Lite B', () => {
     expect(buf.readUInt32BE(0).toString(16)).toEqual('56');
   });
 
-  it('writeUInt8 and readUInt8 should work', function() {
+  it('writeUInt8 and readUInt8 should work', () => {
     const b = new B(3);
     b.writeUInt8(1, 0);
     b.writeUInt8(2, 1);
@@ -36,7 +36,7 @@ describe('Lite B', () => {
     expect(b.readUInt8(2)).toEqual(3);
   });
 
-  it('writeUInt16BE and readUInt16BE should work', function() {
+  it('writeUInt16BE and readUInt16BE should work', () => {
     const buf = new B(4);
 
     buf.writeUInt16BE(0xdead, 0);
@@ -46,7 +46,7 @@ describe('Lite B', () => {
     expect(buf.readUInt16BE(1)).toEqual(44478);
   });
 
-  it('supports copy, slice and length', function() {
+  it('supports copy, slice and length', () => {
     const b = new B(3);
     b.writeUInt8(1, 0);
     b.writeUInt8(2, 1);

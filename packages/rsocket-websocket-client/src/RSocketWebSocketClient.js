@@ -26,7 +26,6 @@ import {Flowable} from 'rsocket-flowable';
 import {
   deserializeFrame,
   deserializeFrameWithLength,
-  printFrame,
   serializeFrame,
   serializeFrameWithLength,
   toBuffer,

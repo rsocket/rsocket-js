@@ -10,7 +10,7 @@ function createBuffer(length): Buffer {
     );
   }
   // Return an augmented `Uint8Array` instance
-  let buf = new Uint8Array(length);
+  const buf = new Uint8Array(length);
   // $FlowFixMe
   buf.__proto__ = Buffer.prototype;
   return buf;
@@ -59,13 +59,15 @@ function from(value, encodingOrOffset, length): Buffer {
     );
   }
 
-  let valueOf = value.valueOf && value.valueOf();
+  const valueOf = value.valueOf && value.valueOf();
   if (valueOf != null && valueOf !== value) {
     return Buffer.from(valueOf, encodingOrOffset, length);
   }
 
-  let b = fromObject(value);
-  if (b) return b;
+  const b = fromObject(value);
+  if (b) {
+    return b;
+  }
 
   throw new TypeError(
     'The first argument must be one of type string, Buffer, ArrayBuffer, ' +
@@ -110,8 +112,8 @@ function allocUnsafe(size) {
 }
 
 function fromArrayLike(array: any) {
-  let length = array.length < 0 ? 0 : checked(array.length) | 0;
-  let buf: Buffer = createBuffer(length);
+  const length = array.length < 0 ? 0 : checked(array.length) | 0;
+  const buf: Buffer = createBuffer(length);
   for (let i = 0; i < length; i += 1) {
     buf[i] = array[i] & 255;
   }
@@ -135,8 +137,8 @@ function fromArrayBuffer(array: any, byteOffset?: number, length?: number) {
 
 function fromObject(obj: Buffer) {
   if (Buffer.isBuffer(obj)) {
-    let len = checked(obj.length) | 0;
-    let buf: Buffer = createBuffer(len);
+    const len = checked(obj.length) | 0;
+    const buf: Buffer = createBuffer(len);
 
     if (buf.length === 0) {
       return buf;
@@ -209,7 +211,8 @@ function blitBuffer(
   offset: number,
   length: number,
 ) {
-  for (var i = 0; i < length; ++i) {
+  let i = 0;
+  for (; i < length; ++i) {
     if (i + offset >= dst.length || i >= src.length) break;
     dst[i + offset] = src[i];
   }
@@ -244,10 +247,10 @@ Buffer.prototype.write = function write(
   }
 };
 
-let MAX_ARGUMENTS_LENGTH = 0x1000;
+const MAX_ARGUMENTS_LENGTH = 0x1000;
 
 function decodeCodePointsArray(codePoints) {
-  let len = codePoints.length;
+  const len = codePoints.length;
   if (len <= MAX_ARGUMENTS_LENGTH) {
     return String.fromCharCode.apply(String, codePoints); // avoid extra slice()
   }
@@ -275,7 +278,7 @@ function asciiSlice(buf, start, end) {
 }
 
 Buffer.prototype.slice = function slice(start: number, end: number) {
-  let len = this.length;
+  const len = this.length;
   start = ~~start;
   end = end === undefined ? len : ~~end;
 
@@ -295,7 +298,7 @@ Buffer.prototype.slice = function slice(start: number, end: number) {
 
   if (end < start) end = start;
 
-  let newBuf = this.subarray(start, end);
+  const newBuf = this.subarray(start, end);
   // Return an augmented `Uint8Array` instance
   newBuf.__proto__ = Buffer.prototype;
   return newBuf;
@@ -353,7 +356,7 @@ Buffer.prototype.readInt16BE = function readInt16BE(
 ) {
   offset = offset >>> 0;
   if (!noAssert) checkOffset(offset, 2, this.length);
-  let val = this[offset + 1] | this[offset] << 8;
+  const val = this[offset + 1] | this[offset] << 8;
   return val & 0x8000 ? val | 0xffff0000 : val;
 };
 
@@ -449,7 +452,7 @@ Buffer.prototype.writeInt32BE = function writeInt32BE(
 
 // $FlowFixMe
 Buffer.prototype.toString = function toString() {
-  let length = this.length;
+  const length = this.length;
   if (length === 0) return '';
   return slowToString.apply(this, arguments);
 };
@@ -499,9 +502,9 @@ function slowToString(encoding, start, end) {
 function utf8ToBytes(str: string, pUnits: number = Infinity) {
   let units = pUnits;
   let codePoint;
-  let length = str.length;
+  const length = str.length;
   let leadSurrogate = null;
-  let bytes = [];
+  const bytes = [];
 
   for (let i = 0; i < length; ++i) {
     codePoint = str.charCodeAt(i);
@@ -588,8 +591,8 @@ function byteLength(string, encoding): number {
     );
   }
 
-  let len = string.length;
-  let mustMatch = arguments.length > 2 && arguments[2] === true;
+  const len = string.length;
+  const mustMatch = arguments.length > 2 && arguments[2] === true;
   if (!mustMatch && len === 0) return 0;
 
   // Use a for loop to avoid recursion
@@ -615,11 +618,11 @@ Buffer.byteLength = byteLength;
 
 function utf8Slice(buf, start, end) {
   end = Math.min(buf.length, end);
-  let res = [];
+  const res = [];
 
   let i = start;
   while (i < end) {
-    let firstByte = buf[i];
+    const firstByte = buf[i];
     let codePoint = null;
     let bytesPerSequence = firstByte > 0xef
       ? 4
@@ -730,7 +733,7 @@ Buffer.prototype.copy = function copy(
     end = target.length - targetStart + start;
   }
 
-  let len = end - start;
+  const len = end - start;
 
   if (
     this === target && typeof Uint8Array.prototype.copyWithin === 'function'
