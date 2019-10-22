@@ -11,9 +11,9 @@
   "dependencies": {
     "fbjs": "^1.0.0",
     "rsocket-core": "^0.0.15",
-    "rsocket-flowable": "^0.0.13",
+    "rsocket-flowable": "^0.0.14",
     "rsocket-tcp-server": "^0.0.15",
-    "rsocket-types": "^0.0.13",
+    "rsocket-types": "^0.0.14",
     "rsocket-websocket-client": "^0.0.15",
     "rsocket-websocket-server": "^0.0.15",
     "ws": "^5.2.1"
