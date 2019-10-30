@@ -120,7 +120,11 @@ function fromArrayLike(array: any) {
   return buf;
 }
 
-function fromArrayBuffer(array: any, byteOffset?: number, length?: number): Buffer {
+function fromArrayBuffer(
+  array: any,
+  byteOffset?: number,
+  length?: number,
+): Buffer {
   let buf;
   if (byteOffset === undefined && length === undefined) {
     buf = new Uint8Array(array);

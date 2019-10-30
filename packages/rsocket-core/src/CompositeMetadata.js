@@ -121,7 +121,7 @@ export function decodeMimeAndContentBuffersSlices(
     toSkip += 1;
   } else {
     // M flag unset, remaining 7 bits are the length of the mime
-    const mimeLength = (mimeIdOrLength & 0xFF) + 1;
+    const mimeLength = (mimeIdOrLength & 0xff) + 1;
 
     if (compositeMetadata.byteLength > toSkip + mimeLength) {
       // need to be able to read an extra mimeLength bytes (we have already read one so byteLength should be strictly more)
@@ -136,7 +136,9 @@ export function decodeMimeAndContentBuffersSlices(
       // which was already skipped in initial read
       toSkip += mimeLength + 1;
     } else {
-      throw new Error('Metadata is malformed. Inappropriately formed Mime Length');
+      throw new Error(
+        'Metadata is malformed. Inappropriately formed Mime Length',
+      );
     }
   }
 
@@ -148,10 +150,14 @@ export function decodeMimeAndContentBuffersSlices(
       const metadata = compositeMetadata.slice(toSkip, toSkip + metadataLength);
       return [mime, metadata];
     } else {
-      throw new Error('Metadata is malformed. Inappropriately formed Metadata Length or malformed content');
+      throw new Error(
+        'Metadata is malformed. Inappropriately formed Metadata Length or malformed content',
+      );
     }
   } else {
-    throw new Error('Metadata is malformed. Metadata Length is absent or malformed');
+    throw new Error(
+      'Metadata is malformed. Metadata Length is absent or malformed',
+    );
   }
 }
 
