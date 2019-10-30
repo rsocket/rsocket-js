@@ -68,6 +68,7 @@ export default class RSocketClient<D, M> {
   _socket: ?RSocketClientSocket<D, M>;
 
   constructor(config: ClientConfig<D, M>) {
+    this._checkConfig(config);
     this._cancel = null;
     this._config = config;
     this._connection = null;
@@ -111,6 +112,23 @@ export default class RSocketClient<D, M> {
     });
     return this._connection;
   }
+
+  _checkConfig(config: ClientConfig<D, M>) {
+    const navigator = window && window.navigator;
+    const setup = config.setup;
+    const keepAlive = setup && setup.keepAlive;
+    if (
+      keepAlive > 30000 &&
+      navigator &&
+      navigator.userAgent &&
+      (navigator.userAgent.includes('Trident') ||
+        navigator.userAgent.includes('Edg'))
+    ) {
+      console.warn(
+        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
+      );
+    }
+  }
 }
 
 /**
@@ -133,18 +151,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       );
     }
     const {keepAlive, lifetime} = config.setup;
-    const navigator = config.navigator;
-    if (
-        keepAlive > 30000 &&
-        navigator &&
-        navigator.userAgent &&
-        (navigator.userAgent.includes('Trident') ||
-            navigator.userAgent.includes('Edg'))
-    ) {
-      console.warn(
-          'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
-      );
-    }
 
     this._machine = createClientMachine(
       connection,
