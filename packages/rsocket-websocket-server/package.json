@@ -13,6 +13,6 @@
     "rsocket-core": "^0.0.16",
     "rsocket-flowable": "^0.0.14",
     "rsocket-types": "^0.0.16",
-    "ws": "^2.3.1"
+    "ws": "^7.2.0"
   }
 }
