@@ -34,15 +34,15 @@ import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {createClientMachine} from './RSocketMachine';
 import {Leases} from './RSocketLease';
 import {RequesterLeaseHandler, ResponderLeaseHandler} from './RSocketLease';
+import {IdentitySerializers} from './RSocketSerialization';
 
 export type ClientConfig<D, M> = {|
   serializers?: PayloadSerializers<D, M>,
   setup: {|
-    data?: string,
+    payload?: Payload<D, M>,
     dataMimeType: string,
     keepAlive: number,
     lifetime: number,
-    metadata?: string,
     metadataMimeType: string,
   |},
   transport: DuplexConnection,
@@ -214,11 +214,17 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
       dataMimeType,
       keepAlive,
       lifetime,
-      metadata,
       metadataMimeType,
-      data,
+      payload,
     } = config.setup;
 
+    const serializers = config.serializers || (IdentitySerializers: any);
+    const data = payload !== undefined
+      ? serializers.data.serialize(payload.data)
+      : undefined;
+    const metadata = payload !== undefined
+      ? serializers.metadata.serialize(payload.metadata)
+      : undefined;
     let flags = 0;
     if (metadata !== undefined) {
       flags |= FLAGS.METADATA;
