@@ -19,8 +19,12 @@
 
 import {
   RSocketClient,
-  BufferEncoders, encodeAndAddCustomMetadata, encodeAndAddWellKnownMetadata,
-  TEXT_PLAIN, MESSAGE_RSOCKET_COMPOSITE_METADATA, MESSAGE_RSOCKET_ROUTING,
+  BufferEncoders,
+  encodeAndAddCustomMetadata,
+  encodeAndAddWellKnownMetadata,
+  TEXT_PLAIN,
+  MESSAGE_RSOCKET_COMPOSITE_METADATA,
+  MESSAGE_RSOCKET_ROUTING,
 } from 'rsocket-core';
 import RSocketWebSocketClient from 'rsocket-websocket-client';
 import WebSocket from 'ws';
@@ -40,31 +44,32 @@ const client = new RSocketClient({
     dataMimeType,
     metadataMimeType,
   },
-  transport: new RSocketWebSocketClient({ wsCreator: () => new WebSocket('ws://localhost:7000') , debug: true}, BufferEncoders),
+  transport: new RSocketWebSocketClient(
+    {wsCreator: () => new WebSocket('ws://localhost:7000'), debug: true},
+    BufferEncoders,
+  ),
 });
 
 // Open the connection
-client.connect()
-  .then(socket => {
-    socket
-      .requestStream({
-        data: new Buffer('request-stream'),
-        metadata: encodeAndAddWellKnownMetadata(
-          encodeAndAddCustomMetadata(
-            Buffer.alloc(0),
-            TEXT_PLAIN.string,
-            Buffer.from("Hello World")
-          ),
-          MESSAGE_RSOCKET_ROUTING,
-          Buffer.from("test.service")
-        )
-      })
-      .subscribe({
-        onComplete: () => console.log('Request-stream completed'),
-        onError: error =>
-          console.error(`Request-stream error:${error.message}`),
-        onNext: value => console.log('%s', value.data),
-        onSubscribe: sub => sub.request(maxRSocketRequestN),
-      });
-  });
+client.connect().then(socket => {
+  socket
+    .requestStream({
+      data: new Buffer('request-stream'),
+      metadata: encodeAndAddWellKnownMetadata(
+        encodeAndAddCustomMetadata(
+          Buffer.alloc(0),
+          TEXT_PLAIN.string,
+          Buffer.from('Hello World'),
+        ),
+        MESSAGE_RSOCKET_ROUTING,
+        Buffer.from('test.service'),
+      ),
+    })
+    .subscribe({
+      onComplete: () => console.log('Request-stream completed'),
+      onError: error => console.error(`Request-stream error:${error.message}`),
+      onNext: value => console.log('%s', value.data),
+      onSubscribe: sub => sub.request(maxRSocketRequestN),
+    });
+});
 setTimeout(() => {}, 30000000);

@@ -17,19 +17,12 @@
 
 /* eslint-disable */
 
-import {
-  ERROR_CODES,
-  FLAGS,
-  FLAGS_MASK,
-  FRAME_TYPES,
-  MAX_REQUEST_N,
-} from '../RSocketFrame';
+import {FLAGS, FLAGS_MASK, FRAME_TYPES, MAX_REQUEST_N} from '../RSocketFrame';
 import RSocketClient from '../RSocketClient';
 import {JsonSerializers} from '../RSocketSerialization';
 import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
-import {genMockPublisher, genMockSubscription} from 'MockFlowableSubscription';
-import {Flowable, Single} from 'rsocket-flowable';
+import {Flowable} from 'rsocket-flowable';
 
 jest.useFakeTimers();
 
@@ -188,22 +181,27 @@ describe('RSocketClient', () => {
   });
 
   describe('keepalive', () => {
-    const keepAlive = 42;
+    const realNow = Date.now;
+
+    const keepAliveInterval = 42;
+    const keepAliveTimeout = 1000;
     let keepAliveFrames;
     let transport;
     let client;
     let socket;
+    const errors = new Set();
 
     beforeEach(() => {
       transport = genMockConnection();
       client = new RSocketClient({
         setup: {
           dataMimeType: '<dataMimeType>',
-          keepAlive,
-          lifetime: 2017,
+          keepAlive: keepAliveInterval,
+          lifetime: keepAliveTimeout,
           metadataMimeType: '<metadataMimeType>',
         },
         transport,
+        errorHandler: err => errors.add(err.message),
       });
       client.connect().subscribe({
         onComplete(_socket) {
@@ -216,6 +214,10 @@ describe('RSocketClient', () => {
       transport.mockClear();
     });
 
+    afterEach(() => {
+      Date.now = realNow;
+    });
+
     it('sends keepalive frames', () => {
       const onNext = jest.fn();
       keepAliveFrames.subscribe({
@@ -223,7 +225,7 @@ describe('RSocketClient', () => {
         onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
       });
 
-      jest.runTimersToTime(keepAlive - 1);
+      jest.runTimersToTime(keepAliveInterval - 1);
       expect(onNext.mock.calls.length).toBe(0);
 
       jest.runTimersToTime(1);
@@ -266,6 +268,27 @@ describe('RSocketClient', () => {
       });
       expect(transport.send.mock.calls.length).toBe(0);
       expect(transport.sendOne.mock.calls.length).toBe(0);
+    });
+
+    it('closes rsocket on missing keepalive', () => {
+      let status;
+      socket.connectionStatus().subscribe({
+        onNext: _status => status = _status,
+        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+      });
+
+      Date.now = jest
+        .genMockFunction()
+        .mockReturnValue(Date.now() + keepAliveTimeout);
+      jest.runTimersToTime(keepAliveTimeout);
+
+      expect(errors.size).toEqual(1);
+      expect(errors.values().next().value).toEqual(
+        `No keep-alive acks for ${keepAliveTimeout} millis`,
+      );
+      expect(status.kind).toEqual('CLOSED');
+
+      jest.runTimersToTime(keepAliveTimeout);
     });
   });
 
@@ -1155,7 +1178,7 @@ describe('RSocketClient', () => {
       it('closes the socket and transport if already connected', () => {
         transport.mock.connect();
         client.close();
-        jest.runAllTimers();
+        jest.runOnlyPendingTimers();
         expect(transport.close).toBeCalled();
         expect(status.kind).toBe('CLOSED');
       });
@@ -1192,7 +1215,7 @@ describe('RSocketClient', () => {
 
       it('closes the underlying socket', () => {
         socket.close();
-        jest.runAllTimers();
+        jest.runOnlyPendingTimers();
         expect(transport.close).toBeCalled();
         expect(status.kind).toBe('CLOSED');
       });

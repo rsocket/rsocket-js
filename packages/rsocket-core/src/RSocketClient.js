@@ -47,6 +47,7 @@ export type ClientConfig<D, M> = {|
   |},
   transport: DuplexConnection,
   responder?: Responder<D, M>,
+  errorHandler?: (Error) => void,
   leases?: () => Leases<*>,
 |};
 
@@ -67,6 +68,7 @@ export default class RSocketClient<D, M> {
   _socket: ?RSocketClientSocket<D, M>;
 
   constructor(config: ClientConfig<D, M>) {
+    this._checkConfig(config);
     this._cancel = null;
     this._config = config;
     this._connection = null;
@@ -110,6 +112,23 @@ export default class RSocketClient<D, M> {
     });
     return this._connection;
   }
+
+  _checkConfig(config: ClientConfig<D, M>) {
+    const navigator = window && window.navigator;
+    const setup = config.setup;
+    const keepAlive = setup && setup.keepAlive;
+    if (
+      keepAlive > 30000 &&
+      navigator &&
+      navigator.userAgent &&
+      (navigator.userAgent.includes('Trident') ||
+        navigator.userAgent.includes('Edg'))
+    ) {
+      console.warn(
+        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
+      );
+    }
+  }
 }
 
 /**
@@ -131,11 +150,15 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
         lease._stats,
       );
     }
+    const {keepAlive, lifetime} = config.setup;
+
     this._machine = createClientMachine(
       connection,
       subscriber => connection.receive().subscribe(subscriber),
       config.serializers,
       config.responder,
+      config.errorHandler,
+      lifetime,
       requesterLeaseHandler,
       responderLeaseHandler,
     );
@@ -144,19 +167,6 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     connection.sendOne(this._buildSetupFrame(config));
 
     // Send KEEPALIVE frames
-    const {keepAlive} = config.setup;
-    const navigator = config.navigator;
-    if (
-      keepAlive > 30000 &&
-      navigator &&
-      navigator.userAgent &&
-      (navigator.userAgent.includes('Trident') ||
-        navigator.userAgent.includes('Edg'))
-    ) {
-      console.warn(
-        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
-      );
-    }
     const keepAliveFrames = every(keepAlive).map(() => ({
       data: null,
       flags: FLAGS.RESPOND,

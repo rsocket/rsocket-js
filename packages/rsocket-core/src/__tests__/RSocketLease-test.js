@@ -48,6 +48,8 @@ describe('RSocketLease', () => {
         subs => receiver.subscriber(subs),
         undefined,
         responder,
+        error => {},
+        100000,
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );
@@ -131,6 +133,8 @@ describe('RSocketLease', () => {
         subs => receiver.subscriber(subs),
         undefined,
         responder,
+        error => {},
+        100000,
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );

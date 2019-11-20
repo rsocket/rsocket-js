@@ -17,7 +17,7 @@ import WellKnownMimeType, {
   UNKNOWN_RESERVED_MIME_TYPE,
   APPLICATION_PDF,
 } from '../WellKnownMimeType';
-import type {Entry} from "../CompositeMetadata";
+import type {Entry} from '../CompositeMetadata';
 
 describe('Composite M', () => {
   it('custom mime header length 128', function() {
@@ -67,7 +67,9 @@ describe('Composite M', () => {
 
     // metadata 3: reserved but unknown
     const reserved = 120;
-    expect(WellKnownMimeType.fromIdentifier(reserved)).toBe(UNKNOWN_RESERVED_MIME_TYPE);
+    expect(WellKnownMimeType.fromIdentifier(reserved)).toBe(
+      UNKNOWN_RESERVED_MIME_TYPE,
+    );
 
     const metadata3 = Buffer.from([88]);
 
@@ -90,14 +92,12 @@ describe('Composite M', () => {
     expect((value1: WellKnownMimeTypeEntry).type).toBe(mimeType1);
     expect(value1.content).toEqual(metadata1);
 
-
     const entry2 = iterator.next();
     const value2: Entry = entry2.value;
     expect(value2).not.toBeNull();
     expect(value2).toBeInstanceOf(ExplicitMimeTimeEntry);
     expect(value2.mimeType).toBe(mimeType2);
     expect(value2.content).toEqual(metadata2);
-
 
     const entry3 = iterator.next();
     const value3: Entry = entry3.value;
