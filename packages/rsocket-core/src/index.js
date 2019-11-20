@@ -29,6 +29,8 @@ export type {Encoder, Encoders} from './RSocketEncoding';
 
 export type {Serializer, PayloadSerializers} from './RSocketSerialization';
 
+export type {LeaseStats} from './RSocketLease';
+
 import RSocketClient from './RSocketClient';
 export {RSocketClient};
 
@@ -38,54 +40,7 @@ export {RSocketServer};
 import RSocketResumableTransport from './RSocketResumableTransport';
 export {RSocketResumableTransport};
 
-import WellKnownMimeType, {
-  APPLICATION_AVRO,
-  APPLICATION_CBOR,
-  APPLICATION_CLOUDEVENTS_JSON,
-  APPLICATION_GRAPHQL,
-  APPLICATION_GZIP,
-  APPLICATION_HESSIAN,
-  APPLICATION_JAVA_OBJECT,
-  APPLICATION_JAVASCRIPT,
-  APPLICATION_JSON,
-  APPLICATION_OCTET_STREAM,
-  APPLICATION_PDF,
-  APPLICATION_PROTOBUF,
-  APPLICATION_THRIFT,
-  APPLICATION_XML,
-  APPLICATION_ZIP,
-  AUDIO_AAC,
-  AUDIO_MP3,
-  AUDIO_MP4,
-  AUDIO_MPEG,
-  AUDIO_MPEG3,
-  AUDIO_OGG,
-  AUDIO_OPUS,
-  AUDIO_VORBIS,
-  IMAGE_BMP,
-  IMAGE_GIG,
-  IMAGE_HEIC,
-  IMAGE_HEIC_SEQUENCE,
-  IMAGE_HEIF,
-  IMAGE_HEIF_SEQUENCE,
-  IMAGE_JPEG,
-  IMAGE_PNG,
-  IMAGE_TIFF,
-  MESSAGE_RSOCKET_COMPOSITE_METADATA,
-  MESSAGE_RSOCKET_ROUTING,
-  MESSAGE_RSOCKET_TRACING_ZIPKIN,
-  MULTIPART_MIXED,
-  TEXT_CSS,
-  TEXT_CSV,
-  TEXT_HTML,
-  TEXT_PLAIN,
-  TEXT_XML,
-  UNKNOWN_RESERVED_MIME_TYPE,
-  UNPARSEABLE_MIME_TYPE,
-  VIDEO_H264,
-  VIDEO_H265,
-  VIDEO_VP8,
-} from './WellKnownMimeType';
+import WellKnownMimeType from './WellKnownMimeType';
 export {WellKnownMimeType};
 
 export {
@@ -140,7 +95,6 @@ export {
   JsonSerializer,
   JsonSerializers,
 } from './RSocketSerialization';
-export type {LeaseStats} from './RSocketLease';
 export {Leases, Lease} from './RSocketLease';
 export {
   UNPARSEABLE_MIME_TYPE,
@@ -190,7 +144,6 @@ export {
   MESSAGE_RSOCKET_ROUTING,
   MESSAGE_RSOCKET_COMPOSITE_METADATA,
 } from './WellKnownMimeType';
-
 export {
   CompositeMetadata,
   ReservedMimeTypeEntry,
