@@ -169,9 +169,9 @@ export default class RSocketServer<D, M> {
                 subscriber => {
                   swapper.swap(subscriber);
                 },
+                frame.lifetime,
                 serializers,
                 this._config.errorHandler,
-                frame.lifetime,
                 requesterLeaseHandler,
                 responderLeaseHandler,
               );

@@ -155,10 +155,10 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     this._machine = createClientMachine(
       connection,
       subscriber => connection.receive().subscribe(subscriber),
+      lifetime,
       config.serializers,
       config.responder,
       config.errorHandler,
-      lifetime,
       requesterLeaseHandler,
       responderLeaseHandler,
     );
