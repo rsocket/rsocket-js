@@ -19,7 +19,7 @@
 
 export type {ClientConfig} from './RSocketClient';
 
-export type {Entry} from './CompositeMetadata';
+export type {Entry, ReservedMimeTypeEntry, WellKnownMimeTypeEntry, ExplicitMimeTimeEntry} from './CompositeMetadata';
 
 export type {ServerConfig, TransportServer} from './RSocketServer';
 
