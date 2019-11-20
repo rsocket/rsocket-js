@@ -144,9 +144,9 @@ export interface RSocketMachine<D, M> extends ReactiveSocket<D, M> {
 export function createServerMachine<D, M>(
   connection: DuplexConnection,
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+  keepAliveTimeout: number,
   serializers?: ?PayloadSerializers<D, M>,
   errorHandler?: (Error) => void,
-  keepAliveTimeout: number,
   requesterLeaseHandler?: ?RequesterLeaseHandler,
   responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
@@ -154,10 +154,10 @@ export function createServerMachine<D, M>(
     'SERVER',
     connection,
     connectionPublisher,
+    keepAliveTimeout,
     serializers,
     undefined,
     errorHandler,
-    keepAliveTimeout,
     requesterLeaseHandler,
     responderLeaseHandler,
   );
@@ -166,10 +166,10 @@ export function createServerMachine<D, M>(
 export function createClientMachine<D, M>(
   connection: DuplexConnection,
   connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+  keepAliveTimeout: number,
   serializers?: ?PayloadSerializers<D, M>,
   requestHandler?: ?PartialResponder<D, M>,
   errorHandler?: (Error) => void,
-  keepAliveTimeout: number,
   requesterLeaseHandler?: ?RequesterLeaseHandler,
   responderLeaseHandler?: ?ResponderLeaseHandler,
 ): RSocketMachine<D, M> {
@@ -177,10 +177,10 @@ export function createClientMachine<D, M>(
     'CLIENT',
     connection,
     connectionPublisher,
+    keepAliveTimeout,
     serializers,
     requestHandler,
     errorHandler,
-    keepAliveTimeout,
     requesterLeaseHandler,
     responderLeaseHandler,
   );
@@ -205,12 +205,12 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     role: Role,
     connection: DuplexConnection,
     connectionPublisher: (partialSubscriber: IPartialSubscriber<Frame>) => void,
+    keepAliveTimeout: number,
     serializers: ?PayloadSerializers<D, M>,
     requestHandler: ?PartialResponder<D, M>,
-    errorHandler?: (Error) => void,
-    keepAliveTimeout: number,
-    requesterLeaseHandler?: ?RequesterLeaseHandler,
-    responderLeaseHandler?: ?ResponderLeaseHandler,
+    errorHandler: ?(Error) => void,
+    requesterLeaseHandler: ?RequesterLeaseHandler,
+    responderLeaseHandler: ?ResponderLeaseHandler,
   ) {
     this._connection = connection;
     this._requesterLeaseHandler = requesterLeaseHandler;

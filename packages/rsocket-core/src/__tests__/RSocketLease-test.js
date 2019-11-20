@@ -46,10 +46,10 @@ describe('RSocketLease', () => {
       rSocketMachine = RSocketMachine.createClientMachine(
         connection,
         subs => receiver.subscriber(subs),
+        100000,
         undefined,
         responder,
         error => {},
-        100000,
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );
@@ -131,10 +131,10 @@ describe('RSocketLease', () => {
       rSocketMachine = RSocketMachine.createClientMachine(
         connection,
         subs => receiver.subscriber(subs),
+        100000,
         undefined,
         responder,
         error => {},
-        100000,
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );
