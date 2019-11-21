@@ -219,10 +219,8 @@ class RSocketClientSocket<D, M> implements ReactiveSocket<D, M> {
     } = config.setup;
 
     const serializers = config.serializers || (IdentitySerializers: any);
-    const data = payload !== undefined
-      ? serializers.data.serialize(payload.data)
-      : undefined;
-    const metadata = payload !== undefined
+    const data = payload ? serializers.data.serialize(payload.data) : undefined;
+    const metadata = payload
       ? serializers.metadata.serialize(payload.metadata)
       : undefined;
     let flags = 0;
