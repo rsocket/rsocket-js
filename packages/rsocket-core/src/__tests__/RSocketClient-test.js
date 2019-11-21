@@ -77,7 +77,9 @@ describe('RSocketClient', () => {
           dataMimeType: '<dataMimeType>',
           keepAlive: 42,
           lifetime: 2017,
-          metadata: '<metadata>',
+          payload: {
+            metadata: '<metadata>',
+          },
           metadataMimeType: '<metadataMimeType>',
         },
         transport,
@@ -110,7 +112,9 @@ describe('RSocketClient', () => {
           keepAlive: 42,
           lifetime: 2017,
           metadataMimeType: '<metadataMimeType>',
-          data: '<data>',
+          payload: {
+            data: '<data>',
+          },
         },
         transport,
       });
@@ -124,7 +128,6 @@ describe('RSocketClient', () => {
         flags: 0,
         keepAlive: 42,
         lifetime: 2017,
-        metadata: undefined,
         metadataMimeType: '<metadataMimeType>',
         resumeToken: null,
         streamId: 0,
