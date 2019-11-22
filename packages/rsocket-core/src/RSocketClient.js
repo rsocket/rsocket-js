@@ -114,20 +114,22 @@ export default class RSocketClient<D, M> {
   }
 
   _checkConfig(config: ClientConfig<D, M>) {
-    const navigator = window && window.navigator;
     const setup = config.setup;
     const keepAlive = setup && setup.keepAlive;
-    if (
-      keepAlive > 30000 &&
-      navigator &&
-      navigator.userAgent &&
-      (navigator.userAgent.includes('Trident') ||
-        navigator.userAgent.includes('Edg'))
-    ) {
-      console.warn(
-        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
-      );
-    }
+    try {
+      const navigator = window && window.navigator;
+      if (
+        keepAlive > 30000 &&
+        navigator &&
+        navigator.userAgent &&
+        (navigator.userAgent.includes('Trident') ||
+          navigator.userAgent.includes('Edg'))
+      ) {
+        console.warn(
+          'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
+        );
+      }
+    } catch (e) {}
   }
 }
 
