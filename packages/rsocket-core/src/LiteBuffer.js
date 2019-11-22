@@ -272,10 +272,37 @@ function utf8Write(
 
 Buffer.prototype.write = function write(
   input: string,
-  offset: number,
-  length: number,
-  encoding: 'utf8',
+  offset?: number,
+  length?: number,
+  encoding?: 'utf8',
 ) {
+  if (offset === undefined) {
+    encoding = 'utf8';
+    length = this.length;
+    offset = 0;
+    // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset;
+    length = this.length;
+    offset = 0;
+    // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset >>> 0;
+    if (length === undefined) {
+      encoding = 'utf8';
+      length = this.length;
+    } else if (isFinite(length)) {
+      length = length >>> 0;
+      if (encoding === undefined) encoding = 'utf8';
+    } else {
+      encoding = length;
+      length = this.length;
+    }
+  } else {
+    throw new Error(
+      'Buffer.write(string, encoding, offset[, length]) is no longer supported',
+    );
+  }
   switch (encoding) {
     case 'utf8':
       return utf8Write(this, input, offset, length);
