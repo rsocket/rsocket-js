@@ -116,6 +116,8 @@ export default class RSocketClient<D, M> {
   _checkConfig(config: ClientConfig<D, M>) {
     const setup = config.setup;
     const keepAlive = setup && setup.keepAlive;
+    // wrap in try catch since in 'strict' mode the access to an unexciting window will throw
+    // the ReferenceError: window is not defined exception
     try {
       const navigator = window && window.navigator;
       if (
@@ -129,7 +131,9 @@ export default class RSocketClient<D, M> {
           'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore the error since it means that the code is running in non browser environment
+    }
   }
 }
 
