@@ -114,19 +114,25 @@ export default class RSocketClient<D, M> {
   }
 
   _checkConfig(config: ClientConfig<D, M>) {
-    const navigator = window && window.navigator;
     const setup = config.setup;
     const keepAlive = setup && setup.keepAlive;
-    if (
-      keepAlive > 30000 &&
-      navigator &&
-      navigator.userAgent &&
-      (navigator.userAgent.includes('Trident') ||
-        navigator.userAgent.includes('Edg'))
-    ) {
-      console.warn(
-        'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
-      );
+    // wrap in try catch since in 'strict' mode the access to an unexciting window will throw
+    // the ReferenceError: window is not defined exception
+    try {
+      const navigator = window && window.navigator;
+      if (
+        keepAlive > 30000 &&
+        navigator &&
+        navigator.userAgent &&
+        (navigator.userAgent.includes('Trident') ||
+          navigator.userAgent.includes('Edg'))
+      ) {
+        console.warn(
+          'rsocket-js: Due to a browser bug, Internet Explorer and Edge users may experience WebSocket instability with keepAlive values longer than 30 seconds.',
+        );
+      }
+    } catch (e) {
+      // ignore the error since it means that the code is running in non browser environment
     }
   }
 }
