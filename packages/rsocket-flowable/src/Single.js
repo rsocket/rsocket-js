@@ -82,7 +82,7 @@ export default class Single<T> {
     });
   }
 
-  static error(error: Error): Single<never> {
+  static error<U = never>(error: Error): Single<U> {
     return new Single(subscriber => {
       subscriber.onSubscribe();
       subscriber.onError(error);
