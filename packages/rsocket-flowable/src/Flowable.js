@@ -61,7 +61,7 @@ export default class Flowable<T> implements IPublisher<T> {
     });
   }
 
-  static error<U>(error: Error): Flowable<U> {
+  static error<U = empty>(error: Error): Flowable<U> {
     return new Flowable(subscriber => {
       subscriber.onSubscribe({
         cancel: () => {},
@@ -72,7 +72,7 @@ export default class Flowable<T> implements IPublisher<T> {
     });
   }
 
-  static never<U>(): Flowable<U> {
+  static never<U = empty>(): Flowable<U> {
     return new Flowable(subscriber => {
       subscriber.onSubscribe({
         cancel: emptyFunction,
