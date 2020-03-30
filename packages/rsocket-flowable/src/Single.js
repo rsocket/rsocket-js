@@ -89,6 +89,12 @@ export default class Single<T> {
     });
   }
 
+  static never<U = empty>(): Single<U> {
+    return new Single(subscriber => {
+      subscriber.onSubscribe();
+    });
+  }
+
   constructor(source: Source<T>) {
     this._source = source;
   }
