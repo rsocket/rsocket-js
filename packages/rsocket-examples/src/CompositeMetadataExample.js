@@ -36,6 +36,7 @@ const keepAlive = 60000;
 const lifetime = 180000;
 const dataMimeType = 'application/octet-stream';
 const metadataMimeType = MESSAGE_RSOCKET_COMPOSITE_METADATA.string;
+const route = 'test.service';
 
 const client = new RSocketClient({
   setup: {
@@ -62,7 +63,7 @@ client.connect().then(socket => {
           Buffer.from('Hello World'),
         ),
         MESSAGE_RSOCKET_ROUTING,
-        Buffer.from('test.service'),
+        Buffer.from(String.fromCharCode(route.length) + route),
       ),
     })
     .subscribe({
