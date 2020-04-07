@@ -152,7 +152,18 @@ export const APPLICATION_CLOUDEVENTS_JSON = new WellKnownMimeType(
 );
 
 // ... reserved for future use ...
-
+export const MESSAGE_RSOCKET_MIMETYPE = new WellKnownMimeType(
+  'message/x.rsocket.mime-type.v0',
+  0x7a,
+);
+export const MESSAGE_RSOCKET_ACCEPT_MIMETYPES = new WellKnownMimeType(
+  'message/x.rsocket.accept-mime-types.v0',
+  0x7b,
+);
+export const MESSAGE_RSOCKET_AUTHENTICATION = new WellKnownMimeType(
+  'message/x.rsocket.authentication.v0',
+  0x7c,
+);
 export const MESSAGE_RSOCKET_TRACING_ZIPKIN = new WellKnownMimeType(
   'message/x.rsocket.tracing-zipkin.v0',
   0x7d,
@@ -213,6 +224,9 @@ const ALL_MIME_TYPES = [
   APPLICATION_HESSIAN,
   APPLICATION_JAVA_OBJECT,
   APPLICATION_CLOUDEVENTS_JSON,
+  MESSAGE_RSOCKET_MIMETYPE,
+  MESSAGE_RSOCKET_ACCEPT_MIMETYPES,
+  MESSAGE_RSOCKET_AUTHENTICATION,
   MESSAGE_RSOCKET_TRACING_ZIPKIN,
   MESSAGE_RSOCKET_ROUTING,
   MESSAGE_RSOCKET_COMPOSITE_METADATA,
