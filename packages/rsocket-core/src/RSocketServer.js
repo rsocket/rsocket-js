@@ -45,6 +45,7 @@ import {IdentitySerializers} from './RSocketSerialization';
 import {createServerMachine} from './RSocketMachine';
 import {Leases} from './RSocketLease';
 import {RequesterLeaseHandler, ResponderLeaseHandler} from './RSocketLease';
+import {ReassemblyDuplexConnection} from './ReassemblyDuplexConnection';
 
 export interface TransportServer {
   start(): Flowable<DuplexConnection>,
@@ -121,6 +122,7 @@ export default class RSocketServer<D, M> {
   _handleTransportConnection = (connection: DuplexConnection): void => {
     const swapper: SubscriberSwapper<Frame> = new SubscriberSwapper();
     let subscription;
+    connection = new ReassemblyDuplexConnection(connection);
     connection.receive().subscribe(
       swapper.swap({
         onError: error => console.error(error),
