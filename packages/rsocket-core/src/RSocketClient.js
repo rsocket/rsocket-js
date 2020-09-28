@@ -35,6 +35,7 @@ import {createClientMachine} from './RSocketMachine';
 import {Lease, Leases} from './RSocketLease';
 import {RequesterLeaseHandler, ResponderLeaseHandler} from './RSocketLease';
 import {IdentitySerializers} from './RSocketSerialization';
+import {ReassemblyDuplexConnection} from './ReassemblyDuplexConnection';
 
 export type ClientConfig<D, M> = {|
   serializers?: PayloadSerializers<D, M>,
@@ -92,7 +93,10 @@ export default class RSocketClient<D, M> {
           if (status.kind === 'CONNECTED') {
             subscription && subscription.cancel();
             subscriber.onComplete(
-              new RSocketClientSocket(this._config, transport),
+              new RSocketClientSocket(
+                this._config,
+                new ReassemblyDuplexConnection(transport),
+              ),
             );
           } else if (status.kind === 'ERROR') {
             subscription && subscription.cancel();
