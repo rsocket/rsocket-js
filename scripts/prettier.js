@@ -26,7 +26,7 @@ const prettierCmd = path.resolve(__dirname, '../node_modules/.bin/' + prettier);
 
 const config = {
   src: {
-    patterns: ['packages/*/src/**/', 'packages/*'],
+    patterns: ['./packages/*/src/**/', './packages/*'],
     options: {
       'bracket-spacing': 'false',
       'print-width': '80',
@@ -35,7 +35,7 @@ const config = {
     },
   },
   scripts: {
-    patterns: ['scripts/**/'],
+    patterns: ['./*scripts/**/'],
     options: {
       'bracket-spacing': 'false',
       'print-width': '80',
@@ -45,19 +45,19 @@ const config = {
   },
 };
 
-Object.keys(config).forEach(key => {
+Object.keys(config).forEach((key) => {
   const patterns = config[key].patterns;
   const options = config[key].options;
   const files = [];
-  patterns.forEach(pattern => {
+  patterns.forEach((pattern) => {
     const matches = glob
       .sync(`${pattern}*.js`)
-      .filter(file => !file.includes(path.sep + 'node_modules' + path.sep));
+      .filter((file) => !file.includes(path.sep + 'node_modules' + path.sep));
     files.push(...matches);
   });
 
-  const args = Object.keys(options).map(key => `--${key}=${options[key]}`);
-  args.push(`--${shouldWrite ? 'write' : 'l'} {${files.join(' ')}}`);
+  const args = Object.keys(options).map((key) => `--${key}=${options[key]}`);
+  args.push(`--${shouldWrite ? 'write' : 'l'} ${files.join(' ')}`);
 
   try {
     runCommand(prettierCmd, args.join(' '), path.resolve(__dirname, '..'));

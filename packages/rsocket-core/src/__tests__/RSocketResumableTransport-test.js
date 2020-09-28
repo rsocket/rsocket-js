@@ -60,8 +60,8 @@ describe('RSocketResumableTransport', () => {
       resumeToken,
     });
     resumableTransport.connectionStatus().subscribe({
-      onNext: status => resumableStatus = status,
-      onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+      onNext: (status) => (resumableStatus = status),
+      onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
     });
 
     errorFrame = {
@@ -141,8 +141,8 @@ describe('RSocketResumableTransport', () => {
         resumeToken,
       });
       resumableTransport.connectionStatus().subscribe({
-        onNext: status => resumableStatus = status,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (status) => (resumableStatus = status),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
     });
 
@@ -209,8 +209,8 @@ describe('RSocketResumableTransport', () => {
     it('returns frames from the transport once connected', () => {
       const frames = [];
       resumableTransport.receive().subscribe({
-        onNext: frame => frames.push(frame),
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (frame) => frames.push(frame),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
       resumableTransport.connect();
       currentTransport.mock.connect();
@@ -223,7 +223,7 @@ describe('RSocketResumableTransport', () => {
 
     it('buffers frames and writes to the transport once connected', () => {
       resumableTransport.send(
-        new Flowable(subscriber => {
+        new Flowable((subscriber) => {
           subscriber.onSubscribe({
             request: () => {
               subscriber.onNext(errorFrame);
@@ -263,8 +263,8 @@ describe('RSocketResumableTransport', () => {
     it('returns frames from the transport once connected', () => {
       const frames = [];
       resumableTransport.receive().subscribe({
-        onNext: frame => frames.push(frame),
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (frame) => frames.push(frame),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
       resumableTransport.connect();
       currentTransport.mock.connect();
@@ -277,7 +277,7 @@ describe('RSocketResumableTransport', () => {
 
     it('buffers frames and writes to the transport once connected', () => {
       resumableTransport.send(
-        new Flowable(subscriber => {
+        new Flowable((subscriber) => {
           subscriber.onSubscribe({
             request: () => {
               subscriber.onNext(errorFrame);
@@ -314,8 +314,8 @@ describe('RSocketResumableTransport', () => {
     it('returns frames from the transport', () => {
       const frames = [];
       resumableTransport.receive().subscribe({
-        onNext: frame => frames.push(frame),
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (frame) => frames.push(frame),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
       currentTransport.mock.receiver.onNext(errorFrame);
       currentTransport.mock.receiver.onNext(responseFrame);
@@ -326,7 +326,7 @@ describe('RSocketResumableTransport', () => {
 
     it('writes frames to the transport', () => {
       resumableTransport.send(
-        new Flowable(subscriber => {
+        new Flowable((subscriber) => {
           subscriber.onSubscribe({
             request: () => {
               subscriber.onNext(errorFrame);
@@ -373,8 +373,8 @@ describe('RSocketResumableTransport', () => {
     it('returns frames from the transport once connected', () => {
       const frames = [];
       resumableTransport.receive().subscribe({
-        onNext: frame => frames.push(frame),
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (frame) => frames.push(frame),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
       resumableTransport.connect();
       currentTransport.mock.connect();
@@ -387,7 +387,7 @@ describe('RSocketResumableTransport', () => {
 
     it('buffers frames and writes to the transport once connected', () => {
       resumableTransport.send(
-        new Flowable(subscriber => {
+        new Flowable((subscriber) => {
           subscriber.onSubscribe({
             request: () => {
               subscriber.onNext(errorFrame);
@@ -541,8 +541,8 @@ describe('RSocketResumableTransport', () => {
         resumeToken,
       });
       resumableTransport.connectionStatus().subscribe({
-        onNext: status => resumableStatus = status,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (status) => (resumableStatus = status),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
 
       // connect
@@ -636,7 +636,8 @@ describe('RSocketResumableTransport', () => {
       expect(resumableStatus.kind).toBe('CONNECTING');
       currentTransport.mock.receiver.onNext({
         ...resumeOkFrame,
-        clientPosition: sizeOfFrame(errorFrame) +
+        clientPosition:
+          sizeOfFrame(errorFrame) +
           sizeOfFrame(requestFrame) +
           sizeOfFrame(responseFrame), // server has all buffered frames (total bytesize)
       });

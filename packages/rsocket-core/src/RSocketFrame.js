@@ -45,14 +45,14 @@ export const FRAME_TYPES = {
 };
 
 // Maps frame type codes to type names
-export const FRAME_TYPE_NAMES = {};
+export const FRAME_TYPE_NAMES: {[typeCode: number]: string} = {};
 forEachObject(FRAME_TYPES, (value, name) => {
   FRAME_TYPE_NAMES[value] = name;
 });
 
 export const FLAGS = {
   COMPLETE: 0x40, // PAYLOAD, REQUEST_CHANNEL: indicates stream completion, if set onComplete will be invoked on receiver.
-  FOLLOWS: 0x80, // (unused)
+  FOLLOWS: 0x80, // PAYLOAD, REQUEST_XXX: indicates that frame was fragmented and requires reassembly
   IGNORE: 0x200, // (all): Ignore frame if not understood.
   LEASE: 0x40, // SETUP: Will honor lease or not.
   METADATA: 0x100, // (all): must be set if metadata is present in the frame.
@@ -78,7 +78,7 @@ export const ERROR_CODES = {
 };
 
 // Maps error codes to names
-export const ERROR_EXPLANATIONS = {};
+export const ERROR_EXPLANATIONS: {[code: number]: string} = {};
 forEachObject(ERROR_CODES, (code, explanation) => {
   ERROR_EXPLANATIONS[code] = explanation;
 });
@@ -147,19 +147,25 @@ export function isLease(flags: number): boolean {
   return (flags & FLAGS.LEASE) === FLAGS.LEASE;
 }
 
+export function isFollows(flags: number): boolean {
+  return (flags & FLAGS.FOLLOWS) === FLAGS.FOLLOWS;
+}
+
 /**
  * Returns true iff the frame type is counted toward the implied
  * client/server position used for the resumption protocol.
  */
 export function isResumePositionFrameType(type: number): boolean {
-  return type === FRAME_TYPES.CANCEL ||
+  return (
+    type === FRAME_TYPES.CANCEL ||
     type === FRAME_TYPES.ERROR ||
     type === FRAME_TYPES.PAYLOAD ||
     type === FRAME_TYPES.REQUEST_CHANNEL ||
     type === FRAME_TYPES.REQUEST_FNF ||
     type === FRAME_TYPES.REQUEST_RESPONSE ||
     type === FRAME_TYPES.REQUEST_STREAM ||
-    type === FRAME_TYPES.REQUEST_N;
+    type === FRAME_TYPES.REQUEST_N
+  );
 }
 
 export function getFrameTypeName(type: number): string {

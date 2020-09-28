@@ -17,7 +17,12 @@
 
 'use strict';
 
-import type {ISubject, ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
+import type {
+  ISubject,
+  ConnectionStatus,
+  DuplexConnection,
+  Frame,
+} from 'rsocket-types';
 import type {Encoders, TransportServer} from 'rsocket-core';
 
 import EventEmitter from 'events';
@@ -42,7 +47,9 @@ export type ServerOptions = {|
   maxPayload?: number,
 |};
 
-export type WebsocketServerFactory = (options: ServerOptions) => ws.Server
+export type WebsocketServerFactory = (
+  options: ServerOptions,
+) => typeof ws.Server;
 
 /**
  * A WebSocket transport server.
@@ -51,18 +58,25 @@ export default class RSocketWebSocketServer implements TransportServer {
   _emitter: EventEmitter;
   _encoders: ?Encoders<*>;
   _options: ServerOptions;
-  _factory: WebsocketServerFactory = (options: ServerOptions) => new ws.Server(options);
+  _factory: WebsocketServerFactory = (options: ServerOptions) =>
+    new ws.Server(options);
 
-  constructor(options: ServerOptions, encoders?: ?Encoders<*>, factory?: WebsocketServerFactory) {
+  constructor(
+    options: ServerOptions,
+    encoders?: ?Encoders<*>,
+    factory?: WebsocketServerFactory,
+  ) {
     this._emitter = new EventEmitter();
     this._encoders = encoders;
     this._options = options;
-    if(factory) this._factory = factory;
+    if (factory) {
+      this._factory = factory;
+    }
   }
 
   start(): Flowable<DuplexConnection> {
     return new Flowable(subscriber => {
-      let server: ws.Server;
+      let server: typeof ws.Server;
       const onClose = () => {
         if (server) {
           server.stop();
@@ -108,12 +122,12 @@ class WSDuplexConnection implements DuplexConnection {
   _active: boolean;
   _close: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
-  _socket: ws.Socket;
+  _socket: typeof ws.Socket;
   _receiver: Flowable<Frame>;
   _status: ConnectionStatus;
   _statusSubscribers: Set<ISubject<ConnectionStatus>>;
 
-  constructor(socket: ws.Socket, encoders: ?Encoders<*>) {
+  constructor(socket: typeof ws.Socket, encoders: ?Encoders<*>) {
     this._active = true;
     this._close = new Deferred();
     this._encoders = encoders;
@@ -157,7 +171,9 @@ class WSDuplexConnection implements DuplexConnection {
       const onSocketError = error => {
         closeSocket();
         subscriber.onError(error);
-        const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
+        const status = error
+          ? {error, kind: 'ERROR'}
+          : CONNECTION_STATUS.CLOSED;
         this._setConnectionStatus(status);
       };
       const onMessage = (data: Buffer) => {

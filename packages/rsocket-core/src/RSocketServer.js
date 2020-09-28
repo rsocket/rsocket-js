@@ -157,11 +157,11 @@ export default class RSocketServer<D, M> {
               if (leasesSupplier) {
                 const lease = leasesSupplier();
                 requesterLeaseHandler = new RequesterLeaseHandler(
-                  lease._receiver,
+                  (lease: any)._receiver,
                 );
                 responderLeaseHandler = new ResponderLeaseHandler(
-                  lease._sender,
-                  lease._stats,
+                  (lease: any)._sender,
+                  (lease: any)._stats,
                 );
               }
               const serverMachine = createServerMachine(
@@ -186,8 +186,8 @@ export default class RSocketServer<D, M> {
                 connection.sendOne({
                   code: ERROR_CODES.REJECTED_SETUP,
                   flags: 0,
-                  message: 'Application rejected setup, reason: ' +
-                    error.message,
+                  message:
+                    'Application rejected setup, reason: ' + error.message,
                   streamId: CONNECTION_STREAM_ID,
                   type: FRAME_TYPES.ERROR,
                 });

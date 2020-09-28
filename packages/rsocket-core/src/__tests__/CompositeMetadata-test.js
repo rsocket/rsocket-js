@@ -20,7 +20,7 @@ import WellKnownMimeType, {
 import type {Entry} from '../CompositeMetadata';
 
 describe('Composite M', () => {
-  it('custom mime header length 128', function() {
+  it('custom mime header length 128', () => {
     let mimeString = '';
     for (let i = 0; i < 128; i++) {
       mimeString += 'a';
@@ -45,7 +45,7 @@ describe('Composite M', () => {
     expect(content.length).toBe(0);
   });
 
-  it('decode three entries', function() {
+  it('decode three entries', () => {
     // metadata 1: well known
     const mimeType1 = APPLICATION_PDF;
     const metadata1 = Buffer.from('abcdefghijkl', 'utf8');

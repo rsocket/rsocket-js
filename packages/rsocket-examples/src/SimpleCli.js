@@ -119,10 +119,10 @@ class SymmetricResponder implements PartialResponder<string, string> {
   }
 }
 
-type ServerOptions = {
+type ServerOptions = {|
   host: string,
   port: number,
-};
+|};
 
 function getServerTransport(protocol: string, options: ServerOptions) {
   switch (protocol) {

@@ -46,7 +46,11 @@ const client = new RSocketClient({
     metadataMimeType,
   },
   transport: new RSocketWebSocketClient(
-    {wsCreator: () => new WebSocket('ws://localhost:7000'), debug: true},
+    {
+      url: 'ws://localhost:7000',
+      wsCreator: url => new WebSocket(url),
+      debug: true,
+    },
     BufferEncoders,
   ),
 });
@@ -68,8 +72,9 @@ client.connect().then(socket => {
     })
     .subscribe({
       onComplete: () => console.log('Request-stream completed'),
-      onError: error => console.error(`Request-stream error:${error.message}`),
-      onNext: value => console.log('%s', value.data),
+      onError: error =>
+        console.error(`Request-stream error:${error.message}`),
+      onNext: value => console.log('%s %s', value.data, value.metadata),
       onSubscribe: sub => sub.request(maxRSocketRequestN),
     });
 });

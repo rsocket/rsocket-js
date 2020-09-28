@@ -21,7 +21,7 @@ var nodePath = require('path');
  * Babel plugin that rewrites import and require statements given a mapping
  * of input -> output names passed as plugin options.
  */
-module.exports = function(babel) {
+module.exports = function (babel) {
   var t = babel.types;
 
   /**
@@ -31,9 +31,11 @@ module.exports = function(babel) {
     var calleePath = path.get('callee');
     if (
       !t.isIdentifier(calleePath.node, {name: 'require'}) &&
-      !(t.isMemberExpression(calleePath.node) &&
+      !(
+        t.isMemberExpression(calleePath.node) &&
         t.isIdentifier(calleePath.node.object, {name: 'require'}) &&
-        t.isIdentifier(calleePath.node.property, {name: 'requireActual'}))
+        t.isIdentifier(calleePath.node.property, {name: 'requireActual'})
+      )
     ) {
       return;
     }

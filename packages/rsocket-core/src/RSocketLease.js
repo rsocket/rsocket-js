@@ -281,9 +281,8 @@ export class ResponderLeaseHandler implements LeaseHandler {
   _onStatsEvent(success?: boolean) {
     const s = this._stats;
     if (s) {
-      const event = success === undefined
-        ? 'Terminate'
-        : success ? 'Accept' : 'Reject';
+      const event =
+        success === undefined ? 'Terminate' : success ? 'Accept' : 'Reject';
       s.onEvent(event);
     }
   }

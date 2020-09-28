@@ -125,7 +125,7 @@ declare class Buffer extends Uint8Array {
 }
 
 declare module "buffer" {
-  declare export var Buffer: typeof Buffer;
+  declare export type Buffer = Buffer;
   declare var kMaxLength: number;
   declare var INSPECT_MAX_BYTES: number;
   declare function transcode(source: Buffer, fromEnc: buffer$Encoding, toEnc: buffer$Encoding): Buffer;

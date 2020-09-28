@@ -103,7 +103,8 @@ export default class Flowable<T> implements IPublisher<T> {
     onSubscribeLift: (subscriber: ISubscriber<R>) => ISubscriber<T>,
   ): Flowable<R> {
     return new Flowable(subscriber =>
-      this._source(onSubscribeLift(subscriber)));
+      this._source(onSubscribeLift(subscriber)),
+    );
   }
 
   map<R>(fn: (data: T) => R): Flowable<R> {
