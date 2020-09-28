@@ -16,7 +16,7 @@
 'use strict';
 
 const assign = require('object-assign');
-const babel = require('babel-core');
+const babel = require('@babel/core');
 const chalk = require('chalk');
 const fbjsModuleMap = require('fbjs/module-map');
 const fs = require('fs');
@@ -26,10 +26,10 @@ const micromatch = require('micromatch');
 const mkdirp = require('mkdirp');
 const path = require('path');
 const prettier = require('prettier');
-const rollup = require('rollup');
-const rollupBabel = require('rollup-plugin-babel');
-const rollupCommonJS = require('rollup-plugin-commonjs');
-const rollupResolve = require('rollup-plugin-node-resolve');
+const {rollup} = require('rollup');
+const {babel: rollupBabel} = require('@rollup/plugin-babel');
+const rollupCommonJS = require('@rollup/plugin-commonjs');
+const {nodeResolve: rollupResolve} = require('@rollup/plugin-node-resolve');
 
 const BUILD_DIR = 'build';
 const SRC_DIR = 'src';
@@ -43,11 +43,11 @@ function getBabelOptions(options) {
   return {
     babelrc: false,
     plugins: [
-      'transform-flow-strip-types',
-      ['transform-object-rest-spread', {useBuiltIns: true}],
-      'transform-class-properties',
-      options && options.modules ? 'transform-es2015-modules-commonjs' : null,
-      'transform-async-to-generator',
+      '@babel/plugin-transform-flow-strip-types',
+      ['@babel/proposal-object-rest-spread', {useBuiltIns: true}],
+      '@babel/plugin-proposal-class-properties',
+      options && options.modules ? '@babel/plugin-transform-modules-commonjs' : null,
+      '@babel/plugin-transform-async-to-generator',
       [
         'minify-replace',
         {
@@ -62,14 +62,14 @@ function getBabelOptions(options) {
           ],
         },
       ],
-    ].filter(p => !!p),
+    ].filter((p) => !!p),
     retainLines: true,
   };
 }
 
 // Load packages and memoize the name list
 const packages = getPackages();
-const packageNames = packages.map(pkg => path.basename(pkg));
+const packageNames = packages.map((pkg) => path.basename(pkg));
 
 // Packages that should also be exported as Haste modules:
 const hastePackages = {
@@ -86,11 +86,11 @@ const hastePackages = {
 const hasteMap = {};
 const hasteExternal = [];
 
-packageNames.forEach(pkg => {
+packageNames.forEach((pkg) => {
   hasteExternal.push(pkg);
   hasteMap[pkg] = pkg;
 });
-Object.keys(fbjsModuleMap).forEach(hasteName => {
+Object.keys(fbjsModuleMap).forEach((hasteName) => {
   const npmPath = fbjsModuleMap[hasteName];
   hasteExternal.push(npmPath);
   hasteMap[npmPath] = hasteName;
@@ -101,7 +101,7 @@ function buildPackage(pkg) {
   const pattern = path.resolve(srcDir, '**/*');
   const files = glob.sync(pattern, {nodir: true});
 
-  files.forEach(file => buildFile(file, true));
+  files.forEach((file) => buildFile(file, true));
   process.stdout.write(`${chalk.green('=>')} ${path.basename(pkg)} (npm)\n`);
 }
 
@@ -132,16 +132,14 @@ function buildFile(file, silent) {
           '\n'
       );
   } else {
-    let code = babel.transformFileSync(
-      file,
-      getBabelOptions({modules: true})
-    ).code;
+    let code = babel.transformFileSync(file, getBabelOptions({modules: true}))
+      .code;
     code = format(code);
     fs.writeFileSync(destPath, code);
     // Write .flow type
-    fs
-      .createReadStream(file)
-      .pipe(fs.createWriteStream(destPath + FLOW_EXTENSION));
+    fs.createReadStream(file).pipe(
+      fs.createWriteStream(destPath + FLOW_EXTENSION)
+    );
     silent ||
       process.stdout.write(
         chalk.green('  \u2022 ') +
@@ -163,32 +161,31 @@ function buildHasteRollup(pkg) {
   const entryPath = path.resolve(pkg, SRC_DIR, 'index.js');
   const destPath = path.resolve(pkg, BUILD_DIR, 'haste', packageName + '.js');
 
-  return rollup
-    .rollup({
-      entry: entryPath,
-      external: hasteExternal,
-      plugins: [
-        rollupResolve({
-          preferBuiltins: false,
-          jail: ROOT_DIR,
-        }),
-        rollupBabel(getBabelOptions()),
-        rollupCommonJS(),
-      ],
-      onwarn: warning => {
-        process.stdout.write('Warning for package ' + packageName + '\n');
-        if (warning.message != null) {
-          process.stdout.write(warning.message + '\n');
-        } else {
-          process.stdout.write(String(warning) + '\n');
-        }
-      },
-    })
-    .then(bundle => {
+  return rollup({
+    input: entryPath,
+    external: hasteExternal,
+    plugins: [
+      rollupResolve({
+        preferBuiltins: false,
+        jail: ROOT_DIR,
+      }),
+      rollupBabel({...getBabelOptions(), babelHelpers: 'bundled'}),
+      rollupCommonJS(),
+    ],
+    onwarn: (warning) => {
+      process.stdout.write('Warning for package ' + packageName + '\n');
+      if (warning.message != null) {
+        process.stdout.write(warning.message + '\n');
+      } else {
+        process.stdout.write(String(warning) + '\n');
+      }
+    },
+  })
+    .then((bundle) => {
       let code = bundle.generate({
         format: 'cjs',
         interop: false,
-        moduleName: packageName,
+        name: packageName,
       }).code;
       // Post-rollup transform to rewrite imports between packages
       code = babel.transform(code, {
@@ -207,7 +204,7 @@ function buildHasteRollup(pkg) {
       // Return the haste module path, used by wrapper scripts
       return destPath;
     })
-    .catch(error => {
+    .catch((error) => {
       process.stderr.write(
         chalk.red(`Error building ${packageName} (haste)\n`)
       );
@@ -235,7 +232,7 @@ function main(files) {
     packages.forEach(buildPackage);
     return Promise.all(
       packages.filter(shouldBuildHaste).map(buildHasteRollup)
-    ).catch(error => {
+    ).catch((error) => {
       process.stderr.write((error.stack || error.message) + '\n');
       throw error;
     });
@@ -245,7 +242,10 @@ function main(files) {
 // Called directly via command line (e.g. `node build.js`):
 if (require.main === module) {
   const files = process.argv.slice(2);
-  main(files).then(() => process.exit(0), () => process.exit(1));
+  main(files).then(
+    () => process.exit(0),
+    () => process.exit(1)
+  );
 }
 
 module.exports = main;

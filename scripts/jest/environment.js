@@ -44,15 +44,15 @@ class WebSocket {
       this._emitter.emit('open');
     },
 
-    close: reason => {
+    close: (reason) => {
       this._emitter.emit('close', {reason});
     },
 
-    error: error => {
+    error: (error) => {
       this._emitter.emit('error', {error});
     },
 
-    message: data => {
+    message: (data) => {
       this._emitter.emit('message', {data});
     },
   };

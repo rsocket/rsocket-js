@@ -173,12 +173,12 @@ describe('RSocketServer', () => {
         getRequestHandler: () => {
           return {
             requestStream: () => {
-              return new Flowable(subscriber => {
+              return new Flowable((subscriber) => {
                 subscriber.onSubscribe({
                   cancel: () => {
                     cancelled = true;
                   },
-                  request: n => {},
+                  request: (n) => {},
                 });
               });
             },

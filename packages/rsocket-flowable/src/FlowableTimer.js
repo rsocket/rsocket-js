@@ -50,17 +50,14 @@ export function every(ms: number): Flowable<number> {
         if (intervalId != null) {
           return;
         }
-        intervalId = setInterval(
-          () => {
-            if (pending > 0) {
-              if (pending !== Number.MAX_SAFE_INTEGER) {
-                pending--;
-              }
-              subscriber.onNext(Date.now());
+        intervalId = setInterval(() => {
+          if (pending > 0) {
+            if (pending !== Number.MAX_SAFE_INTEGER) {
+              pending--;
             }
-          },
-          ms,
-        );
+            subscriber.onNext(Date.now());
+          }
+        }, ms);
       },
     });
   });

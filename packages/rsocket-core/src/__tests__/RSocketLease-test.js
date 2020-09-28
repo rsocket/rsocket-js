@@ -38,18 +38,18 @@ describe('RSocketLease', () => {
 
     beforeEach(() => {
       payload = {data: 'data', metadata: ''};
-      responder = {requestResponse: p => Single.just(payload)};
+      responder = {requestResponse: (p) => Single.just(payload)};
       receiver = frameReceiver();
       connection = genMockConnection();
 
       const lease = new Leases();
       rSocketMachine = RSocketMachine.createClientMachine(
         connection,
-        subs => receiver.subscriber(subs),
+        (subs) => receiver.subscriber(subs),
         100000,
         undefined,
         responder,
-        error => {},
+        (error) => {},
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );
@@ -85,21 +85,18 @@ describe('RSocketLease', () => {
       );
     });
 
-    it('sets requester not available after expired lease', done => {
+    it('sets requester not available after expired lease', (done) => {
       receiver.receive(leaseFrame(1, 1));
-      setTimeout(
-        () => {
-          expect(rSocketMachine.availability()).toBe(0);
-          const result = call(rSocketMachine.requestResponse(payload));
-          expect(result.error).toBeTruthy();
-          expect(
-            result.error.message ===
-              'Missing leases. Expired: true, allowedRequests: 1',
-          );
-          done();
-        },
-        10,
-      );
+      setTimeout(() => {
+        expect(rSocketMachine.availability()).toBe(0);
+        const result = call(rSocketMachine.requestResponse(payload));
+        expect(result.error).toBeTruthy();
+        expect(
+          result.error.message ===
+            'Missing leases. Expired: true, allowedRequests: 1',
+        );
+        done();
+      }, 10);
     });
 
     it('sets requester available after renewed lease', () => {
@@ -123,18 +120,18 @@ describe('RSocketLease', () => {
 
     beforeEach(() => {
       payload = {data: 'data', metadata: ''};
-      responder = {requestResponse: p => Single.of(payload)};
+      responder = {requestResponse: (p) => Single.of(payload)};
       receiver = frameReceiver();
       connection = genMockConnection();
       sender = leaseSender();
-      const lease = new Leases().sender(stats => sender.leases);
+      const lease = new Leases().sender((stats) => sender.leases);
       rSocketMachine = RSocketMachine.createClientMachine(
         connection,
-        subs => receiver.subscriber(subs),
+        (subs) => receiver.subscriber(subs),
         100000,
         undefined,
         responder,
-        error => {},
+        (error) => {},
         new RequesterLeaseHandler(lease._receiver),
         new ResponderLeaseHandler(lease._sender, lease._stats),
       );
@@ -171,39 +168,36 @@ describe('RSocketLease', () => {
       );
     });
 
-    it('sets responder not available after expired lease', done => {
+    it('sets responder not available after expired lease', (done) => {
       sender.send(new Lease(1, 1));
-      setTimeout(
-        () => {
-          receiver.receive(requestFrame(payload));
-          const responderFrame = connection.sendOne.mock.frame;
-          expect(responderFrame).toBeTruthy();
-          expect(responderFrame.type).toEqual(FRAME_TYPES.ERROR);
-          expect(responderFrame.message).toEqual(
-            'Missing leases. Expired: true, allowedRequests: 1',
-          );
-          done();
-        },
-        10,
-      );
-
-      it('sets responder available after renewed lease', () => {
-        sender.send(new Lease(1000, 1));
-        receiver.receive(requestFrame(payload));
-        receiver.receive(requestFrame(payload));
-        sender.send(new Lease(1000, 1));
+      setTimeout(() => {
         receiver.receive(requestFrame(payload));
         const responderFrame = connection.sendOne.mock.frame;
         expect(responderFrame).toBeTruthy();
-        expect(responderFrame.type).toEqual(FRAME_TYPES.PAYLOAD);
-      });
+        expect(responderFrame.type).toEqual(FRAME_TYPES.ERROR);
+        expect(responderFrame.message).toEqual(
+          'Missing leases. Expired: true, allowedRequests: 1',
+        );
+        done();
+      }, 10);
+    });
+
+    it('sets responder available after renewed lease', () => {
+      sender.send(new Lease(1000, 1));
+      receiver.receive(requestFrame(payload));
+      receiver.receive(requestFrame(payload));
+      sender.send(new Lease(1000, 1));
+      receiver.receive(requestFrame(payload));
+      const responderFrame = connection.sendOne.mock.frame;
+      expect(responderFrame).toBeTruthy();
+      expect(responderFrame.type).toEqual(FRAME_TYPES.PAYLOAD);
     });
   });
 
   function call(interaction) {
     let error;
     interaction.subscribe({
-      onError: err => error = err,
+      onError: (err) => (error = err),
     });
     return {error};
   }
@@ -231,8 +225,8 @@ describe('RSocketLease', () => {
   function frameReceiver() {
     let subs;
     return {
-      subscriber: s => subs = s,
-      receive: frame => subs.onNext(frame),
+      subscriber: (s) => (subs = s),
+      receive: (frame) => subs.onNext(frame),
     };
   }
 
@@ -241,15 +235,15 @@ describe('RSocketLease', () => {
     let requested = 0;
     let cancelled;
     return {
-      leases: new Flowable(subscriber => {
+      leases: new Flowable((subscriber) => {
         subs = subscriber;
         subscriber.onSubscribe({
-          cancel: () => cancelled = true,
-          request: n =>
-            requested = Math.min(Number.MAX_SAFE_INTEGER, requested + n),
+          cancel: () => (cancelled = true),
+          request: (n) =>
+            (requested = Math.min(Number.MAX_SAFE_INTEGER, requested + n)),
         });
       }),
-      send: lease => {
+      send: (lease) => {
         if (!cancelled && requested > 0) {
           subs.onNext(lease);
           requested--;

@@ -43,10 +43,10 @@ describe('RSocketWebSocketServer', () => {
       emitter.close = () => {};
       emitter.error = () => {};
       server = new RSocketWebSocketServer({port: 8080});
-      server.start().subscribe(_connection => connection = _connection);
+      server.start().subscribe(_connection => (connection = _connection));
       ws.servers[0].emit('connection', emitter);
       connection.connectionStatus().subscribe({
-        onNext: _status => status = _status,
+        onNext: _status => (status = _status),
         onSubscribe: subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER),
       });
@@ -59,7 +59,7 @@ describe('RSocketWebSocketServer', () => {
     it('initially returns NOT_CONNECTED if socket is null', () => {
       ws.servers[0].emit('connection', null);
       connection.connectionStatus().subscribe({
-        onNext: _status => status = _status,
+        onNext: _status => (status = _status),
         onSubscribe: subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER),
       });

@@ -49,7 +49,7 @@ export function writeUInt24BE(
   offset: number,
 ): number {
   offset = buffer.writeUInt8(value >>> 16, offset); // 3rd byte
-  offset = buffer.writeUInt8(value >>> 8 & 0xff, offset); // 2nd byte
+  offset = buffer.writeUInt8((value >>> 8) & 0xff, offset); // 2nd byte
   return buffer.writeUInt8(value & 0xff, offset); // 1st byte
 }
 
@@ -72,7 +72,7 @@ export function writeUInt64BE(
   value: number,
   offset: number,
 ): number {
-  const high = value / BITWISE_OVERFLOW | 0;
+  const high = (value / BITWISE_OVERFLOW) | 0;
   const low = value % BITWISE_OVERFLOW;
   offset = buffer.writeUInt32BE(high, offset); // first half of uint64
   return buffer.writeUInt32BE(low, offset); // second half of uint64
@@ -110,8 +110,8 @@ export function toBuffer(data: mixed): Buffer {
  * Function to create a buffer of a given sized filled with zeros.
  */
 
-export const createBuffer: (...args: any[]) => Buffer = typeof Buffer.alloc ===
-  'function'
-  ? (length: number) => Buffer.alloc(length)
-  : // $FlowFixMe
-    (length: number) => new Buffer(length).fill(0);
+export const createBuffer: (...args: any[]) => Buffer =
+  typeof Buffer.alloc === 'function'
+    ? (length: number) => Buffer.alloc(length)
+    : // $FlowFixMe
+      (length: number) => new Buffer(length).fill(0);

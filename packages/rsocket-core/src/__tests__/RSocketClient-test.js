@@ -149,7 +149,7 @@ describe('RSocketClient', () => {
       });
       let socket;
       client.connect().subscribe({
-        onComplete: _socket => socket = _socket,
+        onComplete: (_socket) => (socket = _socket),
       });
       transport.mock.connect();
       expect(typeof socket.fireAndForget).toEqual('function');
@@ -176,7 +176,7 @@ describe('RSocketClient', () => {
       });
       let error;
       client.connect().subscribe({
-        onError: _error => error = _error,
+        onError: (_error) => (error = _error),
       });
       transport.mock.connect();
       expect(error).toBe(connectionError);
@@ -204,7 +204,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport,
-        errorHandler: err => errors.add(err.message),
+        errorHandler: (err) => errors.add(err.message),
       });
       client.connect().subscribe({
         onComplete(_socket) {
@@ -225,7 +225,7 @@ describe('RSocketClient', () => {
       const onNext = jest.fn();
       keepAliveFrames.subscribe({
         onNext,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
 
       jest.runTimersToTime(keepAliveInterval - 1);
@@ -276,14 +276,12 @@ describe('RSocketClient', () => {
     it('closes rsocket on missing keepalive', () => {
       let status;
       socket.connectionStatus().subscribe({
-        onNext: _status => status = _status,
-        onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+        onNext: (_status) => (status = _status),
+        onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
       });
 
-      Date.now = jest
-        .genMockFunction()
-        .mockReturnValue(Date.now() + keepAliveTimeout);
-      jest.runTimersToTime(keepAliveTimeout);
+      Date.now = jest.fn().mockReturnValue(Date.now() + keepAliveTimeout);
+      jest.advanceTimersByTime(keepAliveTimeout);
 
       expect(errors.size).toEqual(1);
       expect(errors.values().next().value).toEqual(
@@ -291,7 +289,7 @@ describe('RSocketClient', () => {
       );
       expect(status.kind).toEqual('CLOSED');
 
-      jest.runTimersToTime(keepAliveTimeout);
+      jest.advanceTimersByTime(keepAliveTimeout);
     });
   });
 
@@ -1164,10 +1162,10 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: socket => {
+          onComplete: (socket) => {
             socket.connectionStatus().subscribe({
-              onNext: _status => status = _status,
-              onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+              onNext: (_status) => (status = _status),
+              onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
         });
@@ -1205,11 +1203,11 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: _socket => {
+          onComplete: (_socket) => {
             socket = _socket;
             socket.connectionStatus().subscribe({
-              onNext: _status => status = _status,
-              onSubscribe: sub => sub.request(Number.MAX_SAFE_INTEGER),
+              onNext: (_status) => (status = _status),
+              onSubscribe: (sub) => sub.request(Number.MAX_SAFE_INTEGER),
             });
           },
         });
@@ -1238,7 +1236,7 @@ describe('RSocketClient', () => {
           transport,
         });
         client.connect().subscribe({
-          onComplete: _socket => {
+          onComplete: (_socket) => {
             socket = _socket;
           },
         });

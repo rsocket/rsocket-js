@@ -273,15 +273,18 @@ export function sizeOfFrame(frame: Frame, encoders?: ?Encoders<*>): number {
 const SETUP_FIXED_SIZE = 14;
 const RESUME_TOKEN_LENGTH_SIZE = 2;
 function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
-  const resumeTokenLength = frame.resumeToken != null
-    ? encoders.resumeToken.byteLength(frame.resumeToken)
-    : 0;
-  const metadataMimeTypeLength = frame.metadataMimeType != null
-    ? encoders.metadataMimeType.byteLength(frame.metadataMimeType)
-    : 0;
-  const dataMimeTypeLength = frame.dataMimeType != null
-    ? encoders.dataMimeType.byteLength(frame.dataMimeType)
-    : 0;
+  const resumeTokenLength =
+    frame.resumeToken != null
+      ? encoders.resumeToken.byteLength(frame.resumeToken)
+      : 0;
+  const metadataMimeTypeLength =
+    frame.metadataMimeType != null
+      ? encoders.metadataMimeType.byteLength(frame.metadataMimeType)
+      : 0;
+  const dataMimeTypeLength =
+    frame.dataMimeType != null
+      ? encoders.dataMimeType.byteLength(frame.dataMimeType)
+      : 0;
   const payloadLength = getPayloadLength(frame, encoders);
   const buffer = createBuffer(
     FRAME_HEADER_SIZE +
@@ -334,22 +337,27 @@ function serializeSetupFrame(frame: SetupFrame, encoders: Encoders<*>): Buffer {
 }
 
 function sizeOfSetupFrame(frame: SetupFrame, encoders: Encoders<*>): number {
-  const resumeTokenLength = frame.resumeToken != null
-    ? encoders.resumeToken.byteLength(frame.resumeToken)
-    : 0;
-  const metadataMimeTypeLength = frame.metadataMimeType != null
-    ? encoders.metadataMimeType.byteLength(frame.metadataMimeType)
-    : 0;
-  const dataMimeTypeLength = frame.dataMimeType != null
-    ? encoders.dataMimeType.byteLength(frame.dataMimeType)
-    : 0;
+  const resumeTokenLength =
+    frame.resumeToken != null
+      ? encoders.resumeToken.byteLength(frame.resumeToken)
+      : 0;
+  const metadataMimeTypeLength =
+    frame.metadataMimeType != null
+      ? encoders.metadataMimeType.byteLength(frame.metadataMimeType)
+      : 0;
+  const dataMimeTypeLength =
+    frame.dataMimeType != null
+      ? encoders.dataMimeType.byteLength(frame.dataMimeType)
+      : 0;
   const payloadLength = getPayloadLength(frame, encoders);
-  return FRAME_HEADER_SIZE +
+  return (
+    FRAME_HEADER_SIZE +
     SETUP_FIXED_SIZE + //
     (resumeTokenLength ? RESUME_TOKEN_LENGTH_SIZE + resumeTokenLength : 0) +
     metadataMimeTypeLength +
     dataMimeTypeLength +
-    payloadLength;
+    payloadLength
+  );
 }
 
 /**
@@ -455,9 +463,8 @@ function deserializeSetupFrame(
  */
 const ERROR_FIXED_SIZE = 4;
 function serializeErrorFrame(frame: ErrorFrame, encoders: Encoders<*>): Buffer {
-  const messageLength = frame.message != null
-    ? encoders.message.byteLength(frame.message)
-    : 0;
+  const messageLength =
+    frame.message != null ? encoders.message.byteLength(frame.message) : 0;
   const buffer = createBuffer(
     FRAME_HEADER_SIZE + ERROR_FIXED_SIZE + messageLength,
   );
@@ -475,9 +482,8 @@ function serializeErrorFrame(frame: ErrorFrame, encoders: Encoders<*>): Buffer {
 }
 
 function sizeOfErrorFrame(frame: ErrorFrame, encoders: Encoders<*>): number {
-  const messageLength = frame.message != null
-    ? encoders.message.byteLength(frame.message)
-    : 0;
+  const messageLength =
+    frame.message != null ? encoders.message.byteLength(frame.message) : 0;
   return FRAME_HEADER_SIZE + ERROR_FIXED_SIZE + messageLength;
 }
 
@@ -527,9 +533,8 @@ function serializeKeepAliveFrame(
   frame: KeepAliveFrame,
   encoders: Encoders<*>,
 ): Buffer {
-  const dataLength = frame.data != null
-    ? encoders.data.byteLength(frame.data)
-    : 0;
+  const dataLength =
+    frame.data != null ? encoders.data.byteLength(frame.data) : 0;
   const buffer = createBuffer(
     FRAME_HEADER_SIZE + KEEPALIVE_FIXED_SIZE + dataLength,
   );
@@ -545,9 +550,8 @@ function sizeOfKeepAliveFrame(
   frame: KeepAliveFrame,
   encoders: Encoders<*>,
 ): number {
-  const dataLength = frame.data != null
-    ? encoders.data.byteLength(frame.data)
-    : 0;
+  const dataLength =
+    frame.data != null ? encoders.data.byteLength(frame.data) : 0;
   return FRAME_HEADER_SIZE + KEEPALIVE_FIXED_SIZE + dataLength;
 }
 
@@ -590,9 +594,8 @@ function deserializeKeepAliveFrame(
  */
 const LEASE_FIXED_SIZE = 8;
 function serializeLeaseFrame(frame: LeaseFrame, encoders: Encoders<*>): Buffer {
-  const metaLength = frame.metadata != null
-    ? encoders.metadata.byteLength(frame.metadata)
-    : 0;
+  const metaLength =
+    frame.metadata != null ? encoders.metadata.byteLength(frame.metadata) : 0;
   const buffer = createBuffer(
     FRAME_HEADER_SIZE + LEASE_FIXED_SIZE + metaLength,
   );
@@ -611,9 +614,8 @@ function serializeLeaseFrame(frame: LeaseFrame, encoders: Encoders<*>): Buffer {
 }
 
 function sizeOfLeaseFrame(frame: LeaseFrame, encoders: Encoders<*>): number {
-  const metaLength = frame.metadata != null
-    ? encoders.metadata.byteLength(frame.metadata)
-    : 0;
+  const metaLength =
+    frame.metadata != null ? encoders.metadata.byteLength(frame.metadata) : 0;
   return FRAME_HEADER_SIZE + LEASE_FIXED_SIZE + metaLength;
 }
 
@@ -1086,7 +1088,7 @@ function writeHeader(frame: Frame, buffer: Buffer): number {
   const offset = buffer.writeInt32BE(frame.streamId, 0);
   // shift frame to high 6 bits, extract lowest 10 bits from flags
   return buffer.writeUInt16BE(
-    frame.type << FRAME_TYPE_OFFFSET | frame.flags & FLAGS_MASK,
+    (frame.type << FRAME_TYPE_OFFFSET) | (frame.flags & FLAGS_MASK),
     offset,
   );
 }

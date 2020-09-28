@@ -51,7 +51,7 @@ describe('Lite B', () => {
     b.writeUInt8(1, 0);
     b.writeUInt8(2, 1);
     b.writeUInt8(3, 2);
-    const buf2 = B(3);
+    const buf2 = new B(3);
     b.copy(buf2, 0, 1);
     expect(buf2.readUInt8(0)).toEqual(2);
     expect(buf2.readUInt8(1)).toEqual(3);

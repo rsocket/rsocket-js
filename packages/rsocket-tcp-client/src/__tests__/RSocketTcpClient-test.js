@@ -40,7 +40,7 @@ describe('RSocketTcpClient', () => {
     beforeEach(() => {
       client = new RSocketTcpClient({host: 'localhost', port: 80});
       client.connectionStatus().subscribe({
-        onNext: _status => status = _status,
+        onNext: _status => (status = _status),
         onSubscribe: subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER),
       });
@@ -106,7 +106,7 @@ describe('RSocketTcpClient', () => {
       it('sets the status to CLOSED', () => {
         let status;
         client.connectionStatus().subscribe({
-          onNext: _status => status = _status,
+          onNext: _status => (status = _status),
           onSubscribe: subscription =>
             subscription.request(Number.MAX_SAFE_INTEGER),
         });

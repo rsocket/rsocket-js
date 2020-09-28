@@ -126,7 +126,8 @@ client.connect().subscribe({
                 console.log(`Requester response: ${data}`);
               }
             },
-            onError: error => console.log(`Requester error: ${error.message}`),
+            onError: error =>
+              console.log(`Requester error: ${error.message}`),
           });
       },
       onSubscribe: subscription =>

@@ -17,10 +17,8 @@
 
 import {RSocketClient} from 'rsocket-core';
 import RSocketTcpClient from 'rsocket-tcp-client';
-import RSocketTckRequestResponseSubscriber
-  from './RSocketTckRequestResponseSubscriber';
-import RSocketTckRequestStreamSubscriber
-  from './RSocketTckRequestStreamSubscriber';
+import RSocketTckRequestResponseSubscriber from './RSocketTckRequestResponseSubscriber';
+import RSocketTckRequestStreamSubscriber from './RSocketTckRequestStreamSubscriber';
 
 import areEqual from 'fbjs/lib/areEqual';
 import chalk from 'chalk';
@@ -61,7 +59,8 @@ export default function main() {
       },
       verbose: {
         default: false,
-        describe: 'Log each action as it is performed instead of just logging success/failure.',
+        describe:
+          'Log each action as it is performed instead of just logging success/failure.',
         type: 'boolean',
       },
     })

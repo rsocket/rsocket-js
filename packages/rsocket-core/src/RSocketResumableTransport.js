@@ -327,62 +327,66 @@ export default class RSocketResumableTransport implements DuplexConnection {
   }
 
   _handleResume(connection: DuplexConnection): void {
-    connection.receive().take(1).subscribe({
-      onNext: frame => {
-        try {
-          if (frame.type === FRAME_TYPES.RESUME_OK) {
-            const {clientPosition} = frame;
-            // clientPosition indicates which frames the server is missing:
-            // - anything after that still needs to be sent
-            // - anything before that can be discarded
-            if (clientPosition < this._position.client) {
-              // Invalid RESUME_OK frame: server asked for an older
-              // client frame than is available
-              this._close(this._nonResumableStateError());
-              return;
-            }
-            // remove tail frames of total length = remoteImpliedPos-localPos
-            let removeSize = clientPosition - this._position.client;
-            let index = 0;
-            while (removeSize > 0) {
-              const frameSize = this._onReleasedTailFrame(
-                this._sentFrames[index],
-              );
-              if (!frameSize) {
-                this._close(this._absentLengthError(frame));
+    connection
+      .receive()
+      .take(1)
+      .subscribe({
+        onNext: frame => {
+          try {
+            if (frame.type === FRAME_TYPES.RESUME_OK) {
+              const {clientPosition} = frame;
+              // clientPosition indicates which frames the server is missing:
+              // - anything after that still needs to be sent
+              // - anything before that can be discarded
+              if (clientPosition < this._position.client) {
+                // Invalid RESUME_OK frame: server asked for an older
+                // client frame than is available
+                this._close(this._nonResumableStateError());
                 return;
               }
-              removeSize -= frameSize;
-              index++;
-            }
-            if (removeSize !== 0) {
-              this._close(this._inconsistentImpliedPositionError());
-              return;
-            }
-            // Drop sent frames that the server has received
-            if (index > 0) {
-              this._sentFrames.splice(0, index);
-            }
-            // Continue connecting, which will flush pending frames
-            this._handleConnected(connection);
-          } else {
-            const error = frame.type === FRAME_TYPES.ERROR
-              ? createErrorFromFrame(frame)
-              : new Error(
-                  'RSocketResumableTransport: Resumption failed for an ' +
-                    'unspecified reason.',
+              // remove tail frames of total length = remoteImpliedPos-localPos
+              let removeSize = clientPosition - this._position.client;
+              let index = 0;
+              while (removeSize > 0) {
+                const frameSize = this._onReleasedTailFrame(
+                  this._sentFrames[index],
                 );
+                if (!frameSize) {
+                  this._close(this._absentLengthError(frame));
+                  return;
+                }
+                removeSize -= frameSize;
+                index++;
+              }
+              if (removeSize !== 0) {
+                this._close(this._inconsistentImpliedPositionError());
+                return;
+              }
+              // Drop sent frames that the server has received
+              if (index > 0) {
+                this._sentFrames.splice(0, index);
+              }
+              // Continue connecting, which will flush pending frames
+              this._handleConnected(connection);
+            } else {
+              const error =
+                frame.type === FRAME_TYPES.ERROR
+                  ? createErrorFromFrame(frame)
+                  : new Error(
+                      'RSocketResumableTransport: Resumption failed for an ' +
+                        'unspecified reason.',
+                    );
+              this._close(error);
+            }
+          } catch (error) {
             this._close(error);
           }
-        } catch (error) {
-          this._close(error);
-        }
-      },
-      onSubscribe: subscription => {
-        this._receiveSubscription = subscription;
-        subscription.request(1);
-      },
-    });
+        },
+        onSubscribe: subscription => {
+          this._receiveSubscription = subscription;
+          subscription.request(1);
+        },
+      });
     const setupFrame = this._setupFrame;
     invariant(
       setupFrame,
@@ -442,7 +446,9 @@ export default class RSocketResumableTransport implements DuplexConnection {
 
   _receiveFrame(frame: Frame): void {
     if (isResumePositionFrameType(frame.type)) {
-      this._position.server += frame.length;
+      if (frame.length) {
+        this._position.server += frame.length;
+      }
     }
     // TODO: trim _sentFrames on KEEPALIVE frame
     this._receivers.forEach(subscriber => subscriber.onNext(frame));

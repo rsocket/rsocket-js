@@ -348,9 +348,68 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
 
     const streamId = this._getNextStreamId(this._receivers);
 
-    return new Flowable(
-      subscriber => {
+    return new Flowable(subscriber => {
+      this._receivers.set(streamId, subscriber);
+      let initialized = false;
+
+      subscriber.onSubscribe({
+        cancel: () => {
+          this._receivers.delete(streamId);
+          if (!initialized) {
+            return;
+          }
+          const cancelFrame = {
+            flags: 0,
+            streamId,
+            type: FRAME_TYPES.CANCEL,
+          };
+          this._connection.sendOne(cancelFrame);
+        },
+        request: n => {
+          if (n > MAX_REQUEST_N) {
+            n = MAX_REQUEST_N;
+          }
+          if (initialized) {
+            const requestNFrame = {
+              flags: 0,
+              requestN: n,
+              streamId,
+              type: FRAME_TYPES.REQUEST_N,
+            };
+            this._connection.sendOne(requestNFrame);
+          } else {
+            initialized = true;
+            const data = this._serializers.data.serialize(payload.data);
+            const metadata = this._serializers.metadata.serialize(
+              payload.metadata,
+            );
+            const requestStreamFrame = {
+              data,
+              flags: payload.metadata !== undefined ? FLAGS.METADATA : 0,
+              metadata,
+              requestN: n,
+              streamId,
+              type: FRAME_TYPES.REQUEST_STREAM,
+            };
+            this._connection.sendOne(requestStreamFrame);
+          }
+        },
+      });
+    }, MAX_REQUEST_N);
+  }
+
+  requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
+    const leaseError = this._useLeaseOrError(this._requesterLeaseHandler);
+    if (leaseError) {
+      return Flowable.error(new Error(leaseError));
+    }
+
+    const streamId = this._getNextStreamId(this._receivers);
+    let payloadsSubscribed = false;
+    return new Flowable(subscriber => {
+      try {
         this._receivers.set(streamId, subscriber);
+
         let initialized = false;
 
         subscriber.onSubscribe({
@@ -379,136 +438,65 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
               };
               this._connection.sendOne(requestNFrame);
             } else {
-              initialized = true;
-              const data = this._serializers.data.serialize(payload.data);
-              const metadata = this._serializers.metadata.serialize(
-                payload.metadata,
-              );
-              const requestStreamFrame = {
-                data,
-                flags: payload.metadata !== undefined ? FLAGS.METADATA : 0,
-                metadata,
-                requestN: n,
-                streamId,
-                type: FRAME_TYPES.REQUEST_STREAM,
-              };
-              this._connection.sendOne(requestStreamFrame);
+              if (!payloadsSubscribed) {
+                payloadsSubscribed = true;
+                payloads.subscribe({
+                  onComplete: () => {
+                    this._sendStreamComplete(streamId);
+                  },
+                  onError: error => {
+                    this._sendStreamError(streamId, error.message);
+                  },
+                  //Subscriber methods
+                  onNext: payload => {
+                    const data = this._serializers.data.serialize(payload.data);
+                    const metadata = this._serializers.metadata.serialize(
+                      payload.metadata,
+                    );
+                    if (!initialized) {
+                      initialized = true;
+                      const requestChannelFrame = {
+                        data,
+                        flags:
+                          payload.metadata !== undefined ? FLAGS.METADATA : 0,
+                        metadata,
+                        requestN: n,
+                        streamId,
+                        type: FRAME_TYPES.REQUEST_CHANNEL,
+                      };
+                      this._connection.sendOne(requestChannelFrame);
+                    } else {
+                      const payloadFrame = {
+                        data,
+                        flags:
+                          FLAGS.NEXT |
+                          (payload.metadata !== undefined ? FLAGS.METADATA : 0),
+                        metadata,
+                        streamId,
+                        type: FRAME_TYPES.PAYLOAD,
+                      };
+                      this._connection.sendOne(payloadFrame);
+                    }
+                  },
+                  onSubscribe: subscription => {
+                    this._subscriptions.set(streamId, subscription);
+                    subscription.request(1);
+                  },
+                });
+              } else {
+                warning(
+                  false,
+                  'RSocketClient: re-entrant call to request n before initial' +
+                    ' channel established.',
+                );
+              }
             }
           },
         });
-      },
-      MAX_REQUEST_N,
-    );
-  }
-
-  requestChannel(payloads: Flowable<Payload<D, M>>): Flowable<Payload<D, M>> {
-    const leaseError = this._useLeaseOrError(this._requesterLeaseHandler);
-    if (leaseError) {
-      return Flowable.error(new Error(leaseError));
-    }
-
-    const streamId = this._getNextStreamId(this._receivers);
-    let payloadsSubscribed = false;
-    return new Flowable(
-      subscriber => {
-        try {
-          this._receivers.set(streamId, subscriber);
-
-          let initialized = false;
-
-          subscriber.onSubscribe({
-            cancel: () => {
-              this._receivers.delete(streamId);
-              if (!initialized) {
-                return;
-              }
-              const cancelFrame = {
-                flags: 0,
-                streamId,
-                type: FRAME_TYPES.CANCEL,
-              };
-              this._connection.sendOne(cancelFrame);
-            },
-            request: n => {
-              if (n > MAX_REQUEST_N) {
-                n = MAX_REQUEST_N;
-              }
-              if (initialized) {
-                const requestNFrame = {
-                  flags: 0,
-                  requestN: n,
-                  streamId,
-                  type: FRAME_TYPES.REQUEST_N,
-                };
-                this._connection.sendOne(requestNFrame);
-              } else {
-                if (!payloadsSubscribed) {
-                  payloadsSubscribed = true;
-                  payloads.subscribe({
-                    onComplete: () => {
-                      this._sendStreamComplete(streamId);
-                    },
-                    onError: error => {
-                      this._sendStreamError(streamId, error.message);
-                    },
-                    //Subscriber methods
-                    onNext: payload => {
-                      const data = this._serializers.data.serialize(
-                        payload.data,
-                      );
-                      const metadata = this._serializers.metadata.serialize(
-                        payload.metadata,
-                      );
-                      if (!initialized) {
-                        initialized = true;
-                        const requestChannelFrame = {
-                          data,
-                          flags: payload.metadata !== undefined
-                            ? FLAGS.METADATA
-                            : 0,
-                          metadata,
-                          requestN: n,
-                          streamId,
-                          type: FRAME_TYPES.REQUEST_CHANNEL,
-                        };
-                        this._connection.sendOne(requestChannelFrame);
-                      } else {
-                        const payloadFrame = {
-                          data,
-                          flags: FLAGS.NEXT |
-                            (payload.metadata !== undefined
-                              ? FLAGS.METADATA
-                              : 0),
-                          metadata,
-                          streamId,
-                          type: FRAME_TYPES.PAYLOAD,
-                        };
-                        this._connection.sendOne(payloadFrame);
-                      }
-                    },
-                    onSubscribe: subscription => {
-                      this._subscriptions.set(streamId, subscription);
-                      subscription.request(1);
-                    },
-                  });
-                } else {
-                  warning(
-                    false,
-                    'RSocketClient: re-entrant call to request n before initial' +
-                      ' channel established.',
-                  );
-                }
-              }
-            },
-          });
-        } catch (err) {
-          console.warn(
-            'Exception while subscribing to channel flowable:' + err,
-          );
-        }
-      },
-      MAX_REQUEST_N,
-    );
+      } catch (err) {
+        console.warn('Exception while subscribing to channel flowable:' + err);
+      }
+    }, MAX_REQUEST_N);
   }
 
   metadataPush(payload: Payload<D, M>): Single<void> {
@@ -519,7 +507,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _getNextStreamId(streamIds: Map<number, ISubject<Payload<D, M>>>): number {
     const streamId = this._nextStreamId;
     do {
-      this._nextStreamId = this._nextStreamId + 2 & MAX_STREAM_ID;
+      this._nextStreamId = (this._nextStreamId + 2) & MAX_STREAM_ID;
     } while (this._nextStreamId === 0 || streamIds.has(streamId));
     return streamId;
   }
@@ -791,50 +779,48 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       return;
     }
 
-    const payloads = new Flowable(
-      subscriber => {
-        let firstRequest = true;
+    const payloads = new Flowable(subscriber => {
+      let firstRequest = true;
 
-        subscriber.onSubscribe({
-          cancel: () => {
-            this._receivers.delete(streamId);
-            const cancelFrame = {
+      subscriber.onSubscribe({
+        cancel: () => {
+          this._receivers.delete(streamId);
+          const cancelFrame = {
+            flags: 0,
+            streamId,
+            type: FRAME_TYPES.CANCEL,
+          };
+          this._connection.sendOne(cancelFrame);
+        },
+        request: n => {
+          if (n > MAX_REQUEST_N) {
+            n = MAX_REQUEST_N;
+          }
+          if (firstRequest) {
+            n--;
+          }
+
+          if (n > 0) {
+            const requestNFrame = {
               flags: 0,
+              requestN: n,
               streamId,
-              type: FRAME_TYPES.CANCEL,
+              type: FRAME_TYPES.REQUEST_N,
             };
-            this._connection.sendOne(cancelFrame);
-          },
-          request: n => {
-            if (n > MAX_REQUEST_N) {
-              n = MAX_REQUEST_N;
-            }
-            if (firstRequest) {
-              n--;
-            }
-
-            if (n > 0) {
-              const requestNFrame = {
-                flags: 0,
-                requestN: n,
-                streamId,
-                type: FRAME_TYPES.REQUEST_N,
-              };
-              this._connection.sendOne(requestNFrame);
-            }
-            //critically, if n is 0 now, that's okay because we eagerly decremented it
-            if (firstRequest && n >= 0) {
-              firstRequest = false;
-              //release the initial frame we received in frame form due to map operator
-              subscriber.onNext(frame);
-            }
-          },
-        });
-      },
-      MAX_REQUEST_N,
-    );
+            this._connection.sendOne(requestNFrame);
+          }
+          //critically, if n is 0 now, that's okay because we eagerly decremented it
+          if (firstRequest && n >= 0) {
+            firstRequest = false;
+            //release the initial frame we received in frame form due to map operator
+            subscriber.onNext(frame);
+          }
+        },
+      });
+    }, MAX_REQUEST_N);
     const framesToPayloads = new FlowableProcessor(payloads, frame =>
-      this._deserializePayload(frame));
+      this._deserializePayload(frame),
+    );
     this._receivers.set(streamId, framesToPayloads);
 
     this._requestHandler.requestChannel(framesToPayloads).subscribe({

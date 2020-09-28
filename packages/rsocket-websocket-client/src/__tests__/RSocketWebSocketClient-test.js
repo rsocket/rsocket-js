@@ -36,7 +36,7 @@ describe('RSocketWebSocketClient', () => {
     beforeEach(() => {
       client = new RSocketWebSocketClient({url: 'wss://...'});
       client.connectionStatus().subscribe({
-        onNext: _status => status = _status,
+        onNext: _status => (status = _status),
         onSubscribe: subscription =>
           subscription.request(Number.MAX_SAFE_INTEGER),
       });
@@ -101,7 +101,7 @@ describe('RSocketWebSocketClient', () => {
       it('sets the status to CLOSED', () => {
         let status;
         client.connectionStatus().subscribe({
-          onNext: _status => status = _status,
+          onNext: _status => (status = _status),
           onSubscribe: subscription =>
             subscription.request(Number.MAX_SAFE_INTEGER),
         });
