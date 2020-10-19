@@ -181,12 +181,14 @@ function buildHasteRollup(pkg) {
       }
     },
   })
-    .then((bundle) => {
-      let code = bundle.generate({
-        format: 'cjs',
-        interop: false,
-        name: packageName,
-      }).code;
+    .then((bundle) => bundle.generate({
+      format: 'cjs',
+      interop: false,
+      name: packageName,
+    }))
+    .then(rollupOutput => {
+      let code = rollupOutput.output[0].code;
+
       // Post-rollup transform to rewrite imports between packages
       code = babel.transform(code, {
         babelrc: false,
