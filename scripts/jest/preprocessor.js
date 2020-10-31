@@ -21,7 +21,11 @@ const path = require('path');
 
 const babelOptions = {
   babelrc: false,
-  plugins: [[require('../babel-plugin-rewrite-imports'), moduleMap]],
+  plugins: [
+    '@babel/plugin-transform-async-to-generator',
+    '@babel/plugin-proposal-async-generator-functions',
+    [require('../babel-plugin-rewrite-imports'), moduleMap],
+  ],
   presets: [
     require('babel-preset-fbjs/configure')({
       autoImport: true,

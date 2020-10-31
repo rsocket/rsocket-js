@@ -466,4 +466,144 @@ describe('Flowable', () => {
       expect(cancel.mock.calls.length).toBe(1);
     });
   });
+
+  describe('toAsyncIterable()', () => {
+    it('should iterate over', async () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        setTimeout(() => {
+          setTimeout(() => {
+            setTimeout(() => {
+              sub.onComplete();
+            });
+            sub.onNext(44);
+          });
+          sub.onNext(43);
+        });
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+
+      const values = [];
+      const asyncIterable = flowable.toAsyncIterable();
+      for await (const element of asyncIterable) {
+        jest.runAllTimers();
+        values.push(element);
+      }
+
+      expect(values).toStrictEqual([42, 43, 44]);
+      expect(request.mock.calls.length).toBe(1);
+    });
+
+    it('should cancel on break', async () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+
+      const values = [];
+      const asyncIterable = flowable.toAsyncIterable();
+      for await (const element of asyncIterable) {
+        values.push(element);
+        break;
+      }
+
+      expect(values).toStrictEqual([42]);
+      expect(request.mock.calls.length).toBe(1);
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+
+    it('should cancel on exception', async () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+      };
+      const flowable = new Flowable(source);
+
+      const values = [];
+      const asyncIterable = flowable.toAsyncIterable();
+      try {
+        for await (const element of asyncIterable) {
+          values.push(element);
+          throw new Error('test');
+        }
+      } catch (e) {
+        //
+      }
+
+      expect(values).toStrictEqual([42]);
+      expect(request.mock.calls.length).toBe(1);
+      expect(cancel.mock.calls.length).toBe(1);
+    });
+
+    it('should end with exception', async () => {
+      const cancel = jest.fn();
+      const request = jest.fn();
+      const error = new Error('wtf');
+      const source = sub => {
+        sub.onSubscribe({cancel, request});
+        sub.onNext(42);
+        sub.onError(error);
+      };
+      const flowable = new Flowable(source);
+
+      const values = [];
+      const asyncIterable = flowable.toAsyncIterable();
+      try {
+        for await (const element of asyncIterable) {
+          values.push(element);
+        }
+      } catch (e) {
+        expect(e).toBe(error);
+      }
+
+      expect(values).toStrictEqual([42]);
+      expect(request.mock.calls.length).toBe(1);
+      expect(cancel.mock.calls.length).toBe(0);
+    });
+
+    it('should prefetch', async () => {
+      let sub: ISubscriber;
+      let i = 42;
+      const cancel = jest.fn();
+      const request = jest.fn((n: number) => {
+        for (let j = 0; j < n; j++) {
+          sub.onNext(i++);
+
+          if (i > 49) {
+            break;
+          }
+        }
+
+        if (i > 49) {
+          sub.onComplete();
+        }
+      });
+      const source = subb => {
+        sub = subb;
+        subb.onSubscribe({cancel, request});
+      };
+      const flowable = new Flowable(source);
+
+      const values = [];
+      const asyncIterable = flowable.toAsyncIterable(4);
+      for await (const element of asyncIterable) {
+        values.push(element);
+      }
+
+      expect(values).toStrictEqual([42, 43, 44, 45, 46, 47, 48, 49]);
+      expect(request.mock.calls.length).toBe(3);
+      expect(request.mock.calls[0][0]).toBe(4);
+      expect(request.mock.calls[1][0]).toBe(3);
+      expect(request.mock.calls[2][0]).toBe(3);
+      expect(cancel.mock.calls.length).toBe(0);
+    });
+  });
 });

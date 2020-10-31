@@ -26,6 +26,7 @@ import type {
 
 import FlowableMapOperator from './FlowableMapOperator';
 import FlowableTakeOperator from './FlowableTakeOperator';
+import FlowableAsyncIterable from './FlowableAsyncIterable';
 
 import invariant from 'fbjs/lib/invariant';
 import warning from 'fbjs/lib/warning';
@@ -115,6 +116,10 @@ export default class Flowable<T> implements IPublisher<T> {
     return this.lift(
       subscriber => new FlowableTakeOperator(subscriber, toTake),
     );
+  }
+
+  toAsyncIterable(prefetch: number = 256): AsyncIterable<T> {
+    return new FlowableAsyncIterable<T>(this, prefetch);
   }
 
   _wrapCallback(callback: (T) => void): IPartialSubscriber<T> {
@@ -255,17 +260,14 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   _request = (n: number) => {
     invariant(
-      Number.isInteger(n) && n >= 1 && n <= this._max,
-      'Flowable: Expected request value to be an integer with a ' +
-        'value greater than 0 and less than or equal to %s, got ' +
-        '`%s`.',
-      this._max,
+      Number.isInteger(n) && n >= 1,
+      'Flowable: Expected request value to be an integer with a value greater than 0, got `%s`.',
       n,
     );
     if (!this._active) {
       return;
     }
-    if (n === this._max) {
+    if (n >= this._max) {
       this._pending = this._max;
     } else {
       this._pending += n;
