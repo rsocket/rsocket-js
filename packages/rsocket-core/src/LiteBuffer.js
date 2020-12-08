@@ -849,10 +849,12 @@ export class Buffer extends Uint8Array {
       case 'utf8':
         if (typeof TextEncoder !== 'undefined') {
           // $FlowFixMe
-          return new TextEncoder().encodeInto(
-            string,
-            this.subarray(offset, offset + length),
-          ).written;
+          const resultArray = new TextEncoder().encode(string);
+          this.set(resultArray, offset);
+
+          return resultArray.byteLength > length - offset
+            ? length - offset
+            : resultArray.byteLength;
         }
         return utf8Write(this, string, offset, length);
       default:

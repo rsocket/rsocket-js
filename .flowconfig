@@ -28,4 +28,4 @@ suppress_type=$FlowFixMe
 suppress_type=$FixMe
 
 [version]
-^0.134.0
+^0.139.0

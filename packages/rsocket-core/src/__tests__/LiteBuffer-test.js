@@ -71,4 +71,18 @@ describe('Lite B', () => {
     expect(buf1.toString('utf8')).toEqual('abcdefghijklmnopqrstuvwxyz');
     expect(B.isBuffer(buf1)).toBe(true);
   });
+
+  it('supports utf8 write String', () => {
+    const buf1 = new B(26);
+
+    expect(buf1.write('abcdefghijklmnopqrstuvwxyz')).toBe(26);
+    expect(buf1.toString('utf8')).toEqual('abcdefghijklmnopqrstuvwxyz');
+  });
+
+  it('supports utf8 write String with offset', () => {
+    const buf1 = new B(30);
+
+    expect(buf1.write('abcdefghijklmnopqrstuvwxyz', 4)).toBe(26);
+    expect(buf1.toString('utf8', 4)).toEqual('abcdefghijklmnopqrstuvwxyz');
+  });
 });
