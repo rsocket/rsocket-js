@@ -1,0 +1,17 @@
+{
+  "name": "rsocket-rxjs",
+  "description": "ReactiveStreams for JavaScript",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rsocket/rsocket-js.git"
+  },
+  "license": "BSD-3-Clause",
+  "main": "build/index.js",
+  "dependencies": {
+    "fbjs": "^2.0.0",
+    "rsocket-flowable": "^0.0.14",
+    "rsocket-types": "^0.0.16",
+    "rxjs": "^6.6.3"
+  }
+}
