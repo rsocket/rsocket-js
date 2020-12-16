@@ -318,7 +318,7 @@ function utf8ToBytes(str: string, pUnits: number = Infinity): number[] {
   return bytes;
 }
 
-function utf8Slice(buf, start, end) {
+function utf8Slice(buf: Buffer, start: number, end: number) {
   end = Math.min(buf.length, end);
   const res = [];
 
