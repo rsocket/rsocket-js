@@ -9,16 +9,64 @@ import WellKnownMimeType, {
   UNPARSEABLE_MIME_TYPE,
 } from './WellKnownMimeType';
 
-export class CompositeMetadata {
+/**
+ * @deprecated since 0.0.21 in favor of {@link decodeCompositeMetadata}
+ */
+// $FlowFixMe
+export class CompositeMetadata implements Iterable<Entry> {
   _buffer: Buffer;
 
   constructor(buffer: Buffer) {
     this._buffer = buffer;
   }
-  // $FlowFixMe
-  [Symbol.iterator]() {
-    return entriesIterator(this._buffer);
+
+  iterator(): Iterator<Entry> {
+    return decodeCompositeMetadata(this._buffer);
   }
+
+  // $FlowFixMe
+  [Symbol.iterator](): Iterator<Entry> {
+    return decodeCompositeMetadata(this._buffer);
+  }
+}
+
+/**
+ * Encode an object where key is either {@link WellKnownMimeType} or {@link string}
+ * and value as a {@link Buffer} into composite metadata {@link Buffer}
+ *
+ * @param metadata key-value based object
+ * @returns {Buffer}
+ */
+export function encodeCompositeMetadata(
+  metadata:
+    | Map<string | WellKnownMimeType | number, (Buffer | (() => Buffer))>
+    | Array<[string | WellKnownMimeType | number, (Buffer | (() => Buffer))]>
+): Buffer {
+  let encodedCompositeMetadata = createBuffer(0);
+  for (const [metadataKey, metadataValue] of metadata) {
+    const metadataRealValue =
+      typeof metadataValue === 'function' ? metadataValue() : metadataValue;
+
+    if (
+      metadataKey instanceof WellKnownMimeType ||
+      typeof metadataKey === 'number' ||
+      metadataKey.constructor.name === 'WellKnownMimeType'
+    ) {
+      encodedCompositeMetadata = encodeAndAddWellKnownMetadata(
+        encodedCompositeMetadata,
+        (metadataKey : any),
+        metadataRealValue
+      );
+    } else {
+      encodedCompositeMetadata = encodeAndAddCustomMetadata(
+        encodedCompositeMetadata,
+        (metadataKey : any),
+        metadataRealValue
+      );
+    }
+  }
+
+  return encodedCompositeMetadata;
 }
 
 /**
@@ -53,14 +101,14 @@ export function encodeAndAddCustomMetadata(
  * Encode a new sub-metadata information into a composite metadata {@link CompositeByteBuf
  * buffer}.
  *
- * @param compositeMetaData the buffer that will hold all composite metadata information.
+ * @param compositeMetadata the buffer that will hold all composite metadata information.
  * @param allocator the {@link ByteBufAllocator} to use to create intermediate buffers as needed.
  * @param knownMimeType the {@link WellKnownMimeType} to encode.
  * @param metadata the metadata value to encode.
  */
 // see #encodeMetadataHeader(ByteBufAllocator, byte, int)
 export function encodeAndAddWellKnownMetadata(
-  compositeMetaData: Buffer,
+  compositeMetadata: Buffer,
   knownMimeType: WellKnownMimeType | number,
   metadata: Buffer,
 ): Buffer {
@@ -74,7 +122,7 @@ export function encodeAndAddWellKnownMetadata(
 
   return Buffer.concat(
     ([
-      compositeMetaData,
+      compositeMetadata,
       encodeWellKnownMetadataHeader(mimeTypeId, metadata.byteLength),
       metadata,
     ]: Buffer[]),
@@ -82,7 +130,7 @@ export function encodeAndAddWellKnownMetadata(
 }
 
 /**
- * Decode the next metadata entry (a mime header + content pair of {@link ByteBuf}) from a {@link
+ * Decode the next metadata entry (a mime header + content pair of {@link ByteBuf}) from   a {@link
  * ByteBuf} that contains at least enough bytes for one more such entry. These buffers are
  * actually slices of the full metadata buffer, and this method doesn't move the full metadata
  * buffer's {@link ByteBuf#readerIndex()}. As such, it requires the user to provide an {@code
@@ -251,7 +299,14 @@ export function encodeWellKnownMetadataHeader(
   return buffer;
 }
 
-function* entriesIterator(buffer: Buffer): Generator<Entry, void, any> {
+/**
+ * Decode given {@link Buffer} into {@link Iterator<Entry>}
+ *
+ * @param buffer encoded Composite Metadata content
+ * @returns {Iterator<Entry>}
+ * @since 0.0.21
+ */
+export function* decodeCompositeMetadata(buffer: Buffer): Generator<Entry, void, any> {
   const length = buffer.byteLength;
   let entryIndex = 0;
 
