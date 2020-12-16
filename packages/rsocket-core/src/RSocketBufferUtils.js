@@ -20,7 +20,6 @@
 /* eslint-disable no-bitwise */
 
 import {LiteBuffer as Buffer} from './LiteBuffer';
-import invariant from 'fbjs/lib/invariant';
 
 export type Encoding = 'ascii' | 'base64' | 'hex' | 'utf8';
 
@@ -92,24 +91,27 @@ export function byteLength(data: any, encoding: Encoding): number {
 /**
  * Attempts to construct a buffer from the input, throws if invalid.
  */
-export function toBuffer(data: mixed): Buffer {
-  // Buffer.from(buffer) copies which we don't want here
-  if (data instanceof Buffer) {
-    return data;
-  }
-  invariant(
-    data instanceof ArrayBuffer,
-    'RSocketBufferUtils: Cannot construct buffer. Expected data to be an ' +
-      'arraybuffer, got `%s`.',
-    data,
-  );
-  return Buffer.from(data);
-}
+export const toBuffer: (...args: any[]) => Buffer =
+  typeof Buffer.from === 'function'
+    ? (...args: any[]) => {
+        // Buffer.from(buffer) copies which we don't want here
+        if (args[0] instanceof Buffer) {
+          return args[0];
+        }
+        return Buffer.from.apply(Buffer, args);
+      }
+    : (...args: any[]) => {
+        // Buffer.from(buffer) copies which we don't want here
+        if (args[0] instanceof Buffer) {
+          return args[0];
+        }
+        return new (Buffer.bind.apply(Buffer, [Buffer, ...args]))();
+      };
+
 
 /**
  * Function to create a buffer of a given sized filled with zeros.
  */
-
 export const createBuffer: (...args: any[]) => Buffer =
   typeof Buffer.alloc === 'function'
     ? (length: number) => Buffer.alloc(length)
