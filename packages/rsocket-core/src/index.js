@@ -157,3 +157,4 @@ export {
   encodeCompositeMetadata,
   decodeCompositeMetadata,
 } from './CompositeMetadata';
+export {encodeRoute, encodeRoutes, decodeRoutes} from './RoutingMetadata';
