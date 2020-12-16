@@ -154,4 +154,6 @@ export {
   ExplicitMimeTimeEntry,
   encodeAndAddCustomMetadata,
   encodeAndAddWellKnownMetadata,
+  encodeCompositeMetadata,
+  decodeCompositeMetadata,
 } from './CompositeMetadata';

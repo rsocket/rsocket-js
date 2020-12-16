@@ -1,16 +1,16 @@
 'use strict';
-// @flow
 
 import {
-  CompositeMetadata,
   WellKnownMimeTypeEntry,
   ExplicitMimeTimeEntry,
   ReservedMimeTypeEntry,
   encodeCustomMetadataHeader,
   encodeAndAddCustomMetadata,
   encodeAndAddWellKnownMetadata,
+  encodeCompositeMetadata,
   decodeMimeAndContentBuffersSlices,
   decodeMimeTypeFromMimeBuffer,
+  decodeCompositeMetadata,
 } from '../CompositeMetadata';
 
 import WellKnownMimeType, {
@@ -57,7 +57,7 @@ describe('Composite M', () => {
         Buffer.byteLength('∑') +
         Buffer.byteLength('é') +
         Buffer.byteLength('W') +
-        1,
+        1
     );
     metadata2.write('E');
     metadata2.write('∑');
@@ -68,7 +68,7 @@ describe('Composite M', () => {
     // metadata 3: reserved but unknown
     const reserved = 120;
     expect(WellKnownMimeType.fromIdentifier(reserved)).toBe(
-      UNKNOWN_RESERVED_MIME_TYPE,
+      UNKNOWN_RESERVED_MIME_TYPE
     );
 
     const metadata3 = Buffer.from([88]);
@@ -76,13 +76,13 @@ describe('Composite M', () => {
     let composit = encodeAndAddWellKnownMetadata(
       Buffer.alloc(0),
       mimeType1,
-      metadata1,
+      metadata1
     );
 
     composit = encodeAndAddCustomMetadata(composit, mimeType2, metadata2);
     composit = encodeAndAddWellKnownMetadata(composit, reserved, metadata3);
 
-    const iterator = new CompositeMetadata(composit)[Symbol.iterator]();
+    const iterator = decodeCompositeMetadata(composit);
 
     const entry1 = iterator.next();
     const value1: Entry = entry1.value;
@@ -106,6 +106,74 @@ describe('Composite M', () => {
     expect(value3.mimeType).toBeUndefined();
     expect((value3: ReservedMimeTypeEntry).type).toBe(reserved);
     expect(value3.content).toEqual(metadata3);
+
+    expect(iterator.next().done).toBeTruthy();
+  });
+
+  it('encode and decode three entries', () => {
+    const composite = encodeCompositeMetadata(new Map([
+      // metadata 1: well known
+      [APPLICATION_PDF, Buffer.from('abcdefghijkl', 'utf8')],
+      // metadata 2: custom
+      ['application/custom', () => {
+        const metadata2 = Buffer.alloc(
+          Buffer.byteLength('E') +
+            Buffer.byteLength('∑') +
+            Buffer.byteLength('é') +
+            Buffer.byteLength('W') +
+            1
+        );
+        metadata2.write('E');
+        metadata2.write('∑');
+        metadata2.write('é');
+        metadata2.writeUInt8(true);
+        metadata2.write('W');
+        return metadata2;
+      }],
+      // metadata 3: reserved but unknown
+      [120, Buffer.from([88])],
+    ]));
+
+    const iterator = decodeCompositeMetadata(composite);
+
+    const entry1 = iterator.next();
+    const value1: Entry = entry1.value;
+    expect(value1).not.toBeNull();
+    expect(value1).toBeInstanceOf(WellKnownMimeTypeEntry);
+    expect(value1.mimeType).toBe(APPLICATION_PDF.string);
+    expect((value1: WellKnownMimeTypeEntry).type).toBe(APPLICATION_PDF);
+    expect(value1.content).toEqual(Buffer.from('abcdefghijkl', 'utf8'));
+
+    const entry2 = iterator.next();
+    const value2: Entry = entry2.value;
+    expect(value2).not.toBeNull();
+    expect(value2).toBeInstanceOf(ExplicitMimeTimeEntry);
+    expect(value2.mimeType).toBe('application/custom');
+    expect(value2.content).toEqual(
+      (() => {
+        const metadata2 = Buffer.alloc(
+          Buffer.byteLength('E') +
+            Buffer.byteLength('∑') +
+            Buffer.byteLength('é') +
+            Buffer.byteLength('W') +
+            1
+        );
+        metadata2.write('E');
+        metadata2.write('∑');
+        metadata2.write('é');
+        metadata2.writeUInt8(true);
+        metadata2.write('W');
+        return metadata2;
+      })()
+    );
+
+    const entry3 = iterator.next();
+    const value3: Entry = entry3.value;
+    expect(value3).not.toBeNull();
+    expect(value3).toBeInstanceOf(ReservedMimeTypeEntry);
+    expect(value3.mimeType).toBeUndefined();
+    expect((value3: ReservedMimeTypeEntry).type).toBe(120);
+    expect(value3.content).toEqual(Buffer.from([88]));
 
     expect(iterator.next().done).toBeTruthy();
   });
