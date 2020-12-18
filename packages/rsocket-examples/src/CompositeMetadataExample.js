@@ -20,11 +20,13 @@
 import {
   RSocketClient,
   BufferEncoders,
-  encodeAndAddCustomMetadata,
-  encodeAndAddWellKnownMetadata,
+  encodeCompositeMetadata,
   TEXT_PLAIN,
   MESSAGE_RSOCKET_COMPOSITE_METADATA,
   MESSAGE_RSOCKET_ROUTING,
+  MESSAGE_RSOCKET_AUTHENTICATION,
+  encodeRoute,
+  encodeSimpleAuthMetadata,
 } from 'rsocket-core';
 import RSocketWebSocketClient from 'rsocket-websocket-client';
 import WebSocket from 'ws';
@@ -51,7 +53,7 @@ const client = new RSocketClient({
       wsCreator: url => new WebSocket(url),
       debug: true,
     },
-    BufferEncoders,
+    BufferEncoders
   ),
 });
 
@@ -60,15 +62,12 @@ client.connect().then(socket => {
   socket
     .requestStream({
       data: new Buffer('request-stream'),
-      metadata: encodeAndAddWellKnownMetadata(
-        encodeAndAddCustomMetadata(
-          Buffer.alloc(0),
-          TEXT_PLAIN.string,
-          Buffer.from('Hello World'),
-        ),
-        MESSAGE_RSOCKET_ROUTING,
-        Buffer.from(String.fromCharCode(route.length) + route),
-      ),
+      metadata: encodeCompositeMetadata([
+        [TEXT_PLAIN, Buffer.from('Hello World')],
+        [MESSAGE_RSOCKET_ROUTING, encodeRoute(route)],
+        [MESSAGE_RSOCKET_AUTHENTICATION, encodeSimpleAuthMetadata('user', 'pass')],
+        ['custom/test/metadata', Buffer.from([1, 2, 3])],
+      ]),
     })
     .subscribe({
       onComplete: () => console.log('Request-stream completed'),
