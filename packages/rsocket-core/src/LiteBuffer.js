@@ -570,7 +570,8 @@ export class Buffer extends Uint8Array {
         ? byteOffsetOrEncoding
         : undefined;
 
-    if (typeof value == 'string') {
+    if (typeof value === 'string' || value.constructor.name === 'String') {
+      value = value.toString();
       encoding = checkEncoding(encoding, false);
       // if (encoding === 'hex') {return new Buffer(hex.decodeString(value).buffer);}
       // if (encoding === 'base64') {return new Buffer(base64.decode(value));}
