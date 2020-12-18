@@ -32,16 +32,24 @@ export type {Serializer, PayloadSerializers} from './RSocketSerialization';
 export type {LeaseStats} from './RSocketLease';
 
 import RSocketClient from './RSocketClient';
+
 export {RSocketClient};
 
 import RSocketServer from './RSocketServer';
+
 export {RSocketServer};
 
 import RSocketResumableTransport from './RSocketResumableTransport';
+
 export {RSocketResumableTransport};
 
 import WellKnownMimeType from './WellKnownMimeType';
+
 export {WellKnownMimeType};
+
+import WellKnownAuthType from './WellKnownAuthType';
+
+export {WellKnownAuthType};
 
 export {
   CONNECTION_STREAM_ID,
@@ -158,3 +166,17 @@ export {
   decodeCompositeMetadata,
 } from './CompositeMetadata';
 export {encodeRoute, encodeRoutes, decodeRoutes} from './RoutingMetadata';
+export {
+  encodeSimpleAuthMetadata,
+  encodeBearerAuthMetadata,
+  encodeWellKnownAuthMetadata,
+  encodeCustomAuthMetadata,
+  decodeSimpleAuthPayload,
+  decodeAuthMetadata,
+} from './AuthMetadata';
+export {
+  UNPARSEABLE_AUTH_TYPE,
+  UNKNOWN_RESERVED_AUTH_TYPE,
+  SIMPLE,
+  BEARER,
+} from './WellKnownAuthType';

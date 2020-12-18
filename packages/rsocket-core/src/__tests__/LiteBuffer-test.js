@@ -72,10 +72,17 @@ describe('Lite B', () => {
     expect(B.isBuffer(buf1)).toBe(true);
   });
 
-  it('supports utf8 write String', () => {
+  it('supports utf8 write primitive string', () => {
     const buf1 = new B(26);
 
     expect(buf1.write('abcdefghijklmnopqrstuvwxyz')).toBe(26);
+    expect(buf1.toString('utf8')).toEqual('abcdefghijklmnopqrstuvwxyz');
+  });
+
+  it('supports utf8 write object String', () => {
+    const buf1 = new B(26);
+
+    expect(buf1.write(new String('abcdefghijklmnopqrstuvwxyz'))).toBe(26);
     expect(buf1.toString('utf8')).toEqual('abcdefghijklmnopqrstuvwxyz');
   });
 
