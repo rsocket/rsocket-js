@@ -165,7 +165,12 @@ export {
   encodeCompositeMetadata,
   decodeCompositeMetadata,
 } from './CompositeMetadata';
-export {encodeRoute, encodeRoutes, decodeRoutes} from './RoutingMetadata';
+export {
+  RoutingMetadata,
+  encodeRoute,
+  encodeRoutes,
+  decodeRoutes,
+} from './RoutingMetadata';
 export {
   encodeSimpleAuthMetadata,
   encodeBearerAuthMetadata,

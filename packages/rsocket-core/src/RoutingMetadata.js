@@ -4,6 +4,24 @@
 import {LiteBuffer as Buffer} from './LiteBuffer';
 import {createBuffer, toBuffer} from './RSocketBufferUtils';
 
+// $FlowFixMe
+export class RoutingMetadata implements Iterable<string> {
+  _buffer: Buffer;
+
+  constructor(buffer: Buffer) {
+    this._buffer = buffer;
+  }
+
+  iterator(): Iterator<string> {
+    return decodeRoutes(this._buffer);
+  }
+
+  // $FlowFixMe
+  [Symbol.iterator](): Iterator<string> {
+    return decodeRoutes(this._buffer);
+  }
+}
+
 /**
  * Encode given set of routes into {@link Buffer} following the <a href="https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md">Routing Metadata Layout</a>
  *

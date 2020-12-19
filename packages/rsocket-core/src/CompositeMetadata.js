@@ -9,9 +9,6 @@ import WellKnownMimeType, {
   UNPARSEABLE_MIME_TYPE,
 } from './WellKnownMimeType';
 
-/**
- * @deprecated since 0.0.21 in favor of {@link decodeCompositeMetadata}
- */
 // $FlowFixMe
 export class CompositeMetadata implements Iterable<Entry> {
   _buffer: Buffer;
