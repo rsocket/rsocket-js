@@ -41,7 +41,7 @@ export function encodeRoute(route: string): Buffer {
 
   if (encodedRoute.length > 255) {
     throw new Error(
-      `route length should fit into unsigned byte length but the given one is ${encodedRoute.length}`
+      `route length should fit into unsigned byte length but the given one is ${encodedRoute.length}`,
     );
   }
 
@@ -53,7 +53,7 @@ export function encodeRoute(route: string): Buffer {
 }
 
 export function* decodeRoutes(
-  routeMetadataBuffer: Buffer
+  routeMetadataBuffer: Buffer,
 ): Generator<string, void, any> {
   const length = routeMetadataBuffer.byteLength;
   let offset = 0;
@@ -63,14 +63,14 @@ export function* decodeRoutes(
 
     if (offset + routeLength > length) {
       throw new Error(
-        `Malformed RouteMetadata. Offset(${offset}) + RouteLength(${routeLength}) is greater than TotalLength`
+        `Malformed RouteMetadata. Offset(${offset}) + RouteLength(${routeLength}) is greater than TotalLength`,
       );
     }
 
     const route = routeMetadataBuffer.toString(
       'utf8',
       offset,
-      offset + routeLength
+      offset + routeLength,
     );
     offset += routeLength;
     yield route;

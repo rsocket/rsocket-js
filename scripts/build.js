@@ -46,7 +46,9 @@ function getBabelOptions(options) {
       '@babel/plugin-transform-flow-strip-types',
       ['@babel/proposal-object-rest-spread', {useBuiltIns: true}],
       '@babel/plugin-proposal-class-properties',
-      options && options.modules ? '@babel/plugin-transform-modules-commonjs' : null,
+      options && options.modules
+        ? '@babel/plugin-transform-modules-commonjs'
+        : null,
       '@babel/plugin-transform-async-to-generator',
       [
         'minify-replace',
@@ -181,12 +183,14 @@ function buildHasteRollup(pkg) {
       }
     },
   })
-    .then((bundle) => bundle.generate({
-      format: 'cjs',
-      interop: false,
-      name: packageName,
-    }))
-    .then(rollupOutput => {
+    .then((bundle) =>
+      bundle.generate({
+        format: 'cjs',
+        interop: false,
+        name: packageName,
+      })
+    )
+    .then((rollupOutput) => {
       let code = rollupOutput.output[0].code;
 
       // Post-rollup transform to rewrite imports between packages

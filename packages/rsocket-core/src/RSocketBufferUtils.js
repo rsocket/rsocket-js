@@ -108,7 +108,6 @@ export const toBuffer: (...args: any[]) => Buffer =
         return new (Buffer.bind.apply(Buffer, [Buffer, ...args]))();
       };
 
-
 /**
  * Function to create a buffer of a given sized filled with zeros.
  */

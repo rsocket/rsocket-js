@@ -74,11 +74,11 @@ export default class WellKnownAuthType {
 
 export const UNPARSEABLE_AUTH_TYPE: WellKnownAuthType = new WellKnownAuthType(
   'UNPARSEABLE_AUTH_TYPE_DO_NOT_USE',
-  -2
+  -2,
 );
 export const UNKNOWN_RESERVED_AUTH_TYPE: WellKnownAuthType = new WellKnownAuthType(
   'UNKNOWN_YET_RESERVED_DO_NOT_USE',
-  -1
+  -1,
 );
 
 export const SIMPLE: WellKnownAuthType = new WellKnownAuthType('simple', 0x00);

@@ -57,7 +57,7 @@ describe('Composite M', () => {
         Buffer.byteLength('∑') +
         Buffer.byteLength('é') +
         Buffer.byteLength('W') +
-        1
+        1,
     );
     metadata2.write('E');
     metadata2.write('∑');
@@ -68,7 +68,7 @@ describe('Composite M', () => {
     // metadata 3: reserved but unknown
     const reserved = 120;
     expect(WellKnownMimeType.fromIdentifier(reserved)).toBe(
-      UNKNOWN_RESERVED_MIME_TYPE
+      UNKNOWN_RESERVED_MIME_TYPE,
     );
 
     const metadata3 = Buffer.from([88]);
@@ -76,7 +76,7 @@ describe('Composite M', () => {
     let composit = encodeAndAddWellKnownMetadata(
       Buffer.alloc(0),
       mimeType1,
-      metadata1
+      metadata1,
     );
 
     composit = encodeAndAddCustomMetadata(composit, mimeType2, metadata2);
@@ -111,28 +111,33 @@ describe('Composite M', () => {
   });
 
   it('encode and decode three entries', () => {
-    const composite = encodeCompositeMetadata(new Map([
-      // metadata 1: well known
-      [APPLICATION_PDF, Buffer.from('abcdefghijkl', 'utf8')],
-      // metadata 2: custom
-      ['application/custom', () => {
-        const metadata2 = Buffer.alloc(
-          Buffer.byteLength('E') +
-            Buffer.byteLength('∑') +
-            Buffer.byteLength('é') +
-            Buffer.byteLength('W') +
-            1
-        );
-        metadata2.write('E');
-        metadata2.write('∑');
-        metadata2.write('é');
-        metadata2.writeUInt8(true);
-        metadata2.write('W');
-        return metadata2;
-      }],
-      // metadata 3: reserved but unknown
-      [120, Buffer.from([88])],
-    ]));
+    const composite = encodeCompositeMetadata(
+      new Map([
+        // metadata 1: well known
+        [APPLICATION_PDF, Buffer.from('abcdefghijkl', 'utf8')],
+        // metadata 2: custom
+        [
+          'application/custom',
+          () => {
+            const metadata2 = Buffer.alloc(
+              Buffer.byteLength('E') +
+                Buffer.byteLength('∑') +
+                Buffer.byteLength('é') +
+                Buffer.byteLength('W') +
+                1,
+            );
+            metadata2.write('E');
+            metadata2.write('∑');
+            metadata2.write('é');
+            metadata2.writeUInt8(true);
+            metadata2.write('W');
+            return metadata2;
+          },
+        ],
+        // metadata 3: reserved but unknown
+        [120, Buffer.from([88])],
+      ]),
+    );
 
     const iterator = decodeCompositeMetadata(composite);
 
@@ -156,7 +161,7 @@ describe('Composite M', () => {
             Buffer.byteLength('∑') +
             Buffer.byteLength('é') +
             Buffer.byteLength('W') +
-            1
+            1,
         );
         metadata2.write('E');
         metadata2.write('∑');
@@ -164,7 +169,7 @@ describe('Composite M', () => {
         metadata2.writeUInt8(true);
         metadata2.write('W');
         return metadata2;
-      })()
+      })(),
     );
 
     const entry3 = iterator.next();

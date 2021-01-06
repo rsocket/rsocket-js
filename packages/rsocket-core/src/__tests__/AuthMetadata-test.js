@@ -18,7 +18,7 @@ describe('Auth Metadata', () => {
     const customAuthType = 'custom/auth/type';
     const customAuthMetadata = encodeCustomAuthMetadata(
       customAuthType,
-      Buffer.from([220, 1])
+      Buffer.from([220, 1]),
     );
 
     expect(customAuthMetadata).toEqual(
@@ -26,7 +26,7 @@ describe('Auth Metadata', () => {
         Buffer.from([customAuthType.length - 1]),
         Buffer.from(customAuthType),
         Buffer.from([220, 1]),
-      ])
+      ]),
     );
   });
 
@@ -38,9 +38,9 @@ describe('Auth Metadata', () => {
     }
 
     expect(() =>
-      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1]))
+      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1])),
     ).toThrow(
-      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128'
+      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128',
     );
   });
 
@@ -48,9 +48,9 @@ describe('Auth Metadata', () => {
     const customAuthType = '';
 
     expect(() =>
-      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1]))
+      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1])),
     ).toThrow(
-      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128'
+      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128',
     );
   });
 
@@ -58,14 +58,14 @@ describe('Auth Metadata', () => {
     const customAuthType = 'asdasd🃓𝑓';
 
     expect(() =>
-      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1]))
+      encodeCustomAuthMetadata(customAuthType, Buffer.from([220, 1])),
     ).toThrow('Custom auth type must be US_ASCII characters only');
   });
 
   it('should encode WellKnown Auth Metadata', () => {
     const wellKnownAuthMetadata = encodeWellKnownAuthMetadata(
       SIMPLE,
-      Buffer.from([1, 1, 1, 1])
+      Buffer.from([1, 1, 1, 1]),
     );
 
     expect(wellKnownAuthMetadata).toEqual(
@@ -73,7 +73,7 @@ describe('Auth Metadata', () => {
         // eslint-disable-next-line no-bitwise
         Buffer.from([SIMPLE.identifier | 0x80]),
         Buffer.from([1, 1, 1, 1]),
-      ])
+      ]),
     );
   });
 
@@ -81,19 +81,19 @@ describe('Auth Metadata', () => {
     expect(() =>
       encodeWellKnownAuthMetadata(
         UNKNOWN_RESERVED_AUTH_TYPE,
-        Buffer.from([1, 1, 1, 1])
-      )
+        Buffer.from([1, 1, 1, 1]),
+      ),
     ).toThrow(
-      `Illegal WellKnownAuthType[${UNKNOWN_RESERVED_AUTH_TYPE}]. Only allowed AuthType should be used`
+      `Illegal WellKnownAuthType[${UNKNOWN_RESERVED_AUTH_TYPE}]. Only allowed AuthType should be used`,
     );
 
     expect(() =>
       encodeWellKnownAuthMetadata(
         UNPARSEABLE_AUTH_TYPE,
-        Buffer.from([1, 1, 1, 1])
-      )
+        Buffer.from([1, 1, 1, 1]),
+      ),
     ).toThrow(
-      `Illegal WellKnownAuthType[${UNPARSEABLE_AUTH_TYPE}]. Only allowed AuthType should be used`
+      `Illegal WellKnownAuthType[${UNPARSEABLE_AUTH_TYPE}]. Only allowed AuthType should be used`,
     );
   });
 
@@ -103,7 +103,7 @@ describe('Auth Metadata', () => {
         // eslint-disable-next-line no-bitwise
         Buffer.from([SIMPLE.identifier | 0x80]),
         Buffer.from([1, 1, 1, 1]),
-      ])
+      ]),
     );
 
     expect(authMetadata).toEqual({
@@ -122,7 +122,7 @@ describe('Auth Metadata', () => {
         Buffer.from([customAuthType.length - 1]),
         Buffer.from(customAuthType),
         Buffer.from([220, 1]),
-      ])
+      ]),
     );
 
     expect(authMetadata).toEqual({

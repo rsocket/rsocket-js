@@ -8,8 +8,8 @@ describe('Routing Metadata', () => {
 
     expect(
       routesMetadataBuffer.equals(
-        Buffer.from([1, 69, 3, -30, -120, -111, 2, -61, -87, 1, 87])
-      )
+        Buffer.from([1, 69, 3, -30, -120, -111, 2, -61, -87, 1, 87]),
+      ),
     ).toBe(true);
   });
 
@@ -28,7 +28,7 @@ describe('Routing Metadata', () => {
 
       encodeRoute(route);
     }).toThrow(
-      'route length should fit into unsigned byte length but the given one is 257'
+      'route length should fit into unsigned byte length but the given one is 257',
     );
   });
 
@@ -40,7 +40,7 @@ describe('Routing Metadata', () => {
 
   it('should decode route properly', () => {
     const routesMetadataBuffer = decodeRoutes(
-      Buffer.from([1, 69, 3, -30, -120, -111, 2, -61, -87, 1, 87])
+      Buffer.from([1, 69, 3, -30, -120, -111, 2, -61, -87, 1, 87]),
     );
 
     expect(routesMetadataBuffer.next()).toEqual({done: false, value: 'E'});
@@ -60,7 +60,7 @@ describe('Routing Metadata', () => {
   it('should fail on decoding malformed buffer', () => {
     const routesMetadataBuffer = decodeRoutes(Buffer.from([220, 1]));
     expect(() => routesMetadataBuffer.next()).toThrow(
-      'Malformed RouteMetadata. Offset(1) + RouteLength(220) is greater than TotalLength'
+      'Malformed RouteMetadata. Offset(1) + RouteLength(220) is greater than TotalLength',
     );
   });
 });

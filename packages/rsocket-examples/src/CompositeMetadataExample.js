@@ -15,8 +15,6 @@
  * @flow
  */
 
-/* eslint-disable sort-keys */
-
 import {
   RSocketClient,
   BufferEncoders,
@@ -32,28 +30,38 @@ import RSocketWebSocketClient from 'rsocket-websocket-client';
 import WebSocket from 'ws';
 
 const maxRSocketRequestN = 2147483647;
-const host = '127.0.0.1';
-const port = 7000;
 const keepAlive = 60000;
 const lifetime = 180000;
 const dataMimeType = 'application/octet-stream';
 const metadataMimeType = MESSAGE_RSOCKET_COMPOSITE_METADATA.string;
 const route = 'test.service';
 
-const client = new RSocketClient({
+const client = new RSocketClient<Buffer, Buffer>({
   setup: {
+    dataMimeType,
     keepAlive,
     lifetime,
-    dataMimeType,
     metadataMimeType,
+    payload: {
+      data: undefined,
+      metadata: encodeCompositeMetadata([
+        [TEXT_PLAIN, Buffer.from('Hello World')],
+        [MESSAGE_RSOCKET_ROUTING, encodeRoute(route)],
+        [
+          MESSAGE_RSOCKET_AUTHENTICATION,
+          encodeSimpleAuthMetadata('user', 'pass'),
+        ],
+        ['custom/test/metadata', Buffer.from([1, 2, 3])],
+      ]),
+    },
   },
   transport: new RSocketWebSocketClient(
     {
+      debug: true,
       url: 'ws://localhost:7000',
       wsCreator: url => new WebSocket(url),
-      debug: true,
     },
-    BufferEncoders
+    BufferEncoders,
   ),
 });
 
@@ -65,7 +73,10 @@ client.connect().then(socket => {
       metadata: encodeCompositeMetadata([
         [TEXT_PLAIN, Buffer.from('Hello World')],
         [MESSAGE_RSOCKET_ROUTING, encodeRoute(route)],
-        [MESSAGE_RSOCKET_AUTHENTICATION, encodeSimpleAuthMetadata('user', 'pass')],
+        [
+          MESSAGE_RSOCKET_AUTHENTICATION,
+          encodeSimpleAuthMetadata('user', 'pass'),
+        ],
         ['custom/test/metadata', Buffer.from([1, 2, 3])],
       ]),
     })

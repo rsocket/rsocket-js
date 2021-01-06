@@ -36,8 +36,8 @@ export class CompositeMetadata implements Iterable<Entry> {
  */
 export function encodeCompositeMetadata(
   metadata:
-    | Map<string | WellKnownMimeType | number, (Buffer | (() => Buffer))>
-    | Array<[string | WellKnownMimeType | number, (Buffer | (() => Buffer))]>
+    | Map<string | WellKnownMimeType | number, Buffer | (() => Buffer)>
+    | Array<[string | WellKnownMimeType | number, Buffer | (() => Buffer)]>,
 ): Buffer {
   let encodedCompositeMetadata = createBuffer(0);
   for (const [metadataKey, metadataValue] of metadata) {
@@ -51,14 +51,14 @@ export function encodeCompositeMetadata(
     ) {
       encodedCompositeMetadata = encodeAndAddWellKnownMetadata(
         encodedCompositeMetadata,
-        (metadataKey : any),
-        metadataRealValue
+        (metadataKey: any),
+        metadataRealValue,
       );
     } else {
       encodedCompositeMetadata = encodeAndAddCustomMetadata(
         encodedCompositeMetadata,
-        (metadataKey : any),
-        metadataRealValue
+        (metadataKey: any),
+        metadataRealValue,
       );
     }
   }
@@ -303,7 +303,9 @@ export function encodeWellKnownMetadataHeader(
  * @returns {Iterator<Entry>}
  * @since 0.0.21
  */
-export function* decodeCompositeMetadata(buffer: Buffer): Generator<Entry, void, any> {
+export function* decodeCompositeMetadata(
+  buffer: Buffer,
+): Generator<Entry, void, any> {
   const length = buffer.byteLength;
   let entryIndex = 0;
 

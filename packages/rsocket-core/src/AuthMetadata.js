@@ -24,7 +24,7 @@ type AuthMetadata = {|
   payload: Buffer,
 |};
 
-type UsernameAndPassword = {| username: Buffer, password: Buffer |};
+type UsernameAndPassword = {|username: Buffer, password: Buffer|};
 
 /**
  * Encode Auth metadata with the given {@link WellKnownAuthType} and auth payload {@link Buffer}
@@ -35,14 +35,14 @@ type UsernameAndPassword = {| username: Buffer, password: Buffer |};
  */
 export function encodeWellKnownAuthMetadata(
   authType: WellKnownAuthType,
-  authPayloadBuffer: Buffer
+  authPayloadBuffer: Buffer,
 ): Buffer {
   if (
     authType === UNPARSEABLE_AUTH_TYPE ||
     authType === UNKNOWN_RESERVED_AUTH_TYPE
   ) {
     throw new Error(
-      `Illegal WellKnownAuthType[${authType.toString()}]. Only allowed AuthType should be used`
+      `Illegal WellKnownAuthType[${authType.toString()}]. Only allowed AuthType should be used`,
     );
   }
 
@@ -63,7 +63,7 @@ export function encodeWellKnownAuthMetadata(
  */
 export function encodeCustomAuthMetadata(
   customAuthType: string,
-  authPayloadBuffer: Buffer
+  authPayloadBuffer: Buffer,
 ): Buffer {
   const customAuthTypeBuffer = toBuffer(customAuthType);
 
@@ -75,12 +75,12 @@ export function encodeCustomAuthMetadata(
     customAuthTypeBuffer.byteLength > 128
   ) {
     throw new Error(
-      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128'
+      'Custom auth type must have a strictly positive length that fits on 7 unsigned bits, ie 1-128',
     );
   }
 
   const buffer = createBuffer(
-    customAuthTypeBytesLength + customAuthTypeBuffer.byteLength
+    customAuthTypeBytesLength + customAuthTypeBuffer.byteLength,
   );
 
   // encoded length is one less than actual length, since 0 is never a valid length, which gives
@@ -100,7 +100,7 @@ export function encodeCustomAuthMetadata(
  */
 export function encodeSimpleAuthMetadata(
   username: string | Buffer,
-  password: string | Buffer
+  password: string | Buffer,
 ): Buffer {
   const usernameBuffer = toBuffer(username);
   const passwordBuffer = toBuffer(password);
@@ -108,7 +108,7 @@ export function encodeSimpleAuthMetadata(
 
   if (usernameLength > 65535) {
     throw new Error(
-      `Username should be shorter than or equal to 65535 bytes length in UTF-8 encoding but the given was ${usernameLength}`
+      `Username should be shorter than or equal to 65535 bytes length in UTF-8 encoding but the given was ${usernameLength}`,
     );
   }
 
@@ -147,7 +147,7 @@ export function encodeBearerAuthMetadata(token: string | Buffer): Buffer {
 export function decodeAuthMetadata(metadata: Buffer): AuthMetadata {
   if (metadata.byteLength < 1) {
     throw new Error(
-      'Unable to decode Auth metadata. Not enough readable bytes'
+      'Unable to decode Auth metadata. Not enough readable bytes',
     );
   }
 
@@ -170,14 +170,14 @@ export function decodeAuthMetadata(metadata: Buffer): AuthMetadata {
     const realLength = lengthOrId + 1;
     if (metadata.byteLength < realLength + customAuthTypeBytesLength) {
       throw new Error(
-        'Unable to decode custom Auth type. Malformed length or auth type string'
+        'Unable to decode custom Auth type. Malformed length or auth type string',
       );
     }
 
     const customAuthTypeString = metadata.toString(
       'utf8',
       customAuthTypeBytesLength,
-      customAuthTypeBytesLength + realLength
+      customAuthTypeBytesLength + realLength,
     );
     const payload = metadata.slice(realLength + customAuthTypeBytesLength);
 
@@ -198,11 +198,11 @@ export function decodeAuthMetadata(metadata: Buffer): AuthMetadata {
  * @return sliced username and password buffers
  */
 export function decodeSimpleAuthPayload(
-  authPayload: Buffer
+  authPayload: Buffer,
 ): UsernameAndPassword {
   if (authPayload.byteLength < usernameLengthBytesLength) {
     throw new Error(
-      'Unable to decode Simple Auth Payload. Not enough readable bytes'
+      'Unable to decode Simple Auth Payload. Not enough readable bytes',
     );
   }
 
@@ -210,16 +210,16 @@ export function decodeSimpleAuthPayload(
 
   if (authPayload.byteLength < usernameLength + usernameLengthBytesLength) {
     throw new Error(
-      'Unable to decode Simple Auth Payload. Not enough readable bytes'
+      'Unable to decode Simple Auth Payload. Not enough readable bytes',
     );
   }
 
   const username = authPayload.slice(
     usernameLengthBytesLength,
-    usernameLengthBytesLength + usernameLength
+    usernameLengthBytesLength + usernameLength,
   );
   const password = authPayload.slice(
-    usernameLengthBytesLength + usernameLength
+    usernameLengthBytesLength + usernameLength,
   );
 
   return {password, username};
