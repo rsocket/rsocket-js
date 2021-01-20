@@ -16,6 +16,9 @@
     "rsocket-types": "^0.0.22",
     "rsocket-websocket-client": "^0.0.22",
     "rsocket-websocket-server": "^0.0.22",
-    "ws": "^7.3.1"
+    "rsocket-webrtc-client": "^0.0.22",
+    "rsocket-webrtc-server": "^0.0.22",
+    "ws": "^7.3.1",
+    "wrtc": "^0.4.7"
   }
 }
