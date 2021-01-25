@@ -181,6 +181,29 @@ describe('RSocketClient', () => {
       transport.mock.connect();
       expect(error).toBe(connectionError);
     });
+
+    it('close connection if connect() is cancelled', () => {
+      const transport = genMockConnection();
+      const client = new RSocketClient({
+        setup: {
+          dataMimeType: '<dataMimeType>',
+          keepAlive: 42,
+          lifetime: 2017,
+          metadataMimeType: '<metadataMimeType>',
+        },
+        transport,
+      });
+      const onCompleteMock = jest.fn();
+      const onErrorMock = jest.fn();
+      client.connect().subscribe({
+        onComplete: onCompleteMock,
+        onError: onErrorMock,
+        onSubscribe: cancel => cancel()
+      });
+      expect(transport.close).toBeCalled();
+      expect(onCompleteMock).not.toBeCalled();
+      expect(onErrorMock).not.toBeCalled();
+    });
   });
 
   describe('keepalive', () => {

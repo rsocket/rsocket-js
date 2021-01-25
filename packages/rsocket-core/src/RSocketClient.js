@@ -107,8 +107,11 @@ export default class RSocketClient<D, M> {
           }
         },
         onSubscribe: _subscription => {
-          subscriber.onSubscribe(() => _subscription.cancel());
           subscription = _subscription;
+          subscriber.onSubscribe(() => {
+            _subscription.cancel();
+            transport.close();
+          });
           subscription.request(Number.MAX_SAFE_INTEGER);
         },
       });
