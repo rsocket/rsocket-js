@@ -11,6 +11,7 @@
   "dependencies": {
     "fbjs": "^2.0.0",
     "rsocket-core": "^0.0.22",
-    "rsocket-flowable": "^0.0.22"
+    "rsocket-flowable": "^0.0.22",
+    "rsocket-types": "^0.0.22"
   }
 }
