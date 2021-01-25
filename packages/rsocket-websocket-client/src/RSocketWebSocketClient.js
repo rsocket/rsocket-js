@@ -157,7 +157,7 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     const socket = this._socket;
     if (socket) {
       (socket.removeEventListener: $FlowIssue)('close', this._handleClosed);
-      (socket.removeEventListener: $FlowIssue)('error', this._handleClosed);
+      (socket.removeEventListener: $FlowIssue)('error', this._handleError);
       (socket.removeEventListener: $FlowIssue)('open', this._handleOpened);
       (socket.removeEventListener: $FlowIssue)('message', this._handleMessage);
       socket.close();
