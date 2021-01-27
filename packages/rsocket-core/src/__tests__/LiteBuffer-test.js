@@ -2,6 +2,26 @@
 import {Buffer as B} from '../LiteBuffer';
 
 describe('Lite B', () => {
+  it('should override existing polyfill', () => {
+    const originalHasOwnProperty = global.hasOwnProperty;
+    try {
+      jest.mock('buffer');
+      global.hasOwnProperty = function(key) {
+        if (key === 'Buffer') {
+          return undefined;
+        }
+        return originalHasOwnProperty.call(this, key);
+      };
+
+      const out = new B(12);
+      const {Buffer} = require('buffer');
+
+      expect(Buffer.isBuffer(out)).toBeTruthy();
+    } finally {
+      global.hasOwnProperty = originalHasOwnProperty;
+    }
+  });
+
   it('large values do not improperly roll over', () => {
     const nums = [-25589992, -633756690, -898146932];
     const out = new B(12);

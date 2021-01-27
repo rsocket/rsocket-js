@@ -2,6 +2,7 @@
 // @flow
 
 import type {Buffer as NodeBuffer} from 'buffer';
+import ExistingBufferModule from 'buffer';
 
 const bufferExists =
   typeof global !== 'undefined' && global.hasOwnProperty('Buffer');
@@ -983,6 +984,17 @@ export class Buffer extends Uint8Array {
 }
 
 if (!bufferExists) {
+  if (ExistingBufferModule.hasOwnProperty('Buffer')) {
+    // ExistingBuffer is likely to be a polyfill, hence we can override it
+    // eslint-disable-next-line no-undef
+    // $FlowFixMe
+    Object.defineProperty(ExistingBufferModule, 'Buffer', {
+      configurable: true,
+      enumerable: false,
+      value: Buffer,
+      writable: true,
+    });
+  }
   // eslint-disable-next-line no-undef
   Object.defineProperty(window, 'Buffer', {
     configurable: true,
