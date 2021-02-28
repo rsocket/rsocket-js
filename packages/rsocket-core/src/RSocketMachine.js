@@ -854,6 +854,8 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       streamId,
       type: FRAME_TYPES.ERROR,
     });
+    const error = new Error(`terminated from the requester: ${errorMessage}`);
+    this._handleStreamError(streamId, error);
   }
 
   _sendStreamPayload(

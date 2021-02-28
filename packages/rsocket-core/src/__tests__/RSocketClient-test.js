@@ -936,6 +936,65 @@ describe('RSocketClient', () => {
         expect(error.source.message).toBe('<error>');
       });
 
+      // open -> payloads.error() -> closed (errors)
+      it('the stream is terminated due to an error on the requester side', (done) => {
+        const payloads = new Flowable(subscriber => {
+          subscriber.onSubscribe({
+            request: function(n) {
+              if (n === 1) {
+                // send the initial payload
+                const payload = 'initial';
+                subscriber.onNext(payload);
+                // the responder send the payload back
+                const nextFrame = {
+                  streamId: 1,
+                  type: FRAME_TYPES.PAYLOAD,
+                  flags: FLAGS.NEXT,
+                  data: JSON.stringify(payload),
+                };
+                transport.receive.mock.publisher.onNext(nextFrame);
+                // and then requests 42 more payloads
+                const requestNFrame = {
+                  streamId: 1,
+                  type: FRAME_TYPES.REQUEST_N,
+                  requestN: 42,
+                  flags: 0,
+                };
+                transport.receive.mock.publisher.onNext(requestNFrame);
+              } else {
+                // once, the 42 payloads are requested
+                expect(n).toBe(42)
+                // terminate stream with an error
+                subscriber.onError(new Error('oh no'));
+              }
+            },
+            cancel: function() {
+              done.fail('is not expected to be cancelled');
+            },
+          });
+        });
+
+        socket.requestChannel(payloads).subscribe({
+          onSubscribe(s) {
+            s.request(2147483647);
+          },
+          onNext(msg) {
+            // expect to receive the initial payload
+            const payload = JSON.parse(msg.data);
+            expect(payload).toBe('initial');
+          },
+          onError(err) {
+            // as per RSocket spec, upon receiving an error, the stream is terminated on both
+            // Requester and Responder, so this stream is expected to be terminated.
+            expect(err.message).toContain('terminated');
+            done();
+          },
+          onComplete() {
+            done.fail('the stream is not expected to complete');
+          },
+        });
+      });
+
       // open -> response.next/complete() -> closed
       it('publishes and completes when a next/completed payload is received', () => {
         socket.requestChannel(payloads).subscribe(subscriber);
