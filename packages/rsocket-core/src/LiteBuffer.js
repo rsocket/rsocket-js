@@ -443,7 +443,15 @@ export class Buffer extends Uint8Array {
     byteOffset?: number,
     length?: number,
   ) {
-    super((value: any), byteOffset, length);
+    if (typeof value == 'number') {
+      super(value);
+    } else {
+      const offset = byteOffset || 0;
+      const realLength =
+        //$FlowFixMe
+        length || (isInstance(value, Array) ? value.length : value.byteLength);
+      super((value: any), offset, realLength);
+    }
   }
   /**
    * Allocates a new Buffer of size bytes.
