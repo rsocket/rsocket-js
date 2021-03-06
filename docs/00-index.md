@@ -8,7 +8,7 @@ and is designed for use in Node.js and browsers. From [rsocket.io](http://rsocke
 
 ## Status
 
-The following are currently implementedЖ
+The following are currently implemented:
 
 - RSocketClient / RSocketServer
 - Node.js TCP/WebSocket server/client transport
