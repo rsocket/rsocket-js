@@ -693,12 +693,13 @@ function serializeMetadataPushFrame(
   frame: MetadataPushFrame,
   encoders: Encoders<*>,
 ): Buffer {
-  if (frame.metadata != null) {
+  const metadata = frame.metadata;
+  if (metadata != null) {
     const buffer = createBuffer(
-      FRAME_HEADER_SIZE + encoders.metadata.byteLength(frame.metadata),
+      FRAME_HEADER_SIZE + encoders.metadata.byteLength(metadata),
     );
     const offset = writeHeader(frame, buffer);
-    encoders.metadata.encode(frame.metadata, buffer, offset, buffer.length);
+    encoders.metadata.encode(metadata, buffer, offset, buffer.length);
     return buffer;
   } else {
     const buffer = createBuffer(FRAME_HEADER_SIZE);
