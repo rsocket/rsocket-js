@@ -16,6 +16,12 @@ exports[`RSocketBinaryFraming LEASE serializes LEASE frames with binary metadata
 
 exports[`RSocketBinaryFraming LEASE serializes LEASE frames without metadata 1`] = `"0000000008000a0b0c0d01020304"`;
 
+exports[`RSocketBinaryFraming METADATA_PUSH serializes METADATA_PUSH frames 1`] = `"0000000030003c6d657461646174613e"`;
+
+exports[`RSocketBinaryFraming METADATA_PUSH serializes METADATA_PUSH frames with binary content 1`] = `"0000000030000d0e0f"`;
+
+exports[`RSocketBinaryFraming METADATA_PUSH serializes METADATA_PUSH frames without metadata 1`] = `"000000003000"`;
+
 exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames 1`] = `"0a0b0c0d296000000a3c6d657461646174613e3c646174613e"`;
 
 exports[`RSocketBinaryFraming PAYLOAD serializes PAYLOAD frames with binary data 1`] = `"0a0b0c0d29600000030d0e0f0a0b0c"`;

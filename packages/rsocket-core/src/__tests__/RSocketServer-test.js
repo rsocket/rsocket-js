@@ -216,5 +216,55 @@ describe('RSocketServer', () => {
       connection.close();
       expect(cancelled).toBeTruthy();
     });
+
+    it('handles MetadataPush', () => {
+      let payload = {};
+
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {
+            metadataPush: (_payload) => {
+              payload = _payload;
+              return new Single((subscriber) => {
+                subscriber.onSubscribe(() => {});
+                subscriber.onComplete();
+              });
+            },
+          };
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      jest.runOnlyPendingTimers();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.METADATA_PUSH,
+        flags: 0,
+        metadata: new Buffer('<test>'),
+        streamId: 0,
+      });
+      expect(connection.sendOne.mock.calls.length).toBe(0);
+      connection.close();
+
+      expect(payload).toEqual({
+        data: null,
+        metadata: new Buffer('<test>'),
+      });
+    });
   });
 });

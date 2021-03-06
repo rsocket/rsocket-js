@@ -180,6 +180,7 @@ export type Frame =
   | KeepAliveFrame
   | LeaseFrame
   | PayloadFrame
+  | MetadataPushFrame
   | RequestChannelFrame
   | RequestFnfFrame
   | RequestNFrame
@@ -237,6 +238,14 @@ export type PayloadFrame = {|
   data: ?Encodable,
   metadata: ?Encodable,
   streamId: number,
+  length?: number,
+|};
+// prettier-ignore
+export type MetadataPushFrame = {|
+  type: 0x0C,
+  metadata: ?Encodable,
+  flags: number,
+  streamId: 0,
   length?: number,
 |};
 // prettier-ignore
@@ -323,7 +332,7 @@ export type SetupFrame = {|
 |};
 // prettier-ignore
 export type UnsupportedFrame = {|
-  type: 0x3f | 0x0c | 0x00,
+  type: 0x3f | 0x00,
   streamId: 0,
   flags: number,
   length?: number,
