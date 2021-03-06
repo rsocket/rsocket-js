@@ -38,13 +38,13 @@ const serverTransport = new RSocketWebSocketServerTransport(
     host,
     port,
   },
-  BufferEncoders
+  BufferEncoders,
 );
 
 const server = new RSocketServer({
   getRequestHandler: (requestingRSocket, setupPayload) => {
     const decodedMetadata: CompositeMetadata = new CompositeMetadata(
-      setupPayload.metadata
+      setupPayload.metadata,
     );
 
     for (const metadataEntry of decodedMetadata) {
@@ -53,7 +53,7 @@ const server = new RSocketServer({
 
         if (authMetadata.type.string === SIMPLE.string) {
           const usernameAndPassword = decodeSimpleAuthPayload(
-            authMetadata.payload
+            authMetadata.payload,
           );
 
           if (
@@ -68,7 +68,7 @@ const server = new RSocketServer({
                     payload.data ? payload.data.toString() : ''
                   }; metadata : ${
                     payload.metadata ? payload.metadata.toString() : ''
-                  }`
+                  }`,
                 );
                 return every(1000).map(tick => ({
                   data: Buffer.from([tick]),

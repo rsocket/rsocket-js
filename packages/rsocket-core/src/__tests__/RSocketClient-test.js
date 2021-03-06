@@ -198,7 +198,7 @@ describe('RSocketClient', () => {
       client.connect().subscribe({
         onComplete: onCompleteMock,
         onError: onErrorMock,
-        onSubscribe: cancel => cancel()
+        onSubscribe: (cancel) => cancel(),
       });
       expect(transport.close).toBeCalled();
       expect(onCompleteMock).not.toBeCalled();
@@ -324,7 +324,7 @@ describe('RSocketClient', () => {
     let socket;
     let subscriber;
 
-    function createSocket(serializers) {
+    function createSocket(serializers, responder) {
       const transport = genMockConnection();
       const client = new RSocketClient({
         serializers,
@@ -335,6 +335,7 @@ describe('RSocketClient', () => {
           metadataMimeType: '<metadataMimeType>',
         },
         transport,
+        responder,
       });
       let socket;
       client.connect().subscribe({
@@ -938,9 +939,9 @@ describe('RSocketClient', () => {
 
       // open -> payloads.error() -> closed (errors)
       it('the stream is terminated due to an error on the requester side', (done) => {
-        const payloads = new Flowable(subscriber => {
+        const payloads = new Flowable((subscriber) => {
           subscriber.onSubscribe({
-            request: function(n) {
+            request: function (n) {
               if (n === 1) {
                 // send the initial payload
                 const payload = 'initial';
@@ -963,12 +964,12 @@ describe('RSocketClient', () => {
                 transport.receive.mock.publisher.onNext(requestNFrame);
               } else {
                 // once, the 42 payloads are requested
-                expect(n).toBe(42)
+                expect(n).toBe(42);
                 // terminate stream with an error
                 subscriber.onError(new Error('oh no'));
               }
             },
-            cancel: function() {
+            cancel: function () {
               done.fail('is not expected to be cancelled');
             },
           });
@@ -1225,7 +1226,55 @@ describe('RSocketClient', () => {
       });
     });
 
-    describe('metadataPush()', () => {});
+    describe('metadataPush()', () => {
+      // -> open
+      it('sends the payload', () => {
+        socket.metadataPush(payload).subscribe(subscriber);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.METADATA_PUSH,
+          flags: 0,
+          metadata: payload.metadata,
+          streamId: 0,
+        });
+        expect(subscriber.onComplete.mock.calls.length).toBe(1);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      it('sends the payload with serialized data', () => {
+        ({socket, transport} = createSocket(JsonSerializers));
+        payload = {
+          metadata: {metadata: true},
+        };
+        socket.metadataPush(payload).subscribe(subscriber);
+        expect(transport.sendOne.mock.calls.length).toBe(1);
+        expect(transport.sendOne.mock.frame).toEqual({
+          type: FRAME_TYPES.METADATA_PUSH,
+          flags: 0,
+          metadata: '{"metadata":true}',
+          streamId: 0,
+        });
+        expect(subscriber.onComplete.mock.calls.length).toBe(1);
+        expect(subscriber.onError.mock.calls.length).toBe(0);
+      });
+
+      it('receives the MetadataPush payload', (done) => {
+        const metadata = {metadata: true};
+        ({socket, transport} = createSocket(JsonSerializers, {
+          metadataPush(payload) {
+            expect(payload.metadata).toEqual(metadata);
+            done();
+          },
+        }));
+        const metadataFrame = {
+          type: FRAME_TYPES.METADATA_PUSH,
+          flags: 0,
+          metadata: JsonSerializers.metadata.serialize(metadata),
+          streamId: 0,
+        };
+        transport.receive.mock.publisher.onNext(metadataFrame);
+      });
+    });
 
     describe('client.close()', () => {
       let transport;

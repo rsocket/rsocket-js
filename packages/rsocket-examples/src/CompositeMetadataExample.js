@@ -66,35 +66,38 @@ const client = new RSocketClient<Buffer, Buffer>({
 });
 
 // Open the connection
-client.connect().then(socket => {
-  // observe rsocket status
-  // eslint-disable-next-line no-console
-  socket.connectionStatus().subscribe(event => console.log(event));
-  socket
-    .requestStream({
-      data: Buffer.from('request-stream'),
-      metadata: encodeCompositeMetadata([
-        [TEXT_PLAIN, Buffer.from('Hello World')],
-        [MESSAGE_RSOCKET_ROUTING, encodeRoute(route)],
-        [
-          MESSAGE_RSOCKET_AUTHENTICATION,
-          encodeSimpleAuthMetadata('user', 'pass'),
-        ],
-        ['custom/test/metadata', Buffer.from([1, 2, 3])],
-      ]),
-    })
-    .subscribe({
-      // eslint-disable-next-line no-console
-      onComplete: () => console.log('Request-stream completed'),
-      onError: error =>
-        console.error(`Request-stream error:${error.message}`),
-      // eslint-disable-next-line no-console
-      onNext: value => console.log('%s %s', value.data, value.metadata),
-      onSubscribe: sub => sub.request(maxRSocketRequestN),
-    });
-}, error => {
-  // handle connection error
-  // eslint-disable-next-line no-console
-  console.log('error:', error);
-});
+client.connect().then(
+  socket => {
+    // observe rsocket status
+    // eslint-disable-next-line no-console
+    socket.connectionStatus().subscribe(event => console.log(event));
+    socket
+      .requestStream({
+        data: Buffer.from('request-stream'),
+        metadata: encodeCompositeMetadata([
+          [TEXT_PLAIN, Buffer.from('Hello World')],
+          [MESSAGE_RSOCKET_ROUTING, encodeRoute(route)],
+          [
+            MESSAGE_RSOCKET_AUTHENTICATION,
+            encodeSimpleAuthMetadata('user', 'pass'),
+          ],
+          ['custom/test/metadata', Buffer.from([1, 2, 3])],
+        ]),
+      })
+      .subscribe({
+        // eslint-disable-next-line no-console
+        onComplete: () => console.log('Request-stream completed'),
+        onError: error =>
+          console.error(`Request-stream error:${error.message}`),
+        // eslint-disable-next-line no-console
+        onNext: value => console.log('%s %s', value.data, value.metadata),
+        onSubscribe: sub => sub.request(maxRSocketRequestN),
+      });
+  },
+  error => {
+    // handle connection error
+    // eslint-disable-next-line no-console
+    console.log('error:', error);
+  },
+);
 setTimeout(() => {}, 30000000);

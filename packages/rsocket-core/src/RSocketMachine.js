@@ -32,6 +32,7 @@ import type {
   RequestResponseFrame,
   RequestStreamFrame,
   RequestChannelFrame,
+  MetadataPushFrame,
 } from 'rsocket-types';
 import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
 import type {PayloadSerializers} from './RSocketSerialization';
@@ -500,8 +501,19 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   metadataPush(payload: Payload<D, M>): Single<void> {
-    // TODO #18065331: implement metadataPush
-    throw new Error('metadataPush() is not implemented');
+    return new Single(subscriber => {
+      const metadata = this._serializers.metadata.serialize(payload.metadata);
+      const frame = {
+        flags: 0,
+        metadata,
+        streamId: 0,
+        type: FRAME_TYPES.METADATA_PUSH,
+      };
+      this._connection.sendOne(frame);
+
+      subscriber.onSubscribe(() => {});
+      subscriber.onComplete();
+    });
   }
 
   _getNextStreamId(streamIds: Map<number, ISubject<Payload<D, M>>>): number {
@@ -635,6 +647,8 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
         }
         break;
       case FRAME_TYPES.METADATA_PUSH:
+        this._handleMetadataPush(frame);
+        break;
       case FRAME_TYPES.REQUEST_CHANNEL:
       case FRAME_TYPES.REQUEST_FNF:
       case FRAME_TYPES.REQUEST_RESPONSE:
@@ -834,6 +848,15 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     });
   }
 
+  _handleMetadataPush(frame: MetadataPushFrame): void {
+    const payload = this._deserializeMetadataPushPayload(frame);
+    this._requestHandler.metadataPush(payload).subscribe({
+      onComplete: () => {},
+      onError: error => {},
+      onSubscribe: cancel => {},
+    });
+  }
+
   _sendStreamComplete(streamId: number): void {
     this._subscriptions.delete(streamId);
     this._connection.sendOne({
@@ -884,6 +907,10 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     return deserializePayload(this._serializers, frame);
   }
 
+  _deserializeMetadataPushPayload(frame: MetadataPushFrame): Payload<D, M> {
+    return deserializeMetadataPushPayload(this._serializers, frame);
+  }
+
   /**
    * Handle an error specific to a stream.
    */
@@ -902,6 +929,16 @@ function deserializePayload<D, M>(
 ): Payload<D, M> {
   return {
     data: serializers.data.deserialize(frame.data),
+    metadata: serializers.metadata.deserialize(frame.metadata),
+  };
+}
+
+function deserializeMetadataPushPayload<D, M>(
+  serializers: PayloadSerializers<D, M>,
+  frame: MetadataPushFrame,
+): Payload<D, M> {
+  return {
+    data: null,
     metadata: serializers.metadata.deserialize(frame.metadata),
   };
 }

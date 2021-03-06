@@ -26,6 +26,7 @@ import type {
   KeepAliveFrame,
   LeaseFrame,
   PayloadFrame,
+  MetadataPushFrame,
   RequestChannelFrame,
   RequestFnfFrame,
   RequestNFrame,
@@ -165,6 +166,8 @@ export function deserializeFrame(
       return deserializeRequestStreamFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.REQUEST_CHANNEL:
       return deserializeRequestChannelFrame(buffer, streamId, flags, encoders);
+    case FRAME_TYPES.METADATA_PUSH:
+      return deserializeMetadataPushFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.REQUEST_N:
       return deserializeRequestNFrame(buffer, streamId, flags, encoders);
     case FRAME_TYPES.RESUME:
@@ -204,6 +207,8 @@ export function serializeFrame(frame: Frame, encoders?: ?Encoders<*>): Buffer {
     case FRAME_TYPES.REQUEST_STREAM:
     case FRAME_TYPES.REQUEST_CHANNEL:
       return serializeRequestManyFrame(frame, encoders);
+    case FRAME_TYPES.METADATA_PUSH:
+      return serializeMetadataPushFrame(frame, encoders);
     case FRAME_TYPES.REQUEST_N:
       return serializeRequestNFrame(frame, encoders);
     case FRAME_TYPES.RESUME:
@@ -242,6 +247,8 @@ export function sizeOfFrame(frame: Frame, encoders?: ?Encoders<*>): number {
     case FRAME_TYPES.REQUEST_STREAM:
     case FRAME_TYPES.REQUEST_CHANNEL:
       return sizeOfRequestManyFrame(frame, encoders);
+    case FRAME_TYPES.METADATA_PUSH:
+      return sizeOfMetadataPushFrame(frame, encoders);
     case FRAME_TYPES.REQUEST_N:
       return sizeOfRequestNFrame(frame, encoders);
     case FRAME_TYPES.RESUME:
@@ -678,6 +685,39 @@ function sizeOfRequestFrame(
   return FRAME_HEADER_SIZE + payloadLength;
 }
 
+/**
+ * Writes a METADATA_PUSH frame to a new buffer and returns
+ * it.
+ */
+function serializeMetadataPushFrame(
+  frame: MetadataPushFrame,
+  encoders: Encoders<*>,
+): Buffer {
+  const metadata = frame.metadata;
+  if (metadata != null) {
+    const buffer = createBuffer(
+      FRAME_HEADER_SIZE + encoders.metadata.byteLength(metadata),
+    );
+    const offset = writeHeader(frame, buffer);
+    encoders.metadata.encode(metadata, buffer, offset, buffer.length);
+    return buffer;
+  } else {
+    const buffer = createBuffer(FRAME_HEADER_SIZE);
+    writeHeader(frame, buffer);
+    return buffer;
+  }
+}
+
+function sizeOfMetadataPushFrame(
+  frame: MetadataPushFrame,
+  encoders: Encoders<*>,
+): number {
+  return (
+    FRAME_HEADER_SIZE +
+    (frame.metadata != null ? encoders.metadata.byteLength(frame.metadata) : 0)
+  );
+}
+
 function deserializeRequestFnfFrame(
   buffer: Buffer,
   streamId: number,
@@ -722,6 +762,29 @@ function deserializeRequestResponseFrame(
   };
   readPayload(buffer, frame, encoders, FRAME_HEADER_SIZE);
   return frame;
+}
+
+function deserializeMetadataPushFrame(
+  buffer: Buffer,
+  streamId: number,
+  flags: number,
+  encoders: Encoders<*>,
+): MetadataPushFrame {
+  invariant(
+    streamId === 0,
+    'RSocketBinaryFraming: Invalid METADATA_PUSH frame, expected stream id to be 0.',
+  );
+  const length = buffer.length;
+  return {
+    flags,
+    length,
+    metadata:
+      length === FRAME_HEADER_SIZE
+        ? null
+        : encoders.metadata.decode(buffer, FRAME_HEADER_SIZE, length),
+    streamId,
+    type: FRAME_TYPES.METADATA_PUSH,
+  };
 }
 
 /**

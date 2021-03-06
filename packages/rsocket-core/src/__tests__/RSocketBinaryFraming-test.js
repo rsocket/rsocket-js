@@ -620,6 +620,56 @@ describe('RSocketBinaryFraming', () => {
     });
   });
 
+  describe('METADATA_PUSH', () => {
+    it('serializes METADATA_PUSH frames', () => {
+      const frame = {
+        type: FRAME_TYPES.METADATA_PUSH,
+        flags: 0,
+        metadata: '<metadata>',
+        streamId: 0,
+      };
+      const buffer = serializeFrame(frame);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer)).toEqual({
+        ...frame,
+        length: buffer.length,
+      });
+      expect(sizeOfFrame(frame)).toEqual(buffer.length);
+    });
+
+    it('serializes METADATA_PUSH frames with binary content', () => {
+      const frame = {
+        type: FRAME_TYPES.METADATA_PUSH,
+        flags: 0,
+        metadata: new Buffer([0x0d, 0x0e, 0x0f]),
+        streamId: 0,
+      };
+      const buffer = serializeFrame(frame, BufferEncoders);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer, BufferEncoders)).toEqual({
+        ...frame,
+        length: buffer.length,
+      });
+      expect(sizeOfFrame(frame)).toEqual(buffer.length);
+    });
+
+    it('serializes METADATA_PUSH frames without metadata', () => {
+      const frame = {
+        type: FRAME_TYPES.METADATA_PUSH,
+        flags: 0,
+        metadata: null,
+        streamId: 0,
+      };
+      const buffer = serializeFrame(frame);
+      expect(buffer.toString('hex')).toMatchSnapshot();
+      expect(deserializeFrame(buffer)).toEqual({
+        ...frame,
+        length: buffer.length,
+      });
+      expect(sizeOfFrame(frame)).toEqual(buffer.length);
+    });
+  });
+
   describe('ERROR', () => {
     it('serializes ERROR frames', () => {
       const frame = {
