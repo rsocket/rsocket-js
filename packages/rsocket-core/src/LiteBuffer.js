@@ -4,8 +4,9 @@
 import type {Buffer as NodeBuffer} from 'buffer';
 import ExistingBufferModule from 'buffer';
 
-const bufferExists =
+const hasGlobalBuffer =
   typeof global !== 'undefined' && global.hasOwnProperty('Buffer');
+const hasBufferModule = ExistingBufferModule.hasOwnProperty('Buffer');
 
 function notImplemented(msg?: string): void {
   const message = msg ? `Not implemented: ${msg}` : 'Not implemented';
@@ -604,7 +605,10 @@ export class Buffer extends Uint8Array {
    * Returns true if obj is a Buffer, false otherwise.
    */
   static isBuffer(obj: any): boolean {
-    return isInstance(obj, Buffer);
+    return (
+      isInstance(obj, Buffer) ||
+      (!hasGlobalBuffer && hasBufferModule && isInstance(obj, Uint8Array))
+    );
   }
 
   static isEncoding(encoding: any): boolean {
@@ -991,8 +995,8 @@ export class Buffer extends Uint8Array {
   }
 }
 
-if (!bufferExists) {
-  if (ExistingBufferModule.hasOwnProperty('Buffer')) {
+if (!hasGlobalBuffer) {
+  if (hasBufferModule) {
     // ExistingBuffer is likely to be a polyfill, hence we can override it
     // eslint-disable-next-line no-undef
     // $FlowFixMe
@@ -1012,4 +1016,4 @@ if (!bufferExists) {
   });
 }
 
-export const LiteBuffer: NodeBuffer = bufferExists ? global.Buffer : Buffer;
+export const LiteBuffer: NodeBuffer = hasGlobalBuffer ? global.Buffer : Buffer;
