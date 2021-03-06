@@ -3,30 +3,21 @@
 `rsocket-js` implements the 1.0 version of the [RSocket protocol](https://github.com/rsocket/rsocket)
 and is designed for use in Node.js and browsers. From [rsocket.io](http://rsocket.io/):
 
-> ReactiveSocket is an application protocol providing Reactive Streams semantics
+> RSocket is an application protocol providing Reactive Streams semantics
 > over an asynchronous, binary boundary.
 
 ## Status
 
-The following are currently implemented (Note: the project is experimental and
-there may be bugs):
+The following are currently implementedЖ
 
-- rsocket 1.0 client
-- Node.js TCP transport client
+- RSocketClient / RSocketServer
+- Node.js TCP/WebSocket server/client transport
 - Browser WebSocket client (binary)
 - TCK client for spec compliance testing
 - UTF-8 and Binary encoding at the transport layer
 - Optional JSON (de)serialization at the rsocket layer (send and receive objects
   instead of strings)
 - ReactiveStream data types
-
-The following features are not yet implemented:
-
-- `requestChannel()`
-- `metadataPush()`
-- rsocket server
-- LEASE
-- RESUME
 
 ## Reactive Streams
 

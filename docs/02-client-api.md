@@ -111,7 +111,8 @@ requestChannel(payload: Flowable<Payload>): Flowable<Payload>
 
 ### metadataPush() (method)
 
-Not yet implemented.
+This method sends metadata only to the server without waiting for a response. The payload is
+sent immediately. This method is not for the direct application usage and should be used to exchange some service level information 
 
 ```javascript
 metadataPush(payload: Payload): Single<Payload>
