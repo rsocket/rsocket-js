@@ -14,5 +14,6 @@
     "rsocket-flowable": "^0.0.24",
     "rsocket-tcp-client": "^0.0.24",
     "rsocket-types": "^0.0.24"
-  }
+  },
+  "gitHead": "1e15f3c9752f17a06537ee8741900ba12a151a42"
 }

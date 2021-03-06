@@ -10,5 +10,6 @@
   "main": "build/index.js",
   "dependencies": {
     "fbjs": "^3.0.0"
-  }
+  },
+  "gitHead": "1e15f3c9752f17a06537ee8741900ba12a151a42"
 }
