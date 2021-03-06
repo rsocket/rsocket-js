@@ -80,6 +80,66 @@ describe('RSocketServer', () => {
     });
   });
 
+  describe('handles connection close', () => {
+    it('removes serverMachine when connection has gone', () => {
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {};
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      expect(server._connections.size).toBe(1);
+      connection.close();
+      expect(server._connections.size).toBe(0);
+    });
+
+    it('removes serverMachine when connection has gone with error', () => {
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {};
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      expect(server._connections.size).toBe(1);
+      connection.mock.closeWithError(new Error('test'));
+      expect(server._connections.size).toBe(0);
+    });
+  });
+
   describe('RequestHandler', () => {
     it('sends error if getRequestHandler throws', () => {
       const transport = genMockTransportServer();

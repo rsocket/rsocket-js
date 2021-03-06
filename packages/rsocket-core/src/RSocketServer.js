@@ -184,6 +184,15 @@ export default class RSocketServer<D, M> {
                 );
                 serverMachine.setRequestHandler(requestHandler);
                 this._connections.add(serverMachine);
+                connection.connectionStatus().subscribe({
+                  onNext: status => {
+                    if (status.kind === 'CLOSED' || status.kind === 'ERROR') {
+                      this._connections.delete(serverMachine);
+                    }
+                  },
+                  onSubscribe: subscription =>
+                    subscription.request(Number.MAX_SAFE_INTEGER),
+                });
               } catch (error) {
                 connection.sendOne({
                   code: ERROR_CODES.REJECTED_SETUP,
@@ -195,9 +204,6 @@ export default class RSocketServer<D, M> {
                 });
                 connection.close();
               }
-
-              // TODO(blom): We should subscribe to connection status
-              // so we can remove the connection when it goes away
               break;
             default:
               invariant(
