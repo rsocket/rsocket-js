@@ -17,6 +17,6 @@
 
 'use strict';
 
-import {RSocketTcpClient, RSocketTcpConnection} from './RSocketTcpClient';
+import {RSocketTcpClient, RSocketTcpConnection, RSocketTlsClient} from './RSocketTcpClient';
 export default RSocketTcpClient;
-export {RSocketTcpConnection};
+export {RSocketTcpConnection, RSocketTlsClient};
