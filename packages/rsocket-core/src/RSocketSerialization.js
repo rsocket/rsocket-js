@@ -60,6 +60,21 @@ export const JsonSerializers = {
   metadata: JsonSerializer,
 };
 
+// JSON Serializer for Buffer Encoders
+export const JSONBufferSerializer: Serializer<any> = {
+  deserialize: JsonSerializer.deserialize,
+  serialize: (data) => {
+    if (Buffer.isBuffer(data) || data == null) {
+      return data;
+    } else return Buffer.from(JSON.stringify(data));
+  },
+};
+
+export const JSONBufferSerializers = {
+  data: JSONBufferSerializer,
+  metadata: JSONBufferSerializer,
+};
+
 // Pass-through serializer
 export const IdentitySerializer: Serializer<Encodable> = {
   deserialize: data => {
