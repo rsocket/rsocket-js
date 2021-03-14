@@ -98,6 +98,58 @@ client.connect().subscribe({
 });
 ```
 
+## Composite Metadata
+To use Composite Metadata, you will need to configure your Rsocket Client as normal, but for the metadata Mime-Type put composite, and ensure your Transport uses `BufferEncoders`
+
+```javascript
+import {
+  RSocketClient, 
+  BufferEncoders,
+  JSONBufferSerializer,
+  JSONCompositeMetadataSerializer,
+  APPLICATION_JSON,
+  MESSAGE_RSOCKET_COMPOSITE_METADATA,
+  MESSAGE_RSOCKET_ROUTING,
+  MESSAGE_RSOCKET_AUTHENTICATION,
+  encodeBearerAuthMetadata,
+  encodeCompositeMetadata,
+  encodeRoute,
+} from 'rsocket-core';
+import RSocketWebSocketClient from 'rsocket-websocket-client';
+
+// Create an instance of a client
+const client = new RSocketClient({
+  // note: if you don't want to use JSON omit the serializers property
+  serializers: {
+    data: JSONBufferSerializer,
+    metadata: JSONCompositeMetadataSerializer,
+  },
+  setup: {
+    keepAlive: 60000, 
+    lifetime: 180000, 
+    dataMimeType: 'application/json', 
+    // set mime-type to composite
+    metadataMimeType:  MESSAGE_RSOCKET_COMPOSITE_METADATA.string, 
+  },
+  transport: new RSocketWebSocketClient({url: 'wss://...'},BufferEncoders),
+});
+
+// Open the connection
+client.connect().subscribe({
+  onComplete: socket => {
+
+    socket.fireAndForget({
+      data: {some: {json: {value: 1}}},
+      metadata: encodeCompositeMetadata([
+      [MESSAGE_RSOCKET_ROUTING, encodeRoute("some-route")],
+      [MESSAGE_RSOCKET_AUTHENTICATION, encodeBearerAuthMetadata("some jwt")],
+    ]), 
+    });
+  },
+  onError: error => console.error(error),
+  onSubscribe: cancel => {/* call cancel() to abort */}
+});
+```
 ## Next
 
 See the [client API documentation](./02-client-api.md).
