@@ -99,7 +99,7 @@ client.connect().subscribe({
 ```
 
 ## Composite Metadata
-To use Composite Metadata, you will need to configure your Rsocket Client as normal, but for the metadata Mime-Type put composite, and ensure your Transport uses `BufferEncoders`
+To use Composite Metadata, you will need to configure your RSocket Client as normal, but for the metadata Mime-Type put composite, and ensure your Transport uses `BufferEncoders`
 
 ```javascript
 import {
