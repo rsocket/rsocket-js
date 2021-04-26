@@ -598,8 +598,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   };
 
   _handleConnectionError(error: Error): void {
-    this._handleError(error);
-    this._connection.close();
+    this._connection.close(error);
     const errorHandler = this._errorHandler;
     if (errorHandler) {
       errorHandler(error);

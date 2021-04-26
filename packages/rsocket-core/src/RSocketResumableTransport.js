@@ -156,8 +156,8 @@ export default class RSocketResumableTransport implements DuplexConnection {
     this._statusSubscribers = new Set();
   }
 
-  close(): void {
-    this._close();
+  close(error?: Error): void {
+    this._close(error);
   }
 
   connect(): void {
@@ -275,13 +275,18 @@ export default class RSocketResumableTransport implements DuplexConnection {
     if (this._isTerminated()) {
       return;
     }
-    if (error) {
-      this._setConnectionStatus({error, kind: 'ERROR'});
-    } else {
-      this._setConnectionStatus(CONNECTION_STATUS.CLOSED);
-    }
+
+    const status = error ? {error, kind: 'ERROR'} : CONNECTION_STATUS.CLOSED;
+    this._setConnectionStatus(status);
+
     const receivers = this._receivers;
-    receivers.forEach(r => r.onComplete());
+    receivers.forEach(subscriber => {
+      if (error) {
+        subscriber.onError(error);
+      } else {
+        subscriber.onComplete();
+      }
+    });
     receivers.clear();
 
     const senders = this._senders;

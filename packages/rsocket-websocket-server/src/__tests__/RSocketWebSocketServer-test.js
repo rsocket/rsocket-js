@@ -74,10 +74,18 @@ describe('RSocketWebSocketServer', () => {
       expect(status.error).toBe(error);
     });
 
-    it('returns CLOSED if explicitly closed', () => {
+    it('returns CLOSED if explicitly closed with no error', () => {
       connection.receive().subscribe(() => {});
       connection.close();
       expect(status.kind).toBe('CLOSED');
+    });
+
+    it('returns ERROR if explicitly closed with an error', () => {
+      connection.receive().subscribe(() => {});
+      const error = new Error();
+      connection.close(error);
+      expect(status.kind).toBe('ERROR');
+      expect(status.error).toBe(error);
     });
   });
 });

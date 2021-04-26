@@ -28,8 +28,12 @@ export function genMockConnection() {
   let closed = false;
 
   const connection = {
-    close: jest.fn(() => {
-      connection.mock.close();
+    close: jest.fn(error => {
+      if (error) {
+        connection.mock.closeWithError(error);
+      } else {
+        connection.mock.close();
+      }
     }),
     connect: jest.fn(),
     connectionStatus: jest.fn(() => status),

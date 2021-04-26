@@ -310,7 +310,7 @@ describe('RSocketClient', () => {
       expect(errors.values().next().value).toEqual(
         `No keep-alive acks for ${keepAliveTimeout} millis`,
       );
-      expect(status.kind).toEqual('CLOSED');
+      expect(status.kind).toEqual('ERROR');
 
       jest.advanceTimersByTime(keepAliveTimeout);
     });

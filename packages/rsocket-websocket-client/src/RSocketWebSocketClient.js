@@ -62,8 +62,8 @@ export default class RSocketWebSocketClient implements DuplexConnection {
     this._statusSubscribers = new Set();
   }
 
-  close(): void {
-    this._close();
+  close(error?: Error): void {
+    this._close(error);
   }
 
   connect(): void {
