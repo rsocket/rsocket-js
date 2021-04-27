@@ -122,7 +122,7 @@ const client = new RSocketClient({
   // note: if you don't want to use JSON omit the serializers property
   serializers: {
     data: JSONBufferSerializer,
-    metadata: JSONCompositeMetadataSerializer,
+    metadata: JSONBufferSerializer,
   },
   setup: {
     keepAlive: 60000, 
