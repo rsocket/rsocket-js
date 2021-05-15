@@ -1,6 +1,7 @@
 .DS_STORE
 .eslintcache
 .idea
+.vscode
 *.swp
 *~
 /node_modules
