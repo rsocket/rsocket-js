@@ -1,6 +1,6 @@
 # [rsocket-js](https://github.com/rsocket/rsocket-js)
 
-[![Build Status](https://travis-ci.org/rsocket/rsocket-js.svg?branch=master)](https://travis-ci.org/rsocket/rsocket-js)
+[![Build Status](https://github.com/rsocket/rsocket-js/actions/workflows/test.yml/badge.svg)](https://github.com/rsocket/rsocket-js/actions/workflows/test.yml)
 
 A JavaScript implementation of the [RSocket](https://github.com/rsocket/rsocket)
 protocol intended for use in browsers and/or Node.js. From [rsocket.io](http://rsocket.io/):
