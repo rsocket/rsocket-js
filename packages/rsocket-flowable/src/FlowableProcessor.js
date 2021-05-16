@@ -7,6 +7,7 @@ export default class FlowableProcessor<T, R>
   _source: IPublisher<T>;
   _sink: ISubscriber<R>;
   _subscription: ISubscription;
+  _subscribed: Boolean;
   _done: boolean;
   _error: Error;
 
@@ -14,6 +15,7 @@ export default class FlowableProcessor<T, R>
     this._source = source;
     this._transformer = fn;
     this._done = false;
+    this._subscribed = false;
     this._mappers = []; //mappers for map function
   }
 
@@ -22,8 +24,12 @@ export default class FlowableProcessor<T, R>
   }
 
   onNext(t: T) {
-    if (!this._sink) {
-      warning('Warning, premature onNext for processor, dropping value');
+    const isPremature = this._subscribed === false;
+    warning(
+      isPremature,
+      'Warning, premature onNext for processor, dropping value',
+    );
+    if (isPremature) {
       return;
     }
 
@@ -40,28 +46,29 @@ export default class FlowableProcessor<T, R>
 
   onError(error: Error) {
     this._error = error;
-    if (!this._sink) {
-      warning(
-        'Warning, premature onError for processor, marking complete/errored',
-      );
-    } else {
-      this._sink.onError(error);
-    }
+    const isPremature = this._subscribed === false;
+    warning(
+      isPremature,
+      'Warning, premature onError for processor, marking complete',
+    );
+    !isPremature && this._sink.onError(error);
   }
 
   onComplete() {
     this._done = true;
-    if (!this._sink) {
-      warning('Warning, premature onError for processor, marking complete');
-    } else {
-      this._sink.onComplete();
-    }
+    const isPremature = this._subscribed === false;
+    warning(
+      isPremature,
+      'Warning, premature onComplete for processor, marking complete',
+    );
+    !isPremature && this._sink.onComplete();
   }
 
   subscribe(subscriber: ISubscriber<R>) {
     if (this._source.subscribe) {
       this._source.subscribe(this);
     }
+    this._subscribed = true;
     this._sink = subscriber;
     this._sink.onSubscribe(this);
 
