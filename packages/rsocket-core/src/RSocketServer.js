@@ -33,7 +33,7 @@ import type {
 import type {PayloadSerializers} from './RSocketSerialization';
 
 import {Flowable} from 'rsocket-flowable';
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 import {
   getFrameTypeName,
   CONNECTION_STREAM_ID,

@@ -18,9 +18,6 @@
 
 /* eslint-disable max-len, no-bitwise */
 
-import forEachObject from 'fbjs/lib/forEachObject';
-import sprintf from 'fbjs/lib/sprintf';
-
 import type {ErrorFrame, Frame} from 'rsocket-types';
 
 export const CONNECTION_STREAM_ID = 0;
@@ -46,9 +43,10 @@ export const FRAME_TYPES = {
 
 // Maps frame type codes to type names
 export const FRAME_TYPE_NAMES: {[typeCode: number]: string} = {};
-forEachObject(FRAME_TYPES, (value, name) => {
+for (const name in FRAME_TYPES) {
+  const value = FRAME_TYPES[name];
   FRAME_TYPE_NAMES[value] = name;
-});
+}
 
 export const FLAGS = {
   COMPLETE: 0x40, // PAYLOAD, REQUEST_CHANNEL: indicates stream completion, if set onComplete will be invoked on receiver.
@@ -79,9 +77,10 @@ export const ERROR_CODES = {
 
 // Maps error codes to names
 export const ERROR_EXPLANATIONS: {[code: number]: string} = {};
-forEachObject(ERROR_CODES, (code, explanation) => {
+for (const explanation in ERROR_CODES) {
+  const code = ERROR_CODES[explanation];
   ERROR_EXPLANATIONS[code] = explanation;
-});
+}
 
 export const FLAGS_MASK = 0x3ff; // low 10 bits
 export const FRAME_TYPE_OFFFSET = 10; // frame type is offset 10 bytes within the uint16 containing type + flags
@@ -173,6 +172,11 @@ export function getFrameTypeName(type: number): string {
   return name != null ? name : toHex(type);
 }
 
+function sprintf(format, ...args) {
+  let index = 0;
+  return format.replace(/%s/g, match => args[index++]);
+}
+
 /**
  * Constructs an Error object given the contents of an error frame. The
  * `source` property contains metadata about the error for use in introspecting
@@ -224,11 +228,12 @@ export function printFrame(frame: Frame): string {
   const obj: Object = {...frame};
   obj.type = getFrameTypeName(frame.type) + ` (${toHex(frame.type)})`;
   const flagNames = [];
-  forEachObject(FLAGS, (flag, name) => {
+  for (const name in FLAGS) {
+    const flag = FLAGS[name];
     if ((frame.flags & flag) === flag) {
       flagNames.push(name);
     }
-  });
+  }
   if (!flagNames.length) {
     flagNames.push('NO FLAGS');
   }
