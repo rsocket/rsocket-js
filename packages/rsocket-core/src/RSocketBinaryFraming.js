@@ -38,7 +38,7 @@ import type {
 } from 'rsocket-types';
 import type {Encoders} from './RSocketEncoding';
 
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 import {
   getFrameTypeName,
   isMetadata,

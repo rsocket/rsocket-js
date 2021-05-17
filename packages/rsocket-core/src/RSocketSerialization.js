@@ -19,7 +19,7 @@
 import type {Encodable} from 'rsocket-types';
 
 import {LiteBuffer as Buffer} from './LiteBuffer';
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 
 /**
  * A Serializer transforms data between the application encoding used in

@@ -18,7 +18,7 @@
 
 import type {Encodable} from 'rsocket-types';
 
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 import {Flowable} from 'rsocket-flowable';
 import type {LeaseFrame, ISubscriber, ISubscription} from 'rsocket-types';
 import {MAX_REQUEST_N} from './RSocketFrame';

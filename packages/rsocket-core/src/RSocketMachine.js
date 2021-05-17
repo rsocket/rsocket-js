@@ -38,9 +38,6 @@ import type {ISubject, ISubscription, IPartialSubscriber} from 'rsocket-types';
 import type {PayloadSerializers} from './RSocketSerialization';
 
 import {Flowable, FlowableProcessor, Single} from 'rsocket-flowable';
-import emptyFunction from 'fbjs/lib/emptyFunction';
-import invariant from 'fbjs/lib/invariant';
-import warning from 'fbjs/lib/warning';
 import {
   createErrorFromFrame,
   getFrameTypeName,
@@ -314,7 +311,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     const streamId = this._getNextStreamId(this._receivers);
     return new Single(subscriber => {
       this._receivers.set(streamId, {
-        onComplete: emptyFunction,
+        onComplete: () => {},
         onError: error => subscriber.onError(error),
         onNext: data => subscriber.onComplete(data),
       });
@@ -485,11 +482,8 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
                   },
                 });
               } else {
-                warning(
-                  false,
-                  'RSocketClient: re-entrant call to request n before initial' +
-                    ' channel established.',
-                );
+                console.warn('RSocketClient: re-entrant call to request n before initial' +
+                  ' channel established.');
               }
             }
           },
@@ -766,7 +760,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       onSubscribe: cancel => {
         const subscription = {
           cancel,
-          request: emptyFunction,
+          request: () => {},
         };
         this._subscriptions.set(streamId, subscription);
       },
