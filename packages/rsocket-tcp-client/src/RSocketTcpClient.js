@@ -24,7 +24,6 @@ import type {Encoders} from 'rsocket-core';
 import net from 'net';
 import tls from 'tls';
 import {Flowable} from 'rsocket-flowable';
-import invariant from 'fbjs/lib/invariant';
 import {
   createBuffer,
   deserializeFrames,
@@ -188,10 +187,9 @@ export class RSocketTcpConnection implements DuplexConnection {
   _writeFrame(frame: Frame): void {
     try {
       const buffer = serializeFrameWithLength(frame, this._encoders);
-      invariant(
-        this._socket,
-        'RSocketTcpClient: Cannot send frame, not connected.',
-      );
+      if (!this._socket) {
+        throw new Error('RSocketTcpClient: Cannot send frame, not connected.');
+      }
       this._socket.write(buffer);
     } catch (error) {
       this._handleError(error);
@@ -211,11 +209,9 @@ export class RSocketTcpClient extends RSocketTcpConnection {
   }
 
   connect(): void {
-    invariant(
-      this.getConnectionState().kind === 'NOT_CONNECTED',
-      'RSocketTcpClient: Cannot connect(), a connection is already ' +
-        'established.',
-    );
+    if (this.getConnectionState().kind !== 'NOT_CONNECTED') {
+      throw new Error('RSocketTcpClient: Cannot connect(), a connection is already established.');
+    }
     this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     const socket = net.connect(this._options);
 
@@ -240,11 +236,9 @@ export class RSocketTlsClient extends RSocketTcpConnection {
   }
 
   connect(): void {
-    invariant(
-      this.getConnectionState().kind === 'NOT_CONNECTED',
-      'RSocketTlsClient: Cannot connect(), a connection is already ' +
-        'established.',
-    );
+    if (this.getConnectionState().kind !== 'NOT_CONNECTED') {
+      throw new Error('RSocketTcpClient: Cannot connect(), a connection is already established.');
+    }
     this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     const socket = tls.connect(this._options);
 
