@@ -27,9 +27,7 @@ import type {Encoders, TransportServer} from 'rsocket-core';
 
 import EventEmitter from 'events';
 import ws from 'ws';
-import invariant from 'fbjs/lib/invariant';
 import {Flowable} from 'rsocket-flowable';
-import Deferred from 'fbjs/lib/Deferred';
 import {deserializeFrame, serializeFrame} from 'rsocket-core';
 import {CONNECTION_STATUS} from 'rsocket-types';
 
@@ -120,7 +118,6 @@ export default class RSocketWebSocketServer implements TransportServer {
  */
 class WSDuplexConnection implements DuplexConnection {
   _active: boolean;
-  _close: Deferred<void, Error>;
   _encoders: ?Encoders<*>;
   _socket: typeof ws.Socket;
   _receiver: Flowable<Frame>;
@@ -129,7 +126,6 @@ class WSDuplexConnection implements DuplexConnection {
 
   constructor(socket: typeof ws.Socket, encoders: ?Encoders<*>) {
     this._active = true;
-    this._close = new Deferred();
     this._encoders = encoders;
     this._socket = socket;
     this._statusSubscribers = new Set();
@@ -143,11 +139,10 @@ class WSDuplexConnection implements DuplexConnection {
     // If _receiver has been `subscribe()`-ed already
     let isSubscribed = false;
     this._receiver = new Flowable(subscriber => {
-      invariant(
-        !isSubscribed,
-        'RSocketWebSocketServer: Multicast receive() is not supported. Be sure ' +
-          'to receive/subscribe only once.',
-      );
+      if (isSubscribed) {
+        throw new Error('RSocketWebSocketServer: Multicast receive() is not supported. Be sure ' +
+          'to receive/subscribe only once.');
+      }
       isSubscribed = true;
 
       // Whether `request()` has been called.
