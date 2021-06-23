@@ -28,7 +28,7 @@ import type {
 import type {PayloadSerializers} from './RSocketSerialization';
 
 import {Flowable, Single, every} from 'rsocket-flowable';
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 import {CONNECTION_STREAM_ID, FLAGS, FRAME_TYPES} from './RSocketFrame';
 import {MAJOR_VERSION, MINOR_VERSION} from './RSocketVersion';
 import {createClientMachine} from './RSocketMachine';

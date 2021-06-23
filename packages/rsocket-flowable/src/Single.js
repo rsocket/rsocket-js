@@ -17,9 +17,6 @@
 
 'use strict';
 
-import warning from 'fbjs/lib/warning';
-import emptyFunction from 'fbjs/lib/emptyFunction';
-
 export type Source<T> = (subject: IFutureSubject<T>) => void;
 
 export type CancelCallback = () => void;
@@ -152,8 +149,8 @@ export default class Single<T> {
 
   then(successFn?: (data: T) => void, errorFn?: (error: Error) => void): void {
     this.subscribe({
-      onComplete: successFn || emptyFunction,
-      onError: errorFn || emptyFunction,
+      onComplete: successFn || (() => {}),
+      onError: errorFn || (() => {}),
     });
   }
 }
@@ -174,8 +171,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
 
   onComplete(value: T): void {
     if (!this._active) {
-      warning(
-        false,
+      console.warn(
         'Single: Invalid call to onComplete(): %s.',
         this._started
           ? 'onComplete/onError was already called'
@@ -198,8 +194,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
 
   onError(error: Error): void {
     if (this._started && !this._active) {
-      warning(
-        false,
+      console.warn(
         'Single: Invalid call to onError(): %s.',
         this._active
           ? 'onComplete/onError was already called'
@@ -214,7 +209,7 @@ class FutureSubscriber<T> implements IFutureSubscriber<T> {
 
   onSubscribe(cancel?: ?CancelCallback): void {
     if (this._started) {
-      warning(false, 'Single: Invalid call to onSubscribe(): already called.');
+      console.warn('Single: Invalid call to onSubscribe(): already called.');
       return;
     }
     this._active = true;

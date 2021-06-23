@@ -1,5 +1,4 @@
 import type {IPublisher, ISubscription, ISubscriber} from 'rsocket-types';
-import warning from 'fbjs/lib/warning';
 
 export default class FlowableProcessor<T, R>
   implements IPublisher<R>, ISubscriber<T>, ISubscription {
@@ -23,7 +22,7 @@ export default class FlowableProcessor<T, R>
 
   onNext(t: T) {
     if (!this._sink) {
-      warning('Warning, premature onNext for processor, dropping value');
+      console.warn('premature onNext for processor, dropping value');
       return;
     }
 
@@ -41,9 +40,7 @@ export default class FlowableProcessor<T, R>
   onError(error: Error) {
     this._error = error;
     if (!this._sink) {
-      warning(
-        'Warning, premature onError for processor, marking complete/errored',
-      );
+      console.warn('premature onError for processor, marking complete/errored');
     } else {
       this._sink.onError(error);
     }
@@ -52,7 +49,7 @@ export default class FlowableProcessor<T, R>
   onComplete() {
     this._done = true;
     if (!this._sink) {
-      warning('Warning, premature onError for processor, marking complete');
+      console.warn('premature onError for processor, marking complete');
     } else {
       this._sink.onComplete();
     }

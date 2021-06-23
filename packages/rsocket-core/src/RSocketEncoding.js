@@ -20,7 +20,7 @@
 import type {Encodable} from 'rsocket-types';
 
 import {byteLength} from './RSocketBufferUtils';
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 
 /**
  * Commonly used subset of the allowed Node Buffer Encoder types.

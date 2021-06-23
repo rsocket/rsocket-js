@@ -21,7 +21,6 @@ import type {ConnectionStatus, DuplexConnection, Frame} from 'rsocket-types';
 import type {ISubject, ISubscriber, ISubscription} from 'rsocket-types';
 import type {Encoders} from 'rsocket-core';
 
-import invariant from 'fbjs/lib/invariant';
 import {Flowable} from 'rsocket-flowable';
 import {
   deserializeFrame,
@@ -67,11 +66,10 @@ export default class RSocketWebSocketClient implements DuplexConnection {
   }
 
   connect(): void {
-    invariant(
-      this._status.kind === 'NOT_CONNECTED',
-      'RSocketWebSocketClient: Cannot connect(), a connection is already ' +
-        'established.',
-    );
+    if (this._status.kind !== 'NOT_CONNECTED') {
+      throw new Error('RSocketWebSocketClient: Cannot connect(), a connection is already ' +
+        'established.');
+    }
     this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
 
     const wsCreator = this._options.wsCreator;
@@ -218,10 +216,9 @@ export default class RSocketWebSocketClient implements DuplexConnection {
       const buffer = this._options.lengthPrefixedFrames
         ? serializeFrameWithLength(frame, this._encoders)
         : serializeFrame(frame, this._encoders);
-      invariant(
-        this._socket,
-        'RSocketWebSocketClient: Cannot send frame, not connected.',
-      );
+      if (!this._socket) {
+        throw new Error('RSocketWebSocketClient: Cannot send frame, not connected.');
+      }
       this._socket.send(buffer);
     } catch (error) {
       this._close(error);

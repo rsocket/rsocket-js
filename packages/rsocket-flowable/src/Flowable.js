@@ -26,10 +26,8 @@ import type {
 
 import FlowableMapOperator from './FlowableMapOperator';
 import FlowableTakeOperator from './FlowableTakeOperator';
+import invariant from './Invariant';
 
-import invariant from 'fbjs/lib/invariant';
-import warning from 'fbjs/lib/warning';
-import emptyFunction from 'fbjs/lib/emptyFunction';
 
 export type Source<T> = (subscriber: ISubscriber<T>) => void;
 
@@ -75,8 +73,8 @@ export default class Flowable<T> implements IPublisher<T> {
   static never<U = empty>(): Flowable<U> {
     return new Flowable(subscriber => {
       subscriber.onSubscribe({
-        cancel: emptyFunction,
-        request: emptyFunction,
+        cancel: () => {},
+        request: () => {},
       });
     });
   }
@@ -151,8 +149,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   onComplete(): void {
     if (!this._active) {
-      warning(
-        false,
+      console.warn(
         'Flowable: Invalid call to onComplete(): %s.',
         this._started
           ? 'onComplete/onError was already called'
@@ -175,8 +172,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   onError(error: Error): void {
     if (this._started && !this._active) {
-      warning(
-        false,
+      console.warn(
         'Flowable: Invalid call to onError(): %s.',
         this._active
           ? 'onComplete/onError was already called'
@@ -191,8 +187,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   onNext(data: T): void {
     if (!this._active) {
-      warning(
-        false,
+      console.warn(
         'Flowable: Invalid call to onNext(): %s.',
         this._active
           ? 'onComplete/onError was already called'
@@ -201,8 +196,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
       return;
     }
     if (this._pending === 0) {
-      warning(
-        false,
+      console.warn(
         'Flowable: Invalid call to onNext(), all request()ed values have been ' +
           'published.',
       );
@@ -223,10 +217,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
 
   onSubscribe(subscription?: ?ISubscription): void {
     if (this._started) {
-      warning(
-        false,
-        'Flowable: Invalid call to onSubscribe(): already called.',
-      );
+      console.warn('Flowable: Invalid call to onSubscribe(): already called.');
       return;
     }
     this._active = true;

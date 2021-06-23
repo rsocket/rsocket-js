@@ -26,7 +26,7 @@ import type {
 import type {ISubject, ISubscription} from 'rsocket-types';
 
 import {Flowable} from 'rsocket-flowable';
-import invariant from 'fbjs/lib/invariant';
+import invariant from './Invariant';
 import {
   createErrorFromFrame,
   isResumePositionFrameType,

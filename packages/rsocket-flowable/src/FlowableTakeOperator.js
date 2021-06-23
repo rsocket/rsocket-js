@@ -17,8 +17,6 @@
 
 'use strict';
 
-import nullthrows from 'fbjs/lib/nullthrows';
-
 import type {ISubscriber, ISubscription} from 'rsocket-types';
 
 /**
@@ -52,7 +50,10 @@ export default class FlowableTakeOperator<T> implements ISubscriber<T> {
         this._cancelAndComplete();
       }
     } catch (e) {
-      nullthrows(this._subscription).cancel();
+      if (!this._subscription) {
+        throw new Error('subscription is null');
+      }
+      this._subscription.cancel();
       this._subscriber.onError(e);
     }
   }
@@ -66,7 +67,10 @@ export default class FlowableTakeOperator<T> implements ISubscriber<T> {
   }
 
   _cancelAndComplete(): void {
-    nullthrows(this._subscription).cancel();
+    if (!this._subscription) {
+      throw new Error('subscription is null');
+    }
+    this._subscription.cancel();
     this._subscriber.onComplete();
   }
 }

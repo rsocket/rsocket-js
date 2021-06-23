@@ -15,12 +15,9 @@
  * @flow
  */
 
-import Deferred from 'fbjs/lib/Deferred';
-
-import nullthrows from 'fbjs/lib/nullthrows';
-
 import type {Payload} from 'rsocket-types';
 import type {ISubscriber, ISubscription} from 'rsocket-types';
+import {Deferred} from './Deferred';
 
 export default class RSocketTckRequestStreamSubscriber
   implements ISubscriber<Payload<*, *>> {
@@ -83,11 +80,17 @@ export default class RSocketTckRequestStreamSubscriber
 
   cancel(): void {
     this._cancelled = true;
-    nullthrows(this._subscription).cancel();
+    if (!this._subscription) {
+      throw new Error('subscription is null or undefined');
+    }
+    this._subscription.cancel();
   }
 
   request(n: number): void {
-    nullthrows(this._subscription).request(n);
+    if (!this._subscription) {
+      throw new Error('subscription is null or undefined');
+    }
+    this._subscription.request(n);
   }
 
   onComplete(): void {
