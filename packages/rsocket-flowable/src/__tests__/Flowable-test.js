@@ -15,12 +15,12 @@
 
 'use strict';
 
-jest.mock('fbjs/lib/warning').useFakeTimers();
+jest.useFakeTimers();
 
 describe('Flowable', () => {
   const Flowable = require('../Flowable').default;
   const {genMockSubscriber} = require('../__mocks__/MockFlowableSubscriber');
-  const warning = require('fbjs/lib/warning');
+  const warning = jest.spyOn(global.console, 'warn');
 
   beforeEach(() => {
     warning.mockClear();

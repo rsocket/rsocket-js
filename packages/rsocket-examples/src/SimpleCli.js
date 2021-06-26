@@ -19,7 +19,6 @@
 
 'use strict';
 
-import Deferred from 'fbjs/lib/Deferred';
 import type {
   PartialResponder,
   ReactiveSocket,
@@ -168,26 +167,26 @@ function getClientTransport(protocol: string, options: ServerOptions) {
 }
 
 function runOperation(socket, options) {
-  const deferred = new Deferred();
-  let subscription: ISubscription;
-  doOperation(socket, options.operation, options.payload).subscribe({
-    onComplete() {
-      console.log('onComplete()');
-      deferred.resolve();
-    },
-    onError(error) {
-      console.log('onError(%s)', error.message);
-      deferred.reject(error);
-    },
-    onNext(payload) {
-      console.log('onNext(%s)', payload.data);
-    },
-    onSubscribe(_subscription) {
-      subscription = _subscription;
-      subscription.request(MAX_STREAM_ID);
-    },
+  return new Promise((resolve, reject) => {
+    let subscription: ISubscription;
+    doOperation(socket, options.operation, options.payload).subscribe({
+      onComplete() {
+        console.log('onComplete()');
+        resolve();
+      },
+      onError(error) {
+        console.log('onError(%s)', error.message);
+        reject(error);
+      },
+      onNext(payload) {
+        console.log('onNext(%s)', payload.data);
+      },
+      onSubscribe(_subscription) {
+        subscription = _subscription;
+        subscription.request(MAX_STREAM_ID);
+      },
+    });
   });
-  return deferred.getPromise();
 }
 
 function connect(protocol: string, options: ServerOptions) {
@@ -211,18 +210,17 @@ async function run(options) {
   };
 
   if (!isClient) {
-    const deferred = new Deferred();
-    const server = new RSocketServer({
-      getRequestHandler: socket => {
-        runOperation(socket, options);
-        return new SymmetricResponder();
-      },
-      transport: getServerTransport(options.protocol, serverOptions),
+    return new Promise(() => {
+      const server = new RSocketServer({
+        getRequestHandler: socket => {
+          runOperation(socket, options);
+          return new SymmetricResponder();
+        },
+        transport: getServerTransport(options.protocol, serverOptions),
+      });
+      server.start();
+      console.log(`Server started on ${options.host}:${options.port}`);
     });
-    server.start();
-
-    console.log(`Server started on ${options.host}:${options.port}`);
-    return deferred.getPromise();
   } else {
     console.log(`Client connecting to ${options.host}:${options.port}`);
     // $FlowFixMe

@@ -15,8 +15,6 @@
 
 'use strict';
 
-import emptyFunction from 'fbjs/lib/emptyFunction';
-
 import type {Subscriber} from '../../ReactiveStreamTypes';
 
 type PartialSubscriber<T> = {|
@@ -32,9 +30,9 @@ export function genMockSubscriber<T>(
   let subscription;
   partialSubscriber = partialSubscriber || {};
   const subscriber = {
-    onComplete: jest.fn(partialSubscriber.onComplete || emptyFunction),
-    onError: jest.fn(partialSubscriber.onError || emptyFunction),
-    onNext: jest.fn(partialSubscriber.onNext || emptyFunction),
+    onComplete: jest.fn(partialSubscriber.onComplete || (() => {})),
+    onError: jest.fn(partialSubscriber.onError || (() => {})),
+    onNext: jest.fn(partialSubscriber.onNext || (() => {})),
     onSubscribe: jest.fn(sub => {
       partialSubscriber.onSubscribe && partialSubscriber.onSubscribe(sub);
       subscription = sub;

@@ -20,16 +20,29 @@ import RSocketTcpClient from 'rsocket-tcp-client';
 import RSocketTckRequestResponseSubscriber from './RSocketTckRequestResponseSubscriber';
 import RSocketTckRequestStreamSubscriber from './RSocketTckRequestStreamSubscriber';
 
-import areEqual from 'fbjs/lib/areEqual';
 import chalk from 'chalk';
 import fs from 'fs';
-import nullthrows from 'fbjs/lib/nullthrows';
 import path from 'path';
-import sprintf from 'fbjs/lib/sprintf';
 import util from 'util';
 import yargs from 'yargs';
 
 import type {Payload, ReactiveSocket} from 'rsocket-types';
+
+function sprintf(format, ...args) {
+  let index = 0;
+  return format.replace(/%s/g, () => '' + args[index++]);
+}
+
+function nullthrows(x) {
+  if (x != null) {
+    return x;
+  }
+  throw new Error('got null or undefined');
+}
+
+function areEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 type Options = {
   host: string,
@@ -86,10 +99,8 @@ async function run(options: Options): Promise<void> {
     );
   }
   process.stdout.write(chalk.inverse('Running TCK tests') + '\n');
-  process.stdout.write(sprintf('Using testfile %s', testfilePath) + '\n');
-  process.stdout.write(
-    sprintf('Connecting to server at %s:%s', options.host, options.port) + '\n',
-  );
+  process.stdout.write(`Using testfile${testfilePath}\n`);
+  process.stdout.write(`Connecting to server at ${options.host}:${options.port}\n`);
   const testSource = fs.readFileSync(testfilePath, 'utf8');
   const testCases = testSource
     .split('!')

@@ -15,17 +15,19 @@
 
 'use strict';
 
-import Deferred from 'fbjs/lib/Deferred';
 import {genMockPublisher} from 'MockFlowableSubscription';
 
 /**
  * Creates an object implementing the DuplexConnection interface.
  */
 export function genMockConnection() {
-  const deferred = new Deferred();
   const receiver = genMockPublisher();
   const status = genMockPublisher();
   let closed = false;
+  let resolveFun = undefined;
+  let rejectFun = undefined;
+  let result = undefined;
+  let errorRes = undefined;
 
   const connection = {
     close: jest.fn(error => {
@@ -38,7 +40,16 @@ export function genMockConnection() {
     connect: jest.fn(),
     connectionStatus: jest.fn(() => status),
     onClose: jest.fn(() => {
-      return deferred.getPromise();
+      return new Promise((resolve, reject) => {
+        if (errorRes) {
+          reject(errorRes);
+        } else if (result) {
+          resolve(result);
+        } else {
+          resolveFun = resolve;
+          rejectFun = reject;
+        }
+      });
     }),
     receive: jest.fn(() => receiver),
     send: jest.fn(frames => {
@@ -59,7 +70,11 @@ export function genMockConnection() {
       closed = true;
       receiver.onComplete();
       status.onNext({kind: 'CLOSED'});
-      deferred.resolve();
+      if (resolveFun) {
+        resolveFun();
+      } else {
+        result = {};
+      }
     },
     closeWithError: error => {
       if (closed) {
@@ -71,7 +86,11 @@ export function genMockConnection() {
         error,
         kind: 'ERROR',
       });
-      deferred.reject(error);
+      if (rejectFun) {
+        rejectFun(error);
+      } else {
+        errorRes = error;
+      }
     },
     connect: () => {
       if (closed) {

@@ -6,7 +6,6 @@
  * LICENSE-examples file in the root directory of this source tree.
  */
 
-import Deferred from 'fbjs/lib/Deferred';
 import {RSocketClient} from 'rsocket-core';
 import RSocketTcpClient from 'rsocket-tcp-client';
 
@@ -50,34 +49,34 @@ async function run(options) {
   const socket = await connect(options);
   let pending = 5;
   let subscription;
-  const deferred = new Deferred();
-  socket.requestStream({
-    data: 'Joe',
-    metadata: null,
-  }).subscribe({
-    onComplete() {
-      deferred.resolve();
-      console.log('onComplete()');
-    },
-    onError(error) {
-      console.log('onError(%s)', error.message);
-      deferred.reject(error);
-    },
-    onNext(payload) {
-      console.log('onNext(%s)', payload.data);
-      if (--pending === 0) {
-        console.log('cancel()');
-        subscription.cancel();
-        deferred.resolve();
-      }
-    },
-    onSubscribe(_subscription) {
-      console.log('requestStream(%s)', pending);
-      subscription = _subscription;
-      subscription.request(pending);
-    },
+  return new Promise((resolve, reject) => {
+    socket.requestStream({
+      data: 'Joe',
+      metadata: null,
+    }).subscribe({
+      onComplete() {
+        resolve();
+        console.log('onComplete()');
+      },
+      onError(error) {
+        console.log('onError(%s)', error.message);
+        reject(error);
+      },
+      onNext(payload) {
+        console.log('onNext(%s)', payload.data);
+        if (--pending === 0) {
+          console.log('cancel()');
+          subscription.cancel();
+          resolve();
+        }
+      },
+      onSubscribe(_subscription) {
+        console.log('requestStream(%s)', pending);
+        subscription = _subscription;
+        subscription.request(pending);
+      },
+    });
   });
-  return deferred.getPromise();
 }
 
 async function connect(options) {
