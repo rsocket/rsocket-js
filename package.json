@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "cross-env NODE_ENV=production node ./scripts/build.js",
-    "jest": "cross-env NODE_ENV=test jest \"$@\"",
+    "jest": "cross-env NODE_ENV=test jest",
     "lint": "yarn run lint-prettier && eslint . --cache",
     "lint-prettier": "node ./scripts/prettier.js lint",
     "prettier": "node ./scripts/prettier.js write && eslint . --cache --fix",
@@ -25,8 +25,11 @@
     "simple-cli": "yarn run build && node ./packages/rsocket-examples/build/SimpleCli.js \"$@\"",
     "resume-example": "yarn run build && node ./packages/rsocket-examples/build/ResumeExample.js",
     "lease-client-example": "yarn run build && node ./packages/rsocket-examples/build/LeaseClientExample.js \"$@\"",
-    "test": "f() { EXIT=0; yarn run typecheck || EXIT=$?; yarn run jest \"$@\" || EXIT=$?; exit $EXIT; }; f",
-    "typecheck": "flow check ./packages/"
+    "pretest": "yarn run typecheck",
+    "test": "yarn run jest",
+    "pretypecheck": "yarn run flow-version",
+    "typecheck": "flow check packages",
+    "flow-version": "flow --version"
   },
   "workspaces": [
     "packages/*"
