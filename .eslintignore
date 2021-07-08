@@ -1,7 +1,6 @@
-node_modules
-
+**/coverage/**
+**/node_modules/**
 dist
 build
-
-
-examples/cra-ejected-babel
+scripts/
+examples/
