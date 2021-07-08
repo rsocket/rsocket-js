@@ -5,6 +5,6 @@
     "baseUrl": ".",
     "paths": {
       "@rsocket/*": ["packages/*/src"]
-    }
+    },
   }
 }

@@ -994,6 +994,11 @@
   resolved "https://registry.yarnpkg.com/@types/minimist/-/minimist-1.2.2.tgz#ee771e2ba4b3dc5b372935d549fd9617bf345b8c"
   integrity sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==
 
+"@types/node@^16.0.1":
+  version "16.0.1"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.0.1.tgz#70cedfda26af7a2ca073fdcc9beb2fff4aa693f8"
+  integrity sha512-hBOx4SUlEPKwRi6PrXuTGw1z6lz0fjsibcWCM378YxsSu/6+C30L6CR49zIBKHiwNWCYIcOLjg4OHKZaFeLAug==
+
 "@types/normalize-package-data@^2.4.0":
   version "2.4.1"
   resolved "https://registry.yarnpkg.com/@types/normalize-package-data/-/normalize-package-data-2.4.1.tgz#d3357479a0fdfdd5907fe67e17e0a85c906e1301"
@@ -3122,7 +3127,7 @@ language-tags@^1.0.5:
   dependencies:
     language-subtag-registry "~0.3.2"
 
-lerna@~4.0.0:
+lerna@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/lerna/-/lerna-4.0.0.tgz#b139d685d50ea0ca1be87713a7c2f44a5b678e9e"
   integrity sha512-DD/i1znurfOmNJb0OBw66NmNqiM8kF6uIrzrJ0wGE3VNdzeOhz9ziWLYiRaZDGGwgbcjOo6eIfcx9O5Qynz+kg==
