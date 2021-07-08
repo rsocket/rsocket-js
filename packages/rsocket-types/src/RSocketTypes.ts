@@ -1,3 +1,7 @@
+/*
+ * TODO: should we also declare an `onCancel` event method? Invoking `cancel` should canel the `Cancellable`,
+ *  but observers of the `Cancellable` may want to be notified when such a cancellation occurs.
+ */
 export interface Cancellable {
   cancel(): void;
 }
@@ -75,6 +79,8 @@ export interface RSocket {
   close?(): void;
 
   /**
+   * TODO: should this be a callback rather than a Promise? Usage of Promise in this way feels non-standard with common
+   *  usages of promises in JS projects.
    */
   onClose?(): Promise<void>;
 
