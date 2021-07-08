@@ -7,6 +7,5 @@ module.exports = {
         endOfLine: "auto",
       },
     ],
-    quotes: ["error",  "single"]
   },
 };

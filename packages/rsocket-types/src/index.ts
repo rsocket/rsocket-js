@@ -14,8 +14,8 @@
  *
  */
 
-'use strict';
+"use strict";
 
-export * from './RSocketTypes';
+export * from "./RSocketTypes";
 
 // export * from './ReactiveStreamTypes';

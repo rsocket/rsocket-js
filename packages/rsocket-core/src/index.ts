@@ -3,7 +3,6 @@
 // // eslint-disable-next-line no-console
 // console.log(meaningOfLife);
 
-
 /*
  * Copyright 2015-present the original author or authors.
  *

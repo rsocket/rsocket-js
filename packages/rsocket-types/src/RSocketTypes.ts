@@ -1,5 +1,3 @@
-import * as Buffer from "buffer";
-
 export interface Cancellable {
   cancel(): void;
 }
@@ -151,144 +149,143 @@ export type FrameWithData = {
   metadata: Buffer | null;
 };
 
-// prettier-ignore
 export type CancelFrame = {
-    type: 0x09,
-    flags: number,
-    streamId: number,
-    length?: number,
+  type: 0x09;
+  flags: number;
+  streamId: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type ErrorFrame = {
-    type: 0x0B,
-    flags: number,
-    code: number,
-    message: string,
-    streamId: number,
-    length?: number,
+  type: 0x0b;
+  flags: number;
+  code: number;
+  message: string;
+  streamId: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type KeepAliveFrame = {
-    type: 0x03,
-    flags: number,
-    data: Buffer | null,
-    lastReceivedPosition: number,
-    streamId: 0,
-    length?: number,
+  type: 0x03;
+  flags: number;
+  data: Buffer | null;
+  lastReceivedPosition: number;
+  streamId: 0;
+  length?: number;
 };
-// prettier-ignore
+
 export type LeaseFrame = {
-    type: 0x02,
-    flags: number,
-    ttl: number,
-    requestCount: number,
-    metadata: Buffer | null,
-    streamId: 0,
-    length?: number,
+  type: 0x02;
+  flags: number;
+  ttl: number;
+  requestCount: number;
+  metadata: Buffer | null;
+  streamId: 0;
+  length?: number;
 };
-// prettier-ignore
+
 export type PayloadFrame = {
-    type: 0x0A,
-    flags: number,
-    data: Buffer | null,
-    metadata: Buffer | null,
-    streamId: number,
-    length?: number,
+  type: 0x0a;
+  flags: number;
+  data: Buffer | null;
+  metadata: Buffer | null;
+  streamId: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type MetadataPushFrame = {
-    type: 0x0C,
-    metadata: Buffer | null,
-    flags: number,
-    streamId: 0,
-    length?: number,
-    };
-// prettier-ignore
+  type: 0x0c;
+  metadata: Buffer | null;
+  flags: number;
+  streamId: 0;
+  length?: number;
+};
+
 export type RequestChannelFrame = {
-    type: 0x07,
-    data:  Buffer | null,
-    metadata?: Buffer,
-    flags: number,
-    requestN: number,
-    streamId: number,
-    length?: number,
-    };
-// prettier-ignore
+  type: 0x07;
+  data: Buffer | null;
+  metadata?: Buffer;
+  flags: number;
+  requestN: number;
+  streamId: number;
+  length?: number;
+};
+
 export type RequestFnfFrame = {
-    type: 0x05,
-    data: Buffer | null,
-    metadata: Buffer | null,
-    flags: number,
-    streamId: number,
-    length?: number,
-    };
-// prettier-ignore
+  type: 0x05;
+  data: Buffer | null;
+  metadata: Buffer | null;
+  flags: number;
+  streamId: number;
+  length?: number;
+};
+
 export type RequestNFrame = {
-    type: 0x08,
-    flags: number,
-    requestN: number,
-    streamId: number,
-    length?: number,
-    };
-// prettier-ignore
+  type: 0x08;
+  flags: number;
+  requestN: number;
+  streamId: number;
+  length?: number;
+};
+
 export type RequestResponseFrame = {
-    type: 0x04,
-    data: Buffer | null,
-    metadata: Buffer | null,
-    flags: number,
-    streamId: number,
-    length?: number,
+  type: 0x04;
+  data: Buffer | null;
+  metadata: Buffer | null;
+  flags: number;
+  streamId: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type RequestStreamFrame = {
-    type: 0x06,
-    data: Buffer | null,
-    metadata: Buffer | null,
-    flags: number,
-    requestN: number,
-    streamId: number,
-    length?: number,
+  type: 0x06;
+  data: Buffer | null;
+  metadata: Buffer | null;
+  flags: number;
+  requestN: number;
+  streamId: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type ResumeFrame = {
-    type: 0x0d,
-    clientPosition: number,
-    flags: number,
-    majorVersion: number,
-    minorVersion: number,
-    resumeToken: Buffer,
-    serverPosition: number,
-    streamId: 0,
-    length?: number,
+  type: 0x0d;
+  clientPosition: number;
+  flags: number;
+  majorVersion: number;
+  minorVersion: number;
+  resumeToken: Buffer;
+  serverPosition: number;
+  streamId: 0;
+  length?: number;
 };
-// prettier-ignore
+
 export type ResumeOkFrame = {
-    type: 0x0e,
-    clientPosition: number,
-    flags: number,
-    streamId: 0,
-    length?: number,
+  type: 0x0e;
+  clientPosition: number;
+  flags: number;
+  streamId: 0;
+  length?: number;
 };
-// prettier-ignore
+
 export type SetupFrame = {
-    type: 0x01,
-    dataMimeType: string,
-    data: Buffer | null,
-    flags: number,
-    keepAlive: number,
-    lifetime: number,
-    metadata: Buffer | null,
-    metadataMimeType: string,
-    resumeToken: Buffer | null,
-    streamId: 0,
-    majorVersion: number,
-    minorVersion: number,
-    length?: number,
+  type: 0x01;
+  dataMimeType: string;
+  data: Buffer | null;
+  flags: number;
+  keepAlive: number;
+  lifetime: number;
+  metadata: Buffer | null;
+  metadataMimeType: string;
+  resumeToken: Buffer | null;
+  streamId: 0;
+  majorVersion: number;
+  minorVersion: number;
+  length?: number;
 };
-// prettier-ignore
+
 export type UnsupportedFrame = {
-    type: 0x3f | 0x00,
-    streamId: 0,
-    flags: number,
-    length?: number,
+  type: 0x3f | 0x00;
+  streamId: 0;
+  flags: number;
+  length?: number;
 };
