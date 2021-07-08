@@ -1,5 +1,7 @@
-**/coverage/**
-**/node_modules/**
-flow/
-packages/*/build/**
-scripts/
+node_modules
+
+dist
+build
+
+
+examples/cra-ejected-babel
