@@ -122,6 +122,7 @@ fabric.properties
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+yarn-error.log
 
 # if you are NOT using Zero-installs, then:
 # comment the following lines
