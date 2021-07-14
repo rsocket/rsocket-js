@@ -1,5 +1,5 @@
 {
-  "name": "rsocket-types",
+  "name": "@rsocket/rsocket-types",
   "version": "0.1.0",
   "main": "dist/index",
   "types": "dist/index",
