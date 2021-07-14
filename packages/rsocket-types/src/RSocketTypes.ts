@@ -2,25 +2,25 @@
  * TODO: should we also declare an `onCancel` event method? Invoking `cancel` should canel the `Cancellable`,
  *  but observers of the `Cancellable` may want to be notified when such a cancellation occurs.
  */
-export interface Cancellable {
+export interface ICancellable {
   cancel(): void;
 }
 
-export interface Subscription extends Cancellable {
+export interface ISubscription extends ICancellable {
   request(requestN: number): void;
 }
 
-export interface Extendable {
+export interface IExtendable {
   onExtension(
     extendedType: number,
-    payload: Payload,
+    payload: IPayload,
     canBeIgnored: boolean
   ): void;
 }
 
-export interface UnidirectionalStream extends Subscription, Extendable {
+export interface IUnidirectionalStream extends ISubscription, IExtendable {
   onError(error: Error): void;
-  onNext(payload: Payload, isCompletion: boolean): void;
+  onNext(payload: IPayload, isCompletion: boolean): void;
   onComplete(): void;
 }
 
@@ -28,50 +28,50 @@ export interface UnidirectionalStream extends Subscription, Extendable {
  * A contract providing different interaction models per the [ReactiveSocket protocol]
  (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
  */
-export interface RSocket {
+export interface IRSocket {
   /**
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
    */
   fireAndForget(
-    payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable;
+    payload: IPayload,
+    responderStream: IUnidirectionalStream
+  ): ICancellable;
 
   /**
    * Request-Response interaction model of `ReactiveSocket`. The returned
    * Publisher resolves with the response.
    */
   requestResponse(
-    payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable;
+    payload: IPayload,
+    responderStream: IUnidirectionalStream
+  ): ICancellable;
 
   /**
    * Request-Stream interaction model of `ReactiveSocket`. The returned
    * Publisher returns values representing the response(s).
    */
   requestStream(
-    payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Subscription;
+    payload: IPayload,
+    responderStream: IUnidirectionalStream
+  ): ISubscription;
 
   /**
    * Request-Channel interaction model of `ReactiveSocket`. The returned
    * Publisher returns values representing the response(boolean)
    */
   requestChannel(
-    payload: Payload,
+    payload: IPayload,
     initialRequestN: number,
     isCompleted: boolean,
-    responderStream: UnidirectionalStream
-  ): UnidirectionalStream;
+    responderStream: IUnidirectionalStream
+  ): IUnidirectionalStream;
 
   /**
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(payload: Payload): void;
+  metadataPush(payload: IPayload): void;
 
   /**
    * Close this `ReactiveSocket` and the underlying transport connection.
@@ -95,11 +95,11 @@ export interface RSocket {
  * Represents a network connection with input/output used by a ReactiveSocket to
  * send/receive data.
  */
-export interface DuplexConnection {
+export interface IDuplexConnection {
   /**
    * Send a single frame on the connection.
    */
-  sendFrame(s: Frame): void;
+  sendFrame(s: TFrame): void;
 
   /**
    * Returns a stream of all `Frame`s received on this connection.
@@ -112,57 +112,57 @@ export interface DuplexConnection {
    * - Implemenations may optionally support multi-cast receivers. Those that do
    *   not should throw if `receive` is called more than once.
    */
-  handleFrames(handler: (Frame) => void): void;
+  handleFrames(handler: (arg0: TFrame) => void): void;
 
   /**
    * Close the underlying connection, emitting `onComplete` on the receive()
    * Publisher.
    */
-  close(error?: Error): void;
+  close(error?: Error): Promise<void>;
 
   /**
    */
-  onClose(): Promise<void>;
+  onClose(handler: (arg0: IDuplexConnection) => void): Promise<void>;
 }
 
 /**
  * A single unit of data exchanged between the peers of a `ReactiveSocket`.
  */
-export type Payload = {
+export type IPayload = {
   data: Buffer | null;
   metadata?: Buffer;
 };
 
-export type Frame =
-  | CancelFrame
-  | ErrorFrame
-  | KeepAliveFrame
-  | LeaseFrame
-  | PayloadFrame
-  | MetadataPushFrame
-  | RequestChannelFrame
-  | RequestFnfFrame
-  | RequestNFrame
-  | RequestResponseFrame
-  | RequestStreamFrame
-  | ResumeFrame
-  | ResumeOkFrame
-  | SetupFrame
-  | UnsupportedFrame;
+export type TFrame =
+  | TCancelFrame
+  | TErrorFrame
+  | TKeepAliveFrame
+  | TLeaseFrame
+  | TPayloadFrame
+  | TMetadataPushFrame
+  | TRequestChannelFrame
+  | TRequestFnfFrame
+  | TRequestNFrame
+  | TRequestResponseFrame
+  | TRequestStreamFrame
+  | TResumeFrame
+  | TResumeOkFrame
+  | TSetupFrame
+  | TUnsupportedFrame;
 
-export type FrameWithData = {
+export type TTFrameWithData = {
   data: Buffer | null;
   metadata: Buffer | null;
 };
 
-export type CancelFrame = {
+export type TCancelFrame = {
   type: 0x09;
   flags: number;
   streamId: number;
   length?: number;
 };
 
-export type ErrorFrame = {
+export type TErrorFrame = {
   type: 0x0b;
   flags: number;
   code: number;
@@ -171,7 +171,7 @@ export type ErrorFrame = {
   length?: number;
 };
 
-export type KeepAliveFrame = {
+export type TKeepAliveFrame = {
   type: 0x03;
   flags: number;
   data: Buffer | null;
@@ -180,7 +180,7 @@ export type KeepAliveFrame = {
   length?: number;
 };
 
-export type LeaseFrame = {
+export type TLeaseFrame = {
   type: 0x02;
   flags: number;
   ttl: number;
@@ -190,7 +190,7 @@ export type LeaseFrame = {
   length?: number;
 };
 
-export type PayloadFrame = {
+export type TPayloadFrame = {
   type: 0x0a;
   flags: number;
   data: Buffer | null;
@@ -199,7 +199,7 @@ export type PayloadFrame = {
   length?: number;
 };
 
-export type MetadataPushFrame = {
+export type TMetadataPushFrame = {
   type: 0x0c;
   metadata: Buffer | null;
   flags: number;
@@ -207,7 +207,7 @@ export type MetadataPushFrame = {
   length?: number;
 };
 
-export type RequestChannelFrame = {
+export type TRequestChannelFrame = {
   type: 0x07;
   data: Buffer | null;
   metadata?: Buffer;
@@ -217,7 +217,7 @@ export type RequestChannelFrame = {
   length?: number;
 };
 
-export type RequestFnfFrame = {
+export type TRequestFnfFrame = {
   type: 0x05;
   data: Buffer | null;
   metadata: Buffer | null;
@@ -226,7 +226,7 @@ export type RequestFnfFrame = {
   length?: number;
 };
 
-export type RequestNFrame = {
+export type TRequestNFrame = {
   type: 0x08;
   flags: number;
   requestN: number;
@@ -234,7 +234,7 @@ export type RequestNFrame = {
   length?: number;
 };
 
-export type RequestResponseFrame = {
+export type TRequestResponseFrame = {
   type: 0x04;
   data: Buffer | null;
   metadata: Buffer | null;
@@ -243,7 +243,7 @@ export type RequestResponseFrame = {
   length?: number;
 };
 
-export type RequestStreamFrame = {
+export type TRequestStreamFrame = {
   type: 0x06;
   data: Buffer | null;
   metadata: Buffer | null;
@@ -253,7 +253,7 @@ export type RequestStreamFrame = {
   length?: number;
 };
 
-export type ResumeFrame = {
+export type TResumeFrame = {
   type: 0x0d;
   clientPosition: number;
   flags: number;
@@ -265,7 +265,7 @@ export type ResumeFrame = {
   length?: number;
 };
 
-export type ResumeOkFrame = {
+export type TResumeOkFrame = {
   type: 0x0e;
   clientPosition: number;
   flags: number;
@@ -273,7 +273,7 @@ export type ResumeOkFrame = {
   length?: number;
 };
 
-export type SetupFrame = {
+export type TSetupFrame = {
   type: 0x01;
   dataMimeType: string;
   data: Buffer | null;
@@ -289,7 +289,7 @@ export type SetupFrame = {
   length?: number;
 };
 
-export type UnsupportedFrame = {
+export type TUnsupportedFrame = {
   type: 0x3f | 0x00;
   streamId: 0;
   flags: number;

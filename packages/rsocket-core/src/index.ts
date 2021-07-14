@@ -33,3 +33,6 @@
 //     func onNext(_ payload: Payload, isCompletion: Bool)
 //     func onComplete()
 // }
+
+export * from "./RSocketFrame";
+export * from "./RSocketVersion";
