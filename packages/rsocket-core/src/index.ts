@@ -36,3 +36,4 @@
 
 export * from "./RSocketFrame";
 export * from "./RSocketVersion";
+export * from "./encoding";

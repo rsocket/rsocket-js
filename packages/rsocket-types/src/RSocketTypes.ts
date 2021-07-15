@@ -2,6 +2,8 @@
  * TODO: should we also declare an `onCancel` event method? Invoking `cancel` should canel the `Cancellable`,
  *  but observers of the `Cancellable` may want to be notified when such a cancellation occurs.
  */
+export type TEncodable = string | Buffer | Uint8Array;
+
 export interface ICancellable {
   cancel(): void;
 }
@@ -13,14 +15,14 @@ export interface ISubscription extends ICancellable {
 export interface IExtendable {
   onExtension(
     extendedType: number,
-    payload: IPayload,
+    payload: TPayload,
     canBeIgnored: boolean
   ): void;
 }
 
 export interface IUnidirectionalStream extends ISubscription, IExtendable {
   onError(error: Error): void;
-  onNext(payload: IPayload, isCompletion: boolean): void;
+  onNext(payload: TPayload, isCompletion: boolean): void;
   onComplete(): void;
 }
 
@@ -34,7 +36,7 @@ export interface IRSocket {
    * Publisher resolves when the passed `payload` is successfully handled.
    */
   fireAndForget(
-    payload: IPayload,
+    payload: TPayload,
     responderStream: IUnidirectionalStream
   ): ICancellable;
 
@@ -43,7 +45,7 @@ export interface IRSocket {
    * Publisher resolves with the response.
    */
   requestResponse(
-    payload: IPayload,
+    payload: TPayload,
     responderStream: IUnidirectionalStream
   ): ICancellable;
 
@@ -52,7 +54,7 @@ export interface IRSocket {
    * Publisher returns values representing the response(s).
    */
   requestStream(
-    payload: IPayload,
+    payload: TPayload,
     responderStream: IUnidirectionalStream
   ): ISubscription;
 
@@ -61,7 +63,7 @@ export interface IRSocket {
    * Publisher returns values representing the response(boolean)
    */
   requestChannel(
-    payload: IPayload,
+    payload: TPayload,
     initialRequestN: number,
     isCompleted: boolean,
     responderStream: IUnidirectionalStream
@@ -71,7 +73,7 @@ export interface IRSocket {
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(payload: IPayload): void;
+  metadataPush(payload: TPayload): void;
 
   /**
    * Close this `ReactiveSocket` and the underlying transport connection.
@@ -128,9 +130,9 @@ export interface IDuplexConnection {
 /**
  * A single unit of data exchanged between the peers of a `ReactiveSocket`.
  */
-export type IPayload = {
-  data: Buffer | null;
-  metadata?: Buffer;
+export type TPayload = {
+  data: TEncodable;
+  metadata?: TEncodable;
 };
 
 export type TFrame =
@@ -276,13 +278,13 @@ export type TResumeOkFrame = {
 export type TSetupFrame = {
   type: 0x01;
   dataMimeType: string;
-  data: Buffer | null;
+  data: TEncodable;
   flags: number;
   keepAlive: number;
   lifetime: number;
-  metadata: Buffer | null;
+  metadata: TEncodable;
   metadataMimeType: string;
-  resumeToken: Buffer | null;
+  resumeToken: TEncodable;
   streamId: 0;
   majorVersion: number;
   minorVersion: number;

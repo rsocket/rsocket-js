@@ -1,15 +1,13 @@
 import net from "net";
 import { IDuplexConnection, TFrame } from "@rsocket/rsocket-types";
-import BufferFrameSerializer from "../../rsocket-core/src/BufferFrameSerializer";
+import BufferFrameSerializer from "@rsocket/rsocket-core/src/framing/BufferFrameSerializer";
 
 class TcpConnection implements IDuplexConnection {
   private readonly connectionOptions: net.NetConnectOpts;
-  private connection: net.Socket;
-  private frameSerializer: BufferFrameSerializer;
+  private socket: net.Socket;
 
   constructor(connectionOptions: net.NetConnectOpts) {
     this.connectionOptions = connectionOptions;
-    this.frameSerializer = new BufferFrameSerializer();
   }
 
   sendFrame(s: TFrame): void {
@@ -28,26 +26,26 @@ class TcpConnection implements IDuplexConnection {
     throw new Error("Method not implemented.");
   }
 
-  async connect(): Promise<any> {
+  async connect(): Promise<this> {
     await this.connectAsync();
     this.bindEventHandlers();
     return this;
   }
 
   private bindEventHandlers() {
-    this.connection.on("data", this.onData);
-    this.connection.on("close", this.onError);
-    this.connection.on("end", this.onError);
-    this.connection.on("error", this.onError);
+    this.socket.on("data", this.onData);
+    this.socket.on("close", this.onError);
+    this.socket.on("end", this.onError);
+    this.socket.on("error", this.onError);
   }
 
   private async connectAsync() {
-    this.connection = net.connect(this.connectionOptions);
+    this.socket = net.connect(this.connectionOptions);
     return new Promise((resolve, reject) => {
-      this.connection.once("close", reject);
-      this.connection.once("end", reject);
-      this.connection.once("error", reject);
-      this.connection.once("connect", resolve);
+      this.socket.once("close", reject);
+      this.socket.once("end", reject);
+      this.socket.once("error", reject);
+      this.socket.once("connect", resolve);
     });
   }
 
@@ -59,24 +57,30 @@ class TcpConnection implements IDuplexConnection {
     throw new Error("Method not implemented.");
   }
 
-  sendOne(frame: TFrame): void {
-    const buffer = this.frameSerializer.serializeFrameWithLength(frame);
-    this.connection.write(buffer);
+  public write(buffer: Buffer) {
+    this.socket.write(buffer);
   }
 }
 
 class RSocketTcpClient {
   private connection: TcpConnection;
+  private frameSerializer: BufferFrameSerializer;
 
-  constructor(
-    connectionOptions: net.NetConnectOpts
-  ) {
+  constructor(connectionOptions: net.NetConnectOpts) {
     this.connection = new TcpConnection(connectionOptions);
+    this.frameSerializer = new BufferFrameSerializer();
   }
 
   async connect(): Promise<this> {
     await this.connection.connect();
     return this;
+  }
+
+  public sendOne(frame: TFrame): void {
+    // TODO: compare with current implementation and determine why buffer output is not the same
+    //  (this implementation is broke)
+    const buffer = this.frameSerializer.serializeFrameWithLength(frame);
+    this.connection.write(buffer);
   }
 }
 

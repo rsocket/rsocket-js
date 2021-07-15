@@ -2,7 +2,9 @@
 
 // import type { TErrorFrame, TFrame, TSetupFrame } from "@rsocket/rsocket-types";
 
-import { TSetupFrame } from "@rsocket/rsocket-types";
+import { TPayload, TSetupFrame } from "@rsocket/rsocket-types";
+import { MAJOR_VERSION, MINOR_VERSION } from "./RSocketVersion";
+import { TEncodable } from "./encoding/EncodingTypes";
 
 export const CONNECTION_STREAM_ID = 0;
 
@@ -22,7 +24,7 @@ export const FRAME_TYPES = {
   RESERVED: 0x00, // Reserved
   RESUME: 0x0d, // Resume: Replaces SETUP for Resuming Operation (optional)
   RESUME_OK: 0x0e, // Resume OK : Sent in response to a RESUME if resuming operation possible (optional)
-  SETUP: 0x01 // Setup: Sent by client to initiate protocol processing.
+  SETUP: 0x01, // Setup: Sent by client to initiate protocol processing.
 };
 
 // Maps frame type codes to type names
@@ -41,7 +43,7 @@ export const FLAGS = {
   METADATA: 0x100, // (all): must be set if metadata is present in the frame.
   NEXT: 0x20, // PAYLOAD: indicates data/metadata present, if set onNext will be invoked on receiver.
   RESPOND: 0x80, // KEEPALIVE: should KEEPALIVE be sent by peer on receipt.
-  RESUME_ENABLE: 0x80 // SETUP: Client requests resume capability if possible. Resume Identification Token present.
+  RESUME_ENABLE: 0x80, // SETUP: Client requests resume capability if possible. Resume Identification Token present.
 };
 
 // Maps error names to codes
@@ -57,7 +59,7 @@ export const ERROR_CODES = {
   REJECTED_SETUP: 0x00000003,
   RESERVED: 0x00000000,
   RESERVED_EXTENSION: 0xffffffff,
-  UNSUPPORTED_SETUP: 0x00000002
+  UNSUPPORTED_SETUP: 0x00000002,
 };
 
 // Maps error codes to names
@@ -161,24 +163,84 @@ export function getFrameTypeName(type: number): string {
   return name != null ? name : toHex(type);
 }
 
-export interface ISerializableFrame {}
+type TPayloadSerializer<T> = {
+  serialize(data?: T): TEncodable;
+  deserialize(data?: TEncodable): T;
+};
 
-export const RSocketFrameFactories = {
-  CreateSetupFrame(): TSetupFrame {
-    return {
-      data: undefined,
-      dataMimeType: "",
-      flags: 0,
-      keepAlive: 0,
-      lifetime: 0,
-      majorVersion: 0,
-      metadata: undefined,
-      metadataMimeType: "",
-      minorVersion: 0,
-      resumeToken: undefined,
-      streamId: 0,
-      type: 0x01,
-    };
+type TPayloadSerializers<D, M> = {
+  data: TPayloadSerializer<D>;
+  metadata: TPayloadSerializer<M>;
+};
+
+export const IdentitySerializer: TPayloadSerializer<TEncodable> = {
+  deserialize(data: TEncodable | undefined): TEncodable | undefined {
+    return data;
+  },
+  serialize(data: TEncodable | undefined): TEncodable | undefined {
+    return data;
   },
 };
 
+export const IdentitySerializers = {
+  data: IdentitySerializer,
+  metadata: IdentitySerializer,
+};
+
+type TRSocketFrameFactoryOpts = {
+  serializers: TPayloadSerializers<any, any>;
+};
+
+export type TSetupFrameOpts = {
+  payload?: TPayload;
+  dataMimeType: any;
+  metadataMimeType: any;
+  leases?: boolean;
+  keepAlive: number;
+  lifetime: number;
+};
+
+export const RSocketFrameFactory = (
+  opts: TRSocketFrameFactoryOpts = {
+    serializers: undefined,
+  }
+) => {
+  const { serializers: providedSerializers } = opts;
+  return {
+    SetupFrame(frameOpts: TSetupFrameOpts): TSetupFrame {
+      const {
+        payload,
+        dataMimeType,
+        metadataMimeType,
+        leases,
+        keepAlive,
+        lifetime,
+      } = frameOpts;
+      const serializers = providedSerializers || IdentitySerializers;
+      const data = payload
+        ? serializers.data.serialize(payload.data)
+        : undefined;
+      const metadata = payload
+        ? serializers.metadata.serialize(payload.metadata)
+        : undefined;
+      let flags = 0;
+      if (metadata !== undefined) {
+        flags |= FLAGS.METADATA;
+      }
+      return {
+        data,
+        dataMimeType,
+        flags: flags | (leases ? FLAGS.LEASE : 0),
+        keepAlive,
+        lifetime,
+        majorVersion: MAJOR_VERSION,
+        metadata,
+        metadataMimeType,
+        minorVersion: MINOR_VERSION,
+        resumeToken: null,
+        streamId: CONNECTION_STREAM_ID,
+        type: FRAME_TYPES.SETUP as 1,
+      };
+    },
+  };
+};

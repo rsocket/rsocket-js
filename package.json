@@ -10,7 +10,8 @@
     "build": "lerna run build",
     "pub": "lerna publish",
     "test": "lerna run test",
-    "lint": "eslint --ext js,ts ."
+    "lint": "eslint --ext js,ts .",
+    "run-example": "npx ts-node"
   },
   "devDependencies": {
     "@nighttrax/eslint-config-tsx": "~8.0.0",

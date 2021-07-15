@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import RSocketTcpClient from "../src/RSocketTcpClient";
-import { RSocketFrameFactories } from "@rsocket/rsocket-core";
+import { RSocketFrameFactory } from "@rsocket/rsocket-core";
 
 // eslint-disable-next-line consistent-return
 const run = async () => {
@@ -14,7 +14,15 @@ const run = async () => {
   try {
     await transport.connect();
     console.log("TCP connection established...");
-    const setupFrame = RSocketFrameFactories.CreateSetupFrame();
+    const factories = RSocketFrameFactory();
+    const { SetupFrame } = factories;
+    const setupFrame = SetupFrame({
+      dataMimeType: "text/plain",
+      metadataMimeType: "text/plain",
+      keepAlive: 10000,
+      lifetime: 10000,
+    });
+    console.log("Sending setup frame...");
     transport.sendOne(setupFrame);
   } catch (err) {
     console.error(err);
