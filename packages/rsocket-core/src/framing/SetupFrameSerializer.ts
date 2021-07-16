@@ -5,21 +5,11 @@ import IFrameSerializer from "./IFrameSerializer";
 import BufferSerializer from "./BufferSerializer";
 import { TEncoders, Utf8Encoder } from "../encoding";
 import { writeUInt24BE } from "../RSocketBufferUtils";
-
-/**
- * Frame header is:
- * - stream id (uint32 = 4)
- * - type + flags (uint 16 = 2)
- */
-const FRAME_HEADER_SIZE = 6;
-
-/**
- * Size of frame length and metadata length fields.
- */
-const UINT24_SIZE = 3;
-
-const SETUP_FIXED_SIZE = 14;
-const RESUME_TOKEN_LENGTH_SIZE = 2;
+import {
+  FRAME_HEADER_SIZE,
+  RESUME_TOKEN_LENGTH_SIZE,
+  SETUP_FIXED_SIZE,
+} from "../constants";
 
 type TFrameWithPayload = { data: any; flags: number; metadata: any };
 
@@ -44,14 +34,18 @@ export default class SetupFrameSerializer
   }
 
   public serialize(frame: TSetupFrame): Buffer {
-    const resumeTokenLength = 0;
-    const metadataMimeTypeLength = 0;
-    const dataMimeTypeLength = 0;
+    const dataMimeTypeLength = this.getDataMimeTypeLength(frame);
+    const metadataMimeTypeLength = this.getMetadataMimeTypeLength(frame);
     const payloadLength = this.getPayloadLength(frame);
+    const resumeTokenLength = this.getResumeTokenLength(frame);
+    const resumeTokenSize = resumeTokenLength
+      ? RESUME_TOKEN_LENGTH_SIZE + resumeTokenLength
+      : 0;
+
     const bufferLength =
       FRAME_HEADER_SIZE +
       SETUP_FIXED_SIZE +
-      (RESUME_TOKEN_LENGTH_SIZE + resumeTokenLength) +
+      resumeTokenSize +
       metadataMimeTypeLength +
       dataMimeTypeLength +
       payloadLength;
@@ -65,33 +59,93 @@ export default class SetupFrameSerializer
     offset = buffer.writeUInt32BE(frame.keepAlive, offset);
     offset = buffer.writeUInt32BE(frame.lifetime, offset);
 
-    // eslint-disable-next-line no-bitwise
-    if (frame.flags & FLAGS.RESUME_ENABLE) {
-      offset = buffer.writeUInt16BE(resumeTokenLength, offset);
-      if (frame.resumeToken != null) {
-        offset = this.encoders.resumeToken.encode(
-          frame.resumeToken,
-          buffer,
-          offset,
-          offset + resumeTokenLength
-        );
-      }
-    }
-
-    offset = buffer.writeUInt8(dataMimeTypeLength, offset);
-    if (frame.dataMimeType != null) {
-      // TODO: need access to enbcoders
-      offset = this.encoders.dataMimeType.encode(
-        frame.dataMimeType,
-        buffer,
-        offset,
-        offset + dataMimeTypeLength
-      );
-    }
+    offset = this.writeResumeToken(frame, offset, buffer, resumeTokenLength);
+    offset = this.WriteMetadataMimeType(
+      offset,
+      buffer,
+      metadataMimeTypeLength,
+      frame
+    );
+    offset = this.writeDataMimeType(offset, buffer, dataMimeTypeLength, frame);
 
     this.writePayload(frame, buffer, offset);
 
     return buffer;
+  }
+
+  private writeDataMimeType(
+    offset: number,
+    buffer,
+    dataMimeTypeLength: number,
+    frame: TSetupFrame
+  ) {
+    let nextOffset = buffer.writeUInt8(dataMimeTypeLength, offset);
+    if (frame.dataMimeType != null) {
+      const start = nextOffset;
+      const end = nextOffset + dataMimeTypeLength;
+      this.encoders.dataMimeType.encode(frame.dataMimeType, buffer, start, end);
+      nextOffset = end;
+    }
+    return nextOffset;
+  }
+
+  private WriteMetadataMimeType(
+    offset: number,
+    buffer: Buffer,
+    metadataMimeTypeLength: number,
+    frame: TSetupFrame
+  ) {
+    let nextOffset = buffer.writeUInt8(metadataMimeTypeLength, offset);
+    if (frame.metadataMimeType != null) {
+      const start = nextOffset;
+      const end = nextOffset + metadataMimeTypeLength;
+      this.encoders.metadataMimeType.encode(
+        frame.metadataMimeType,
+        buffer,
+        start,
+        end
+      );
+      nextOffset = end;
+    }
+    return nextOffset;
+  }
+
+  private writeResumeToken(
+    frame: TSetupFrame,
+    offset: number,
+    buffer,
+    resumeTokenLength: number
+  ) {
+    let nextOffset = offset;
+    // eslint-disable-next-line no-bitwise
+    if (frame.flags & FLAGS.RESUME_ENABLE) {
+      nextOffset = buffer.writeUInt16BE(resumeTokenLength, offset);
+      if (frame.resumeToken != null) {
+        const start = nextOffset;
+        const end = nextOffset + resumeTokenLength;
+        this.encoders.resumeToken.encode(frame.resumeToken, buffer, start, end);
+        nextOffset = end;
+      }
+    }
+    return nextOffset;
+  }
+
+  private getDataMimeTypeLength(frame: TSetupFrame) {
+    return frame.dataMimeType != null
+      ? this.encoders.dataMimeType.byteLength(frame.dataMimeType)
+      : 0;
+  }
+
+  private getMetadataMimeTypeLength(frame: TSetupFrame) {
+    return frame.metadataMimeType != null
+      ? this.encoders.metadataMimeType.byteLength(frame.metadataMimeType)
+      : 0;
+  }
+
+  private getResumeTokenLength(frame: TSetupFrame) {
+    return frame.resumeToken != null
+      ? this.encoders.resumeToken.byteLength(frame.resumeToken)
+      : 0;
   }
 
   private getPayloadLength(frame: TFrameWithPayload): number {

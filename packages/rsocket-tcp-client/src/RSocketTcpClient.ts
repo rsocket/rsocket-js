@@ -50,11 +50,11 @@ class TcpConnection implements IDuplexConnection {
   }
 
   private onData(arg0: string, _handleData: any) {
-    throw new Error("Method not implemented.");
+    throw new Error("[onData] Method not implemented.");
   }
 
   private onError(arg0: string, _handleError: any) {
-    throw new Error("Method not implemented.");
+    throw new Error("[onError] Method not implemented.");
   }
 
   public write(buffer: Buffer) {
@@ -77,8 +77,6 @@ class RSocketTcpClient {
   }
 
   public sendOne(frame: TFrame): void {
-    // TODO: compare with current implementation and determine why buffer output is not the same
-    //  (this implementation is broke)
     const buffer = this.frameSerializer.serializeFrameWithLength(frame);
     this.connection.write(buffer);
   }

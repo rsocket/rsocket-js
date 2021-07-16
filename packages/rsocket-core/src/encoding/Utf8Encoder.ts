@@ -20,8 +20,12 @@ export class Utf8Encoder extends Encoder implements IEncoder {
     value: TEncodable,
     buffer: Buffer,
     start: number,
+    /**
+     * Hello
+     */
     end: number
   ): number {
-    return buffer.write(value as string, start, end - start, this.encoding);
+    buffer.write(value as string, start, end - start, this.encoding);
+    return end;
   }
 }

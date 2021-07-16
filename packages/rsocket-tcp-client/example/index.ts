@@ -16,14 +16,19 @@ const run = async () => {
     console.log("TCP connection established...");
     const factories = RSocketFrameFactory();
     const { SetupFrame } = factories;
+    const setupPayload = {
+      data: "hello world",
+    };
     const setupFrame = SetupFrame({
       dataMimeType: "text/plain",
       metadataMimeType: "text/plain",
-      keepAlive: 10000,
-      lifetime: 10000,
+      payload: setupPayload,
+      keepAlive: 1000000,
+      lifetime: 100000,
     });
-    console.log("Sending setup frame...");
+    console.log("Sending setup frame...", setupPayload);
     transport.sendOne(setupFrame);
+    console.log("Setup frame sent...");
   } catch (err) {
     console.error(err);
     return process.exit(1);
