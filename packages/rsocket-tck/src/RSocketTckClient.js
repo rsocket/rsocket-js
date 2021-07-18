@@ -100,7 +100,9 @@ async function run(options: Options): Promise<void> {
   }
   process.stdout.write(chalk.inverse('Running TCK tests') + '\n');
   process.stdout.write(`Using testfile${testfilePath}\n`);
-  process.stdout.write(`Connecting to server at ${options.host}:${options.port}\n`);
+  process.stdout.write(
+    `Connecting to server at ${options.host}:${options.port}\n`,
+  );
   const testSource = fs.readFileSync(testfilePath, 'utf8');
   const testCases = testSource
     .split('!')

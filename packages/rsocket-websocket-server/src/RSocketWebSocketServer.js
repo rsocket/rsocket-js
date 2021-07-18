@@ -140,8 +140,10 @@ class WSDuplexConnection implements DuplexConnection {
     let isSubscribed = false;
     this._receiver = new Flowable(subscriber => {
       if (isSubscribed) {
-        throw new Error('RSocketWebSocketServer: Multicast receive() is not supported. Be sure ' +
-          'to receive/subscribe only once.');
+        throw new Error(
+          'RSocketWebSocketServer: Multicast receive() is not supported. Be sure ' +
+            'to receive/subscribe only once.',
+        );
       }
       isSubscribed = true;
 

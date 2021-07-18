@@ -210,7 +210,9 @@ export class RSocketTcpClient extends RSocketTcpConnection {
 
   connect(): void {
     if (this.getConnectionState().kind !== 'NOT_CONNECTED') {
-      throw new Error('RSocketTcpClient: Cannot connect(), a connection is already established.');
+      throw new Error(
+        'RSocketTcpClient: Cannot connect(), a connection is already established.',
+      );
     }
     this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     const socket = net.connect(this._options);
@@ -237,7 +239,9 @@ export class RSocketTlsClient extends RSocketTcpConnection {
 
   connect(): void {
     if (this.getConnectionState().kind !== 'NOT_CONNECTED') {
-      throw new Error('RSocketTcpClient: Cannot connect(), a connection is already established.');
+      throw new Error(
+        'RSocketTcpClient: Cannot connect(), a connection is already established.',
+      );
     }
     this.setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     const socket = tls.connect(this._options);

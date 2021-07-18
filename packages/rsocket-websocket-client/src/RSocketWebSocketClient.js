@@ -67,8 +67,10 @@ export default class RSocketWebSocketClient implements DuplexConnection {
 
   connect(): void {
     if (this._status.kind !== 'NOT_CONNECTED') {
-      throw new Error('RSocketWebSocketClient: Cannot connect(), a connection is already ' +
-        'established.');
+      throw new Error(
+        'RSocketWebSocketClient: Cannot connect(), a connection is already ' +
+          'established.',
+      );
     }
     this._setConnectionStatus(CONNECTION_STATUS.CONNECTING);
 
@@ -217,7 +219,9 @@ export default class RSocketWebSocketClient implements DuplexConnection {
         ? serializeFrameWithLength(frame, this._encoders)
         : serializeFrame(frame, this._encoders);
       if (!this._socket) {
-        throw new Error('RSocketWebSocketClient: Cannot send frame, not connected.');
+        throw new Error(
+          'RSocketWebSocketClient: Cannot send frame, not connected.',
+        );
       }
       this._socket.send(buffer);
     } catch (error) {

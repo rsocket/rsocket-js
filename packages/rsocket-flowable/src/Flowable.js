@@ -28,7 +28,6 @@ import FlowableMapOperator from './FlowableMapOperator';
 import FlowableTakeOperator from './FlowableTakeOperator';
 import invariant from './Invariant';
 
-
 export type Source<T> = (subscriber: ISubscriber<T>) => void;
 
 /**

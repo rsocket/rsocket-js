@@ -18,7 +18,7 @@
   "scripts": {
     "build": "cross-env NODE_ENV=production node ./scripts/build.js",
     "jest": "cross-env NODE_ENV=test jest",
-    "lint": "yarn run lint-prettier && eslint . --cache",
+    "lint": "yarn run lint-prettier && eslint . --cache --fix",
     "lint-prettier": "node ./scripts/prettier.js lint",
     "prettier": "node ./scripts/prettier.js write && eslint . --cache --fix",
     "tck": "yarn run build && node ./packages/rsocket-tck/build/index.js \"$@\"",

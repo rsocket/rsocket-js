@@ -482,8 +482,10 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
                   },
                 });
               } else {
-                console.warn('RSocketClient: re-entrant call to request n before initial' +
-                  ' channel established.');
+                console.warn(
+                  'RSocketClient: re-entrant call to request n before initial' +
+                    ' channel established.',
+                );
               }
             }
           },

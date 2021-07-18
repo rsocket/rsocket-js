@@ -17,13 +17,19 @@
  * The invariant message will be stripped in production, but the invariant will
  * remain to ensure logic does not differ in production.
  */
-function invariant(condition: mixed, format: string, ...args: Array<mixed>): void {
+function invariant(
+  condition: mixed,
+  format: string,
+  ...args: Array<mixed>
+): void {
   if (!condition) {
     let error;
 
     if (format === undefined) {
-      error = new Error('Minified exception occurred; use the non-minified ' +
-        'dev environment for the full error message and additional helpful warnings.');
+      error = new Error(
+        'Minified exception occurred; use the non-minified ' +
+          'dev environment for the full error message and additional helpful warnings.',
+      );
     } else {
       let argIndex = 0;
       error = new Error(format.replace(/%s/g, () => String(args[argIndex++])));
