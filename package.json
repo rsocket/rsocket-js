@@ -2,7 +2,7 @@
   "name": "rsocket-js",
   "private": true,
   "description": "An implementation of the RSocket protocol: https://github.com/rsocket/rsocket",
-  "version": "0.0.23",
+  "version": "0.0.26",
   "keywords": [
     "reactivesocket",
     "rsocket"
