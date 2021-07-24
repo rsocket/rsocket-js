@@ -16,6 +16,11 @@
 
 "use strict";
 
-export * from "./RSocketTypes";
+export * from "./Codecs";
+export * from "./Common";
+export * from "./Errors";
+export * from "./Frames";
+export * from "./RSocket";
+export * from "./Transport";
 
 // export * from './ReactiveStreamTypes';
