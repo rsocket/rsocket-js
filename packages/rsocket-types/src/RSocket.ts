@@ -1,5 +1,11 @@
 import { Closeable } from "./Common";
-import { CancelFrame, ErrorFrame, ExtFrame, PayloadFrame, RequestNFrame } from "./Frames";
+import {
+  CancelFrame,
+  ErrorFrame,
+  ExtFrame,
+  PayloadFrame,
+  RequestNFrame,
+} from "./Frames";
 import { FrameHandler, Outbound } from "./Transport";
 
 /**
@@ -19,7 +25,7 @@ export type SetupPayload = {
   resumeToken: Buffer | null | undefined;
   data: Buffer | null | undefined;
   metadata?: Buffer;
-}
+};
 
 export interface Cancellable {
   cancel(): void;
@@ -44,18 +50,20 @@ export interface UnidirectionalStream extends Subscription, Extendable {
 }
 
 export type StreamConfig = {
-  outbound: Outbound, 
-  fragmentSize: number,
-}
+  outbound: Outbound;
+  fragmentSize: number;
+};
 
 export interface StreamLifecycleHandler {
   handleReady(streamId: number, config: StreamConfig): boolean;
   handleReject(error: Error): void;
 }
 
-export interface StreamFrameHandler extends FrameHandler {  
-  get streamId(): number;
-  handle(frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame): void;
+export interface StreamFrameHandler extends FrameHandler {
+  streamId(): number;
+  handle(
+    frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
+  ): void;
   close(error?: Error): void;
 }
 
@@ -71,11 +79,10 @@ export interface SocketAcceptor {
 }
 
 /**
- * A contract providing different interaction models per the [ReactiveSocket protocol]  
+ * A contract providing different interaction models per the [ReactiveSocket protocol]
  (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
  */
 export interface RSocket extends Closeable {
-
   /**
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.

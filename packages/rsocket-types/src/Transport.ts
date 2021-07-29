@@ -14,7 +14,7 @@ export interface FrameHandler {
 
 export enum FlowControl {
   NEXT,
-  ALL
+  ALL,
 }
 
 export interface FlowControlledFrameHandler {
@@ -40,9 +40,12 @@ export interface Inbound {
  * Represents a network connection with input/output used by a ReactiveSocket to
  * send/receive data.
  */
-export interface DuplexConnection extends Inbound, Outbound, Closeable, Availability {
-}
+export interface DuplexConnection
+  extends Inbound,
+    Outbound,
+    Closeable,
+    Availability {}
 
 export interface ClientTransport {
-  connect(): Promise<DuplexConnection>
+  connect(): Promise<DuplexConnection>;
 }
