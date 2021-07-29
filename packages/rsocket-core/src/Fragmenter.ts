@@ -23,7 +23,7 @@ export function isFragmentable(
   if (fragmentSize === 0) {
     return false;
   }
-  
+
   return (
     payload.data.byteLength +
       (payload.metadata ? payload.metadata.byteLength + Lengths.METADATA : 0) +
