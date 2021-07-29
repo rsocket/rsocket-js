@@ -1,4 +1,4 @@
-name: Tests
+name: Lint
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     branches: [ $default-branch ]
 
 jobs:
-  tests:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,6 +17,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 12
+
+      - name: Install Yarn
+        run: npm install -g yarn
 
       - name: Cache dependencies
         uses: actions/cache@v2
@@ -32,6 +35,3 @@ jobs:
 
       - name: Lint
         run: yarn lint
-
-      - name: Test
-        run: yarn test
