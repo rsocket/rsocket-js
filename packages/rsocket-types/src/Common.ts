@@ -1,10 +1,5 @@
 export interface Closeable {
   /**
-   * Returns a boolean flag indicating whether or not the Closeable is `done` and `close()` has been called.
-   */
-  isDone(): boolean;
-
-  /**
    * Close the underlying connection, emitting `onComplete` on the receive()
    * Publisher.
    */
