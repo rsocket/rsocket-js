@@ -4,7 +4,7 @@ export class Deferred implements Closeable {
   private _done: boolean;
   private onCloseCallback: (reason?: any) => void;
 
-  public isDone(): boolean {
+  get done(): boolean {
     return this._done;
   }
 
@@ -13,7 +13,7 @@ export class Deferred implements Closeable {
    * Publisher.
    */
   close(error?: Error): void {
-    if (this.isDone()) {
+    if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
           error ? `Dropping error [${error}].` : ""

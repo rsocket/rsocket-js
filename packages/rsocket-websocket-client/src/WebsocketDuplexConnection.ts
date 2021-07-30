@@ -33,7 +33,7 @@ export class WebsocketDuplexConnection
   }
 
   close(error?: Error) {
-    if (super.isDone()) {
+    if (this.done) {
       super.close(error);
       return;
     }
@@ -50,7 +50,7 @@ export class WebsocketDuplexConnection
   }
 
   send(frame: Frame): void {
-    if (super.isDone()) {
+    if (this.done) {
       return;
     }
 
