@@ -95,7 +95,7 @@ export class RequestFnFRequesterHandler
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -174,7 +174,7 @@ export class RequestFnfResponderHandler
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -203,7 +203,7 @@ export class RequestFnfResponderHandler
     canBeIgnored: boolean
   ): void {}
 }
-/* 
+/*
 export function request(
   payload: Payload,
   responderStream: UnidirectionalStream
@@ -224,7 +224,7 @@ export function request(
 }
 
 export function response(
-  handler: (payload: Payload, responderStream: UnidirectionalStream,) => void 
+  handler: (payload: Payload, responderStream: UnidirectionalStream,) => void
 ): Handler<void> {
   return {
     create: (r) => new RequestFnfResponderHandler(),

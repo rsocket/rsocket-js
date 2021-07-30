@@ -33,7 +33,7 @@ export class WebsocketDuplexConnection
   }
 
   close(error?: Error) {
-    if (this.done) {
+    if (super.isDone()) {
       super.close(error);
       return;
     }
@@ -50,7 +50,7 @@ export class WebsocketDuplexConnection
   }
 
   send(frame: Frame): void {
-    if (this.done) {
+    if (super.isDone()) {
       return;
     }
 
@@ -60,7 +60,7 @@ export class WebsocketDuplexConnection
     //     }
     //   }
     const buffer = /* this._options.lengthPrefixedFrames
-          ? serializeFrameWithLength(frame, this._encoders) 
+          ? serializeFrameWithLength(frame, this._encoders)
           :*/ serializeFrame(
       frame
     );

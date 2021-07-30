@@ -2,15 +2,9 @@ import { Closeable } from "@rsocket/rsocket-types";
 
 export class Deferred implements Closeable {
   private _done: boolean;
+  private onCloseCallback: (reason?: any) => void;
 
-  private resolver: (value: void) => void;
-  private rejector: (reason?: any) => void;
-  private onClosePromise: Promise<void> = new Promise((res, rej) => {
-    this.resolver = res;
-    this.rejector = rej;
-  });
-
-  get done(): boolean {
+  public isDone(): boolean {
     return this._done;
   }
 
@@ -19,26 +13,27 @@ export class Deferred implements Closeable {
    * Publisher.
    */
   close(error?: Error): void {
-    if (this.done) {
+    if (this.isDone()) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
     }
 
     if (error) {
-      this.rejector(error);
+      this?.onCloseCallback(error);
       return;
     }
 
-    this.resolver();
+    this?.onCloseCallback();
   }
 
   /**
+   * Registers a callback to be called when the Closeable is closed. optionally with an Error.
    */
-  get onClose(): Promise<void> {
-    return this.onClosePromise;
+  onClose(callback): void {
+    this.onCloseCallback = callback;
   }
 }

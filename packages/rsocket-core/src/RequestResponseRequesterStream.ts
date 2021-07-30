@@ -259,11 +259,11 @@ export class RequestResponseResponderStream
     // TODO: throws if strict
   }
 
-  onError(error: Error): void {
+  onError(error: Error | RSocketError): void {
     if (this.done) {
       console.warn(
         `Trying to error for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -359,7 +359,7 @@ export class RequestResponseResponderStream
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
