@@ -1,11 +1,11 @@
 import net from "net";
 import { Deferred } from "@rsocket/rsocket-core";
 import {
-  deserializeFrame,
+  deserializeFrameWithLength,
   DuplexConnection,
   FlowControlledFrameHandler,
   Frame,
-  serializeFrame,
+  serializeFrameWithLength,
 } from "@rsocket/rsocket-types";
 
 export class TcpDuplexConnection extends Deferred implements DuplexConnection {
@@ -17,7 +17,7 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
 
     socket.on("close", this.handleClosed.bind(this));
     socket.on("error", this.handleError.bind(this));
-    socket.on("data", this.handleMessage.bind(this));
+    socket.on("data", this.handleData.bind(this));
   }
 
   handle(handler: FlowControlledFrameHandler): void {
@@ -39,7 +39,7 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
 
     this.socket.removeListener("close", this.handleClosed.bind(this));
     this.socket.removeListener("error", this.handleError.bind(this));
-    this.socket.removeListener("message", this.handleMessage.bind(this));
+    this.socket.removeListener("message", this.handleData.bind(this));
 
     this.socket.destroy(error);
 
@@ -53,23 +53,14 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
       return;
     }
 
-    //   if (__DEV__) {
-    //     if (this._options.debug) {
-    //       console.log(printFrame(frame));
-    //     }
-    //   }
-    // TODO: TCP transport must use frame length prefixed frames
-    //  https://github.com/rsocket/rsocket/blob/master/Protocol.md#framing-protocol-usage
-    const buffer = /* this._options.lengthPrefixedFrames
-          ? serializeFrameWithLength(frame, this._encoders)
-          :*/ serializeFrame(
-      frame
-    );
+    const buffer = serializeFrameWithLength(frame);
+
     // if (!this._socket) {
     //   throw new Error(
-    //     "RSocketWebSocketClient: Cannot send frame, not connected."
+    //     "TcpDuplexConnection: Cannot send frame, not connected."
     //   );
     // }
+
     this.socket.write(buffer);
   }
 
@@ -85,22 +76,12 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
     this.close(error);
   }
 
-  private handleMessage = (message: MessageEvent): void => {
+  private handleData(data: Buffer) {
     try {
-      const buffer = Buffer.from(message.data);
-      const frame = /* this._options.lengthPrefixedFrames
-          ? deserializeFrameWithLength(buffer, this._encoders)
-          :  */ deserializeFrame(
-        buffer
-      );
-      // if (__DEV__) {
-      //   if (this._options.debug) {
-      //     console.log(printFrame(frame));
-      //   }
-      // }
+      const frame = deserializeFrameWithLength(data);
       this.handler.handle(frame);
     } catch (error) {
       this.close(error);
     }
-  };
+  }
 }
