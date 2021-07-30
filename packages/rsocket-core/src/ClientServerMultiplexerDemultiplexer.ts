@@ -49,7 +49,7 @@ export class ClientServerInputMultiplexerDemultiplexer
     private keepAliveHandler: (frame: Frame, outbound: Outbound) => void,
     private connection: DuplexConnection,
     private fragmentSize: number,
-    private streamIdSupplier: (ocupiedIds: Array<number>) => number,
+    private streamIdSupplier: (occupiedIds: Array<number>) => number,
     handlers: { [requestType: number]: any },
     socketAcceptor?: SocketAcceptor
   ) {
@@ -113,7 +113,7 @@ export class ClientServerInputMultiplexerDemultiplexer
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -123,7 +123,7 @@ export class ClientServerInputMultiplexerDemultiplexer
       const stream = this.registry[streamId];
 
       stream.close(
-        new Error(`Closed. ${error ? `Origianl cause [${error}].` : ""}`)
+        new Error(`Closed. ${error ? `Original cause [${error}].` : ""}`)
       );
     }
 
@@ -132,8 +132,8 @@ export class ClientServerInputMultiplexerDemultiplexer
     this.connection.close(error);
   }
 
-  get onClose(): Promise<void> {
-    return this.connection.onClose;
+  onClose(callback): void {
+    this.connection.onClose(callback);
   }
 }
 
@@ -358,7 +358,8 @@ export class RSocketRequester implements RSocket {
   close(error?: Error): void {
     this.multiplexer.close();
   }
-  get onClose(): Promise<void> {
-    return this.multiplexer.onClose;
+
+  onClose(callback): void {
+    this.multiplexer.onClose(callback);
   }
 }

@@ -27,6 +27,7 @@ export class WebsocketClientTransport implements ClientTransport {
         websocket.removeEventListener("error", errorListener);
         resolve(new WebsocketDuplexConnection(websocket));
       };
+
       const errorListener = (ev: ErrorEvent) => {
         websocket.removeEventListener("open", openListener);
         websocket.removeEventListener("error", errorListener);

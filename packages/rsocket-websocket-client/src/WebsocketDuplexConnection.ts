@@ -60,7 +60,7 @@ export class WebsocketDuplexConnection
     //     }
     //   }
     const buffer = /* this._options.lengthPrefixedFrames
-          ? serializeFrameWithLength(frame, this._encoders) 
+          ? serializeFrameWithLength(frame, this._encoders)
           :*/ serializeFrame(
       frame
     );
