@@ -2,7 +2,7 @@ import { Closeable } from "@rsocket/rsocket-types";
 
 export class Deferred implements Closeable {
   private _done: boolean;
-  private onCloseCallback: (reason?: any) => void;
+  private onCloseCallback: (reason?: any) => () => {};
 
   get done(): boolean {
     return this._done;
@@ -23,11 +23,11 @@ export class Deferred implements Closeable {
     }
 
     if (error) {
-      this?.onCloseCallback(error);
+      this.onCloseCallback(error);
       return;
     }
 
-    this?.onCloseCallback();
+    this.onCloseCallback();
   }
 
   /**
