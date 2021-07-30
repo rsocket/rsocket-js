@@ -60,7 +60,8 @@ export interface StreamLifecycleHandler {
 }
 
 export interface StreamFrameHandler extends FrameHandler {
-  streamId(): number;
+  readonly streamId: number;
+
   handle(
     frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
   ): void;

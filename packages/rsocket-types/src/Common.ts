@@ -7,7 +7,7 @@ export interface Closeable {
 
   /**
    */
-  onClose(): Promise<void>;
+  readonly onClose: Promise<void>;
 }
 
 export interface Availability {
@@ -15,5 +15,5 @@ export interface Availability {
    * Returns positive number representing the availability of RSocket requester. Higher is better, 0.0
    * means not available.
    */
-  availability(): number;
+  readonly availability: number;
 }
