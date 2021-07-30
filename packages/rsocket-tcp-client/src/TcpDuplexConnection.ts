@@ -1,3 +1,4 @@
+import net from "net";
 import { Deferred } from "@rsocket/rsocket-core";
 import {
   deserializeFrame,
@@ -7,17 +8,16 @@ import {
   serializeFrame,
 } from "@rsocket/rsocket-types";
 
-export class WebsocketDuplexConnection
-  extends Deferred
-  implements DuplexConnection {
+export class TcpDuplexConnection extends Deferred implements DuplexConnection {
   private handler: FlowControlledFrameHandler;
+  private error: Error;
 
-  constructor(private websocket: WebSocket) {
+  constructor(private socket: net.Socket) {
     super();
 
-    websocket.addEventListener("close", this.handleClosed.bind(this));
-    websocket.addEventListener("error", this.handleError.bind(this));
-    websocket.addEventListener("message", this.handleMessage.bind(this));
+    socket.on("close", this.handleClosed.bind(this));
+    socket.on("error", this.handleError.bind(this));
+    socket.on("data", this.handleMessage.bind(this));
   }
 
   handle(handler: FlowControlledFrameHandler): void {
@@ -34,20 +34,16 @@ export class WebsocketDuplexConnection
 
   close(error?: Error) {
     if (this.done) {
-      super.close(error);
       return;
     }
 
-    this.websocket.removeEventListener("close", this.handleClosed.bind(this));
-    this.websocket.removeEventListener("error", this.handleError.bind(this));
-    this.websocket.removeEventListener(
-      "message",
-      this.handleMessage.bind(this)
-    );
+    this.socket.removeListener("close", this.handleClosed.bind(this));
+    this.socket.removeListener("error", this.handleError.bind(this));
+    this.socket.removeListener("message", this.handleMessage.bind(this));
 
-    this.websocket.close();
+    this.socket.destroy(error);
 
-    delete this.websocket;
+    delete this.socket;
 
     super.close(error);
   }
@@ -62,6 +58,8 @@ export class WebsocketDuplexConnection
     //       console.log(printFrame(frame));
     //     }
     //   }
+    // TODO: TCP transport must use frame length prefixed frames
+    //  https://github.com/rsocket/rsocket/blob/master/Protocol.md#framing-protocol-usage
     const buffer = /* this._options.lengthPrefixedFrames
           ? serializeFrameWithLength(frame, this._encoders)
           :*/ serializeFrame(
@@ -72,19 +70,19 @@ export class WebsocketDuplexConnection
     //     "RSocketWebSocketClient: Cannot send frame, not connected."
     //   );
     // }
-    this.websocket.send(buffer);
+    this.socket.write(buffer);
   }
 
-  private handleClosed(e: CloseEvent): void {
-    this.close(
-      new Error(
-        e.reason || "WebsocketDuplexConnection: Socket closed unexpectedly."
-      )
-    );
+  private handleClosed(hadError: boolean): void {
+    const message = hadError
+      ? `TcpDuplexConnection: ${this.error.message}`
+      : "TcpDuplexConnection: Socket closed unexpectedly.";
+    this.close(new Error(message));
   }
 
-  private handleError(e: ErrorEvent): void {
-    this.close(e.error);
+  private handleError(error: Error): void {
+    this.error = error;
+    this.close(error);
   }
 
   private handleMessage = (message: MessageEvent): void => {
