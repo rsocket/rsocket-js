@@ -18,7 +18,6 @@ export class TcpClientTransport implements ClientTransport {
       let socket;
 
       const openListener = () => {
-        socket.removeListener("open", openListener);
         socket.removeListener("error", errorListener);
         socket.removeListener("close", errorListener);
         socket.removeListener("end", errorListener);
@@ -26,16 +25,17 @@ export class TcpClientTransport implements ClientTransport {
       };
 
       const errorListener = (error: Error) => {
-        socket.removeListener("open", openListener);
         socket.removeListener("error", errorListener);
+        socket.removeListener("close", errorListener);
+        socket.removeListener("end", errorListener);
         reject(error);
       };
 
       socket = net.connect(this.connectionOptions, openListener);
 
+      socket.once("error", errorListener);
       socket.once("close", errorListener);
       socket.once("end", errorListener);
-      socket.once("error", errorListener);
     });
   }
 }
