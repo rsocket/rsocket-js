@@ -5,12 +5,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "yarn run clean && yarn run compile",
     "clean": "rimraf -rf ./dist",
-    "compile": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "yarn run build",
-    "test": "yarn run build",
-    "start-request-response": "ts-node -r tsconfig-paths/register src/RequestResponseExample.ts"
+    "start-request-response-websocket-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleWebSocketClient.ts",
+    "start-request-response-tcp-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleTcpClient.ts"
   },
   "dependencies": {
     "ws": "~8.0.0",

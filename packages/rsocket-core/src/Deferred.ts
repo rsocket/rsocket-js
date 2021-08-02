@@ -1,16 +1,16 @@
 import { Closeable } from "@rsocket/rsocket-types";
 
 export class Deferred implements Closeable {
-  private _done: boolean;
-  private onCloseCallback: (reason?: any) => () => {};
+  private _done: boolean = false;
+  private onCloseCallback: (reason?: any) => void = () => {};
 
   get done(): boolean {
     return this._done;
   }
 
   /**
-   * Close the underlying connection, emitting `onComplete` on the receive()
-   * Publisher.
+   * Signals to an observer that the Deferred operation has been closed, which invokes
+   * the provided `onClose` callback.
    */
   close(error?: Error): void {
     if (this.done) {
@@ -21,6 +21,8 @@ export class Deferred implements Closeable {
       );
       return;
     }
+
+    this._done = true;
 
     if (error) {
       this.onCloseCallback(error);

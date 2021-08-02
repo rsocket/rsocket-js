@@ -15,9 +15,9 @@ export class WebsocketDuplexConnection
   constructor(private websocket: WebSocket) {
     super();
 
-    websocket.addEventListener("close", this.handleClosed);
-    websocket.addEventListener("error", this.handleError);
-    websocket.addEventListener("message", this.handleMessage);
+    websocket.addEventListener("close", this.handleClosed.bind(this));
+    websocket.addEventListener("error", this.handleError.bind(this));
+    websocket.addEventListener("message", this.handleMessage.bind(this));
   }
 
   handle(handler: FlowControlledFrameHandler): void {
@@ -38,9 +38,12 @@ export class WebsocketDuplexConnection
       return;
     }
 
-    this.websocket.removeEventListener("close", this.handleClosed);
-    this.websocket.removeEventListener("error", this.handleError);
-    this.websocket.removeEventListener("message", this.handleMessage);
+    this.websocket.removeEventListener("close", this.handleClosed.bind(this));
+    this.websocket.removeEventListener("error", this.handleError.bind(this));
+    this.websocket.removeEventListener(
+      "message",
+      this.handleMessage.bind(this)
+    );
 
     this.websocket.close();
 
@@ -75,7 +78,7 @@ export class WebsocketDuplexConnection
   private handleClosed(e: CloseEvent): void {
     this.close(
       new Error(
-        e.reason || "RSocketWebSocketClient: Socket closed unexpectedly."
+        e.reason || "WebsocketDuplexConnection: Socket closed unexpectedly."
       )
     );
   }
