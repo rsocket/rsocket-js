@@ -15,7 +15,7 @@ export class TcpClientTransport implements ClientTransport {
 
   connect(): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
-      let socket;
+      let socket: net.Socket;
 
       const openListener = () => {
         socket.removeListener("open", openListener);
