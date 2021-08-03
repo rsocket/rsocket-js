@@ -4,11 +4,15 @@ import { compilerOptions } from "../../tsconfig.json";
 
 const config: Config.InitialOptions = {
   preset: "ts-jest",
+  testRegex: "(\\/__tests__\\/.*|\\.(test|spec))\\.(ts)$",
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     // This has to match the baseUrl defined in tsconfig.json.
     prefix: "<rootDir>/../../",
   }),
-  modulePathIgnorePatterns: ["<rootDir>/__tests__/test-utils"],
+  modulePathIgnorePatterns: [
+    "<rootDir>/__tests__/test-utils",
+    "<rootDir>/__tests__/*.d.ts",
+  ],
   collectCoverage: true,
   collectCoverageFrom: ["<rootDir>/src/**/*.ts", "!**/node_modules/**"],
 };
