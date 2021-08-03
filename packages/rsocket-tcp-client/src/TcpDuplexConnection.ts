@@ -55,12 +55,6 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
 
     const buffer = serializeFrameWithLength(frame);
 
-    // if (!this._socket) {
-    //   throw new Error(
-    //     "TcpDuplexConnection: Cannot send frame, not connected."
-    //   );
-    // }
-
     this.socket.write(buffer);
   }
 
