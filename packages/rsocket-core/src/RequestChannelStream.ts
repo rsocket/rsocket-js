@@ -580,7 +580,7 @@ export class RequestChannelResponderStream
       }
 
       default: {
-        this.streamsRegistry.remove(this);
+        this.registry.remove(this);
 
         this.close(
           new RSocketError(ErrorCodes.CANCELED, "Received unexpected frame")
