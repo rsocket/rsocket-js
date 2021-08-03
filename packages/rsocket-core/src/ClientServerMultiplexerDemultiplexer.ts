@@ -3,6 +3,7 @@ import {
   Closeable,
   DuplexConnection,
   ErrorFrame,
+  ExtensionSubscriber,
   FlowControl,
   FlowControlledFrameHandler,
   Frame,
@@ -25,17 +26,25 @@ import {
   StreamFrameHandler,
   StreamLifecycleHandler,
   StreamsRegistry,
+  Subscriber,
   Subscription,
-  UnidirectionalStream,
 } from "@rsocket/rsocket-types";
+import {
+  RequestChannelRequesterStream,
+  RequestChannelResponderStream,
+} from "./RequestChannelStream";
 import {
   RequestFnFRequesterHandler,
   RequestFnfResponderHandler,
-} from "./RequestFnFRequesterStream";
+} from "./RequestFnFStream";
 import {
   RequestResponseRequesterStream,
   RequestResponseResponderStream,
-} from "./RequestResponseRequesterStream";
+} from "./RequestResponseStream";
+import {
+  RequestStreamRequesterStream,
+  RequestStreamResponderStream,
+} from "./RequestStreamStream";
 
 export class ClientServerInputMultiplexerDemultiplexer
   implements Closeable, StreamsRegistry, FlowControlledFrameHandler {
@@ -171,6 +180,32 @@ class RequestFrameHandler implements FrameHandler {
             this.outbound,
             this.fragmentSize,
             this.handlers[FrameTypes.REQUEST_RESPONSE],
+            frame
+          );
+        }
+        return;
+
+      case FrameTypes.REQUEST_STREAM:
+        if (this.handlers[FrameTypes.REQUEST_STREAM]) {
+          new RequestStreamResponderStream(
+            frame.streamId,
+            this.registry,
+            this.outbound,
+            this.fragmentSize,
+            this.handlers[FrameTypes.REQUEST_STREAM],
+            frame
+          );
+        }
+        return;
+
+      case FrameTypes.REQUEST_CHANNEL:
+        if (this.handlers[FrameTypes.REQUEST_CHANNEL]) {
+          new RequestChannelResponderStream(
+            frame.streamId,
+            this.registry,
+            this.outbound,
+            this.fragmentSize,
+            this.handlers[FrameTypes.REQUEST_CHANNEL],
             frame
           );
         }
@@ -313,10 +348,7 @@ class SetupFrameHandler implements FlowControlledFrameHandler {
 export class RSocketRequester implements RSocket {
   constructor(private multiplexer: ClientServerInputMultiplexerDemultiplexer) {}
 
-  fireAndForget(
-    payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable {
+  fireAndForget(payload: Payload, responderStream: Subscriber): Cancellable {
     return new RequestFnFRequesterHandler(
       payload,
       responderStream,
@@ -326,8 +358,8 @@ export class RSocketRequester implements RSocket {
 
   requestResponse(
     payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable {
+    responderStream: Subscriber & ExtensionSubscriber
+  ): Cancellable & ExtensionSubscriber {
     return new RequestResponseRequesterStream(
       payload,
       responderStream,
@@ -337,21 +369,33 @@ export class RSocketRequester implements RSocket {
 
   requestStream(
     payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Subscription {
-    throw new Error("Method not implemented.");
+    initialRequestN: number,
+    responderStream: Subscriber & ExtensionSubscriber
+  ): Subscription & ExtensionSubscriber {
+    return new RequestStreamRequesterStream(
+      payload,
+      initialRequestN,
+      responderStream,
+      this.multiplexer
+    );
   }
 
   requestChannel(
     payload: Payload,
     initialRequestN: number,
     isCompleted: boolean,
-    responderStream: UnidirectionalStream
-  ): UnidirectionalStream {
-    throw new Error("Method not implemented.");
+    responderStream: Subscriber & ExtensionSubscriber & Subscription
+  ): Subscriber & ExtensionSubscriber & Subscription {
+    return new RequestChannelRequesterStream(
+      payload,
+      initialRequestN,
+      isCompleted,
+      responderStream,
+      this.multiplexer
+    );
   }
 
-  metadataPush(payload: Payload): void {
+  metadataPush(metadata: Buffer, responderStream: Subscriber): void {
     throw new Error("Method not implemented.");
   }
 

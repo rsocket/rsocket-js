@@ -35,7 +35,7 @@ export interface Subscription extends Cancellable {
   request(requestN: number): void;
 }
 
-export interface Extendable {
+export interface ExtensionSubscriber {
   onExtension(
     extendedType: number,
     content: Buffer | null | undefined,
@@ -43,7 +43,7 @@ export interface Extendable {
   ): void;
 }
 
-export interface UnidirectionalStream extends Subscription, Extendable {
+export interface Subscriber {
   onError(error: Error): void;
   onNext(payload: Payload, isCompletion: boolean): void;
   onComplete(): void;
@@ -87,10 +87,7 @@ export interface RSocket extends Closeable {
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
    */
-  fireAndForget(
-    payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable;
+  fireAndForget(payload: Payload, responderStream: Subscriber): Cancellable;
 
   /**
    * Request-Response interaction model of `ReactiveSocket`. The returned
@@ -98,8 +95,8 @@ export interface RSocket extends Closeable {
    */
   requestResponse(
     payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Cancellable;
+    responderStream: Subscriber & ExtensionSubscriber
+  ): Cancellable & ExtensionSubscriber;
 
   /**
    * Request-Stream interaction model of `ReactiveSocket`. The returned
@@ -107,8 +104,9 @@ export interface RSocket extends Closeable {
    */
   requestStream(
     payload: Payload,
-    responderStream: UnidirectionalStream
-  ): Subscription;
+    initialRequestN: number,
+    responderStream: Subscriber & ExtensionSubscriber
+  ): Subscription & ExtensionSubscriber;
 
   /**
    * Request-Channel interaction model of `ReactiveSocket`. The returned
@@ -118,12 +116,12 @@ export interface RSocket extends Closeable {
     payload: Payload,
     initialRequestN: number,
     isCompleted: boolean,
-    responderStream: UnidirectionalStream
-  ): UnidirectionalStream;
+    responderStream: Subscriber & ExtensionSubscriber & Subscription
+  ): Subscriber & ExtensionSubscriber & Subscription;
 
   /**
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(payload: Payload): void;
+  metadataPush(metadata: Buffer, responderStream: Subscriber): void;
 }

@@ -1,19 +1,20 @@
 import {
   CancelFrame,
   Cancellable,
+  ErrorCodes,
   ErrorFrame,
   Flags,
   FrameTypes,
-  Outbound,
   Payload,
   PayloadFrame,
   RequestFnfFrame,
   RequestNFrame,
+  RSocketError,
   StreamConfig,
   StreamFrameHandler,
   StreamLifecycleHandler,
   StreamsRegistry,
-  UnidirectionalStream,
+  Subscriber,
 } from "@rsocket/rsocket-types";
 import { fragment, isFragmentable } from "./Fragmenter";
 import * as Reassembler from "./Reassembler";
@@ -21,16 +22,15 @@ import * as Reassembler from "./Reassembler";
 export class RequestFnFRequesterHandler
   implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
   private done: boolean;
-  private outbound: Outbound;
-  private fragmentSize: number;
 
   streamId: number;
 
   constructor(
     private payload: Payload,
-    private receiver: UnidirectionalStream,
+    private receiver: Subscriber,
     private streamRegistry: StreamsRegistry
   ) {
+    // TODO: add payload size validation
     streamRegistry.add(this);
   }
 
@@ -40,8 +40,6 @@ export class RequestFnFRequesterHandler
     }
 
     this.streamId = streamId;
-    this.outbound = outbound;
-    this.fragmentSize = fragmentSize;
 
     if (isFragmentable(this.payload, fragmentSize, FrameTypes.REQUEST_FNF)) {
       for (const frame of fragment(
@@ -89,13 +87,15 @@ export class RequestFnFRequesterHandler
     this.streamRegistry.remove(this);
   }
 
-  handle() {}
+  handle() {
+    this.close(new RSocketError(ErrorCodes.CANCELED, "Received invalid frame"));
+  }
 
   close(error?: Error): void {
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Dropping error [${error}].` : ""
+          error ? `Droppeing error [${error}].` : ""
         }`
       );
       return;
@@ -110,10 +110,7 @@ export class RequestFnFRequesterHandler
 }
 
 export class RequestFnfResponderHandler
-  implements
-    UnidirectionalStream,
-    StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+  implements Subscriber, StreamFrameHandler, Reassembler.FragmentsHolder {
   private cancellable?: Cancellable;
   private done: boolean;
 
@@ -126,7 +123,7 @@ export class RequestFnfResponderHandler
     private registry: StreamsRegistry,
     private handler: (
       payload: Payload,
-      senderStream: UnidirectionalStream
+      senderStream: Subscriber
     ) => Cancellable,
     frame: RequestFnfFrame
   ) {
@@ -144,11 +141,6 @@ export class RequestFnfResponderHandler
   }
 
   handle(frame: CancelFrame | ErrorFrame | PayloadFrame | RequestNFrame): void {
-    if (this.cancellable || this.done) {
-      // TODO: log dropped frame
-      return;
-    }
-
     if (frame.type == FrameTypes.PAYLOAD) {
       if (Flags.hasFollows(frame.flags)) {
         Reassembler.add(this, frame.data, frame.metadata);
@@ -174,7 +166,7 @@ export class RequestFnfResponderHandler
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Dropping error [${error}].` : ""
+          error ? `Droppeing error [${error}].` : ""
         }`
       );
       return;
@@ -192,16 +184,6 @@ export class RequestFnfResponderHandler
   onComplete(): void {}
 
   onNext(payload: Payload, isCompletion: boolean): void {}
-
-  request(requestN: number): void {}
-
-  cancel(): void {}
-
-  onExtension(
-    extendedType: number,
-    payload: Buffer | null | undefined,
-    canBeIgnored: boolean
-  ): void {}
 }
 /*
 export function request(

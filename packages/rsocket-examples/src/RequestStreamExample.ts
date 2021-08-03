@@ -13,24 +13,32 @@ async function main() {
 
   const rsocket = await connector.bind();
 
-  await new Promise((resolve, reject) =>
-    rsocket.requestResponse(
+  await new Promise((resolve, reject) => {
+    const requester = rsocket.requestStream(
       {
         data: Buffer.from("Hello World"),
       },
+      1,
       {
         onError: (e) => reject(e),
         onNext: (payload, isComplete) => {
           console.log(
             `payload[data: ${payload.data}; metadata: ${payload.metadata}]|${isComplete}`
           );
-          resolve(payload);
+
+          requester.request(5);
+
+          if (isComplete) {
+            resolve(payload);
+          }
         },
-        onComplete: () => {},
+        onComplete: () => {
+          resolve(null);
+        },
         onExtension: () => {},
       }
-    )
-  );
+    );
+  });
 }
 
 main().then(() => exit());
