@@ -10,7 +10,7 @@ const config: Config.InitialOptions = {
   }),
   modulePathIgnorePatterns: ["<rootDir>/__tests__/test-utils"],
   collectCoverage: true,
-  collectCoverageFrom: ["<rootDir>/src/**/*.ts", "!**/node_modules/**"]
+  collectCoverageFrom: ["<rootDir>/src/**/*.ts", "!**/node_modules/**"],
 };
 
 export default config;
