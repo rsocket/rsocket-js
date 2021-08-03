@@ -1,36 +1,39 @@
-import Mitm from "mitm";
 import { TcpClientTransport } from "../TcpClientTransport";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
-
-// jest.mock("net").useFakeTimers();
+import * as net from "net";
+import sinon from "sinon";
+import EventEmitter from "events";
 
 describe("TcpClientTransport", function () {
-  let mitm;
-
-  beforeEach(() => {
-    mitm = Mitm();
-  });
-
-  afterEach(function () {
-    mitm?.disable();
-  });
-
   describe("connect", () => {
     it("resolves to an instance of DuplexConnection on successful connection", async () => {
-      // act
+      // arrange
+      const netStub = new EventEmitter();
+      const socketStub = sinon.createStubInstance(net.Socket);
+
       const transport = new TcpClientTransport({
         connectionOptions: {
           host: "localhost",
           port: 9090,
         },
+        // @ts-ignore
+        socketCreator: () => {
+          return netStub;
+        },
       });
-      const connection = await transport.connect();
+
+      // act
+      const connectionPromise = transport.connect();
+
+      netStub.emit("connect", socketStub);
 
       // assert
-      expect(connection).toBeInstanceOf(TcpDuplexConnection);
+      await expect(connectionPromise).resolves.toBeInstanceOf(
+        TcpDuplexConnection
+      );
     });
 
-    it("rejects if the connection errors", async () => {
+    it("rejects if the connection cannot be established", async () => {
       // arrange
       const connectionRefusedError = new Error();
       // @ts-ignore
@@ -44,20 +47,26 @@ describe("TcpClientTransport", function () {
       // @ts-ignore
       connectionRefusedError.syscall = "connect";
 
-      mitm.on("connect", function (socket) {
-        throw connectionRefusedError;
-      });
+      const socketStub = new EventEmitter();
 
-      // act
       const transport = new TcpClientTransport({
         connectionOptions: {
           host: "localhost",
           port: 9090,
         },
+        // @ts-ignore
+        socketCreator: () => {
+          return socketStub;
+        },
       });
 
+      // act
+      const connectionPromise = transport.connect();
+
+      socketStub.emit("error", connectionRefusedError);
+
       // assert
-      await expect(transport.connect()).rejects.toEqual(connectionRefusedError);
+      await expect(connectionPromise).rejects.toEqual(connectionRefusedError);
     });
   });
 });
