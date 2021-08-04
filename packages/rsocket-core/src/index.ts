@@ -16,3 +16,9 @@
 
 export * from "./Deferred";
 export * from "./RSocketConnector";
+export * from "./Codecs";
+export * from "./Common";
+export * from "./Errors";
+export * from "./Frames";
+export * from "./RSocket";
+export * from "./Transport";

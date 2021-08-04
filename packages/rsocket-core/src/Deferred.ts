@@ -1,4 +1,4 @@
-import { Closeable } from "@rsocket/rsocket-types";
+import { Closeable } from "./Common";
 
 export class Deferred implements Closeable {
   private _done: boolean = false;

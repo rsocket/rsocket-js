@@ -5,7 +5,7 @@ import {
   FlowControlledFrameHandler,
   Frame,
   serializeFrame,
-} from "@rsocket/rsocket-types";
+} from "@rsocket/rsocket-core";
 
 export class WebsocketDuplexConnection
   extends Deferred

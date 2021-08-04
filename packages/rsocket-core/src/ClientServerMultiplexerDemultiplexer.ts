@@ -1,35 +1,4 @@
 import {
-  Cancellable,
-  Closeable,
-  DuplexConnection,
-  ErrorFrame,
-  ExtensionSubscriber,
-  FlowControl,
-  FlowControlledFrameHandler,
-  Frame,
-  FrameHandler,
-  FrameTypes,
-  KeepAliveFrame,
-  LeaseFrame,
-  MetadataPushFrame,
-  Outbound,
-  Payload,
-  RequestChannelFrame,
-  RequestFnfFrame,
-  RequestResponseFrame,
-  RequestStreamFrame,
-  ResumeFrame,
-  ResumeOkFrame,
-  RSocket,
-  SetupFrame,
-  SocketAcceptor,
-  StreamFrameHandler,
-  StreamLifecycleHandler,
-  StreamsRegistry,
-  Subscriber,
-  Subscription,
-} from "@rsocket/rsocket-types";
-import {
   RequestChannelRequesterStream,
   RequestChannelResponderStream,
 } from "./RequestChannelStream";
@@ -45,6 +14,41 @@ import {
   RequestStreamRequesterStream,
   RequestStreamResponderStream,
 } from "./RequestStreamStream";
+import { Closeable } from "./Common";
+import {
+  Cancellable,
+  ExtensionSubscriber,
+  Payload,
+  RSocket,
+  SocketAcceptor,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+  StreamsRegistry,
+  Subscriber,
+  Subscription,
+} from "./RSocket";
+import {
+  DuplexConnection,
+  FlowControl,
+  FlowControlledFrameHandler,
+  FrameHandler,
+  Outbound,
+} from "./Transport";
+import {
+  ErrorFrame,
+  Frame,
+  FrameTypes,
+  KeepAliveFrame,
+  LeaseFrame,
+  MetadataPushFrame,
+  RequestChannelFrame,
+  RequestFnfFrame,
+  RequestResponseFrame,
+  RequestStreamFrame,
+  ResumeFrame,
+  ResumeOkFrame,
+  SetupFrame,
+} from "./Frames";
 
 export class ClientServerInputMultiplexerDemultiplexer
   implements Closeable, StreamsRegistry, FlowControlledFrameHandler {

@@ -1,14 +1,14 @@
+import { Payload } from "./RSocket";
 import {
   Flags,
   FrameTypes,
   Lengths,
-  Payload,
   PayloadFrame,
   RequestChannelFrame,
   RequestFnfFrame,
   RequestResponseFrame,
   RequestStreamFrame,
-} from "@rsocket/rsocket-types";
+} from "./Frames";
 
 export function isFragmentable(
   payload: Payload,

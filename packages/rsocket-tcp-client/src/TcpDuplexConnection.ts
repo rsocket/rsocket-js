@@ -6,7 +6,7 @@ import {
   FlowControlledFrameHandler,
   Frame,
   serializeFrameWithLength,
-} from "@rsocket/rsocket-types";
+} from "@rsocket/rsocket-core";
 
 export class TcpDuplexConnection extends Deferred implements DuplexConnection {
   private handler: FlowControlledFrameHandler;
