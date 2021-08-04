@@ -78,7 +78,7 @@ export class RequestChannelRequesterStream
         streamId,
         this.payload,
         fragmentSize,
-        FrameTypes.REQUEST_STREAM,
+        FrameTypes.REQUEST_CHANNEL,
         this.initialRequestN,
         this.isComplete
       )) {
