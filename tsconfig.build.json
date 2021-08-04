@@ -6,11 +6,14 @@
     "noEmitOnError": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "types": ["node"],
-    "declaration": true
+    "types": ["node", "jest"],
+    "declaration": true,
+    "resolveJsonModule": true,
+    "downlevelIteration": true
   },
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "**/__tests__"
   ]
 }

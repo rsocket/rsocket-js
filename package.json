@@ -15,10 +15,15 @@
   },
   "devDependencies": {
     "@nighttrax/eslint-config-tsx": "~8.0.0",
+    "@types/jest": "^26.0.24",
     "@types/node": "^16.0.1",
     "eslint": "~7.30.0",
     "eslint-plugin-import": "~2.23.0",
+    "jest": "^27.0.6",
+    "jest-config": "^27.0.6",
     "lerna": "^4.0.0",
+    "sinon": "^11.1.2",
+    "ts-jest": "^27.0.4",
     "typescript": "~4.3.0"
   }
 }

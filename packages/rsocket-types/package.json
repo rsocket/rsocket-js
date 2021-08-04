@@ -11,7 +11,7 @@
     "clean": "rimraf -rf ./dist",
     "compile": "tsc -p tsconfig.build.json",
     "prepublishOnly": "yarn run build",
-    "test": "yarn run build"
+    "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {},
   "devDependencies": {

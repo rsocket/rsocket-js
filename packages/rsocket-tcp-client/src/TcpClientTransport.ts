@@ -1,16 +1,29 @@
-import net from "net";
+import net, { SocketConnectOpts } from "net";
 import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-types";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 
-export type ClientOptions = {
+type TcpSocketCreator = (
+  options: SocketConnectOpts,
+  connectionListener?: () => void
+) => net.Socket;
+
+type TcpClientOptionsSocketFactory = (
+  options: net.NetConnectOpts
+) => net.Socket;
+
+type TcpClientOptions = {
   connectionOptions: net.NetConnectOpts;
+  socketCreator?: TcpClientOptionsSocketFactory;
 };
 
 export class TcpClientTransport implements ClientTransport {
   private readonly connectionOptions: net.NetConnectOpts;
+  private readonly socketCreator: TcpSocketCreator;
 
-  constructor(options: ClientOptions) {
+  constructor(options: TcpClientOptions) {
     this.connectionOptions = options.connectionOptions;
+    this.socketCreator =
+      options.socketCreator ?? ((options) => net.connect(options));
   }
 
   connect(): Promise<DuplexConnection> {
@@ -18,7 +31,6 @@ export class TcpClientTransport implements ClientTransport {
       let socket: net.Socket;
 
       const openListener = () => {
-        socket.removeListener("open", openListener);
         socket.removeListener("error", errorListener);
         socket.removeListener("close", errorListener);
         socket.removeListener("end", errorListener);
@@ -26,16 +38,18 @@ export class TcpClientTransport implements ClientTransport {
       };
 
       const errorListener = (error: Error) => {
-        socket.removeListener("open", openListener);
         socket.removeListener("error", errorListener);
+        socket.removeListener("close", errorListener);
+        socket.removeListener("end", errorListener);
         reject(error);
       };
 
-      socket = net.connect(this.connectionOptions, openListener);
+      socket = this.socketCreator(this.connectionOptions);
 
+      socket.once("connect", openListener);
+      socket.once("error", errorListener);
       socket.once("close", errorListener);
       socket.once("end", errorListener);
-      socket.once("error", errorListener);
     });
   }
 }

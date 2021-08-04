@@ -80,6 +80,7 @@ fabric.properties
 # https://yarnpkg.com/advanced/qa#which-files-should-be-gitignored
 
 .yarn/*
+yarn-error.log
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
@@ -93,3 +94,6 @@ fabric.properties
 # .pnp.*
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,yarn
+
+# coverage reports
+coverage/
