@@ -7,7 +7,9 @@
   "scripts": {
     "clean": "rimraf -rf ./dist",
     "start-request-response-websocket-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleWebSocketClient.ts",
-    "start-request-response-tcp-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleTcpClient.ts"
+    "start-request-response-tcp-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleTcpClient.ts",
+    "start-request-stream": "ts-node -r tsconfig-paths/register src/RequestStreamExample.ts",
+    "start-request-channel": "ts-node -r tsconfig-paths/register src/RequestChannelExample.ts"
   },
   "dependencies": {
     "ws": "~8.0.0",

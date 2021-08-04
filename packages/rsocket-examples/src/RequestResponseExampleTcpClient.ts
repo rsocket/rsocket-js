@@ -29,8 +29,6 @@ async function main() {
         },
         onComplete: () => {},
         onExtension: () => {},
-        cancel: () => {},
-        request: () => {},
       }
     )
   );

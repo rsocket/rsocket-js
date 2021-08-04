@@ -13,24 +13,43 @@ async function main() {
 
   const rsocket = await connector.bind();
 
-  await new Promise((resolve, reject) =>
-    rsocket.requestResponse(
+  await new Promise((resolve, reject) => {
+    const requester = rsocket.requestChannel(
       {
         data: Buffer.from("Hello World"),
       },
+      1,
+      false,
       {
         onError: (e) => reject(e),
         onNext: (payload, isComplete) => {
           console.log(
             `payload[data: ${payload.data}; metadata: ${payload.metadata}]|${isComplete}`
           );
-          resolve(payload);
+
+          requester.request(1);
+
+          if (isComplete) {
+            resolve(payload);
+          }
         },
-        onComplete: () => {},
+        onComplete: () => {
+          resolve(null);
+        },
         onExtension: () => {},
+        request: (n) => {
+          console.log(`request(${n})`);
+          requester.onNext(
+            {
+              data: Buffer.from("Message"),
+            },
+            true
+          );
+        },
+        cancel: () => {},
       }
-    )
-  );
+    );
+  });
 }
 
 main().then(() => exit());

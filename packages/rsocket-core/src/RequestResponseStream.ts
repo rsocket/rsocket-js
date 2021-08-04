@@ -3,6 +3,7 @@ import {
   Cancellable,
   ErrorCodes,
   ErrorFrame,
+  ExtensionSubscriber,
   ExtFrame,
   Flags,
   FrameTypes,
@@ -16,7 +17,7 @@ import {
   StreamFrameHandler,
   StreamLifecycleHandler,
   StreamsRegistry,
-  UnidirectionalStream,
+  Subscriber,
 } from "@rsocket/rsocket-types";
 import { fragment, isFragmentable } from "./Fragmenter";
 import * as Reassembler from "./Reassembler";
@@ -24,12 +25,17 @@ import * as Reassembler from "./Reassembler";
 export class RequestResponseRequesterStream
   implements
     Cancellable,
+    ExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
   private done: boolean;
   private outbound: Outbound;
-  private fragmentSize: number;
+
+  private hasExtension: boolean;
+  private extendedType: number;
+  private extendedContent: Buffer;
+  private flags: number;
 
   hasFragments: boolean;
   data: Buffer;
@@ -39,9 +45,10 @@ export class RequestResponseRequesterStream
 
   constructor(
     private payload: Payload,
-    private receiver: UnidirectionalStream,
+    private receiver: Subscriber & ExtensionSubscriber,
     private streamsRegistry: StreamsRegistry
   ) {
+    // TODO: add payload size validation
     streamsRegistry.add(this);
   }
 
@@ -55,7 +62,6 @@ export class RequestResponseRequesterStream
 
     this.streamId = streamId;
     this.outbound = outbound;
-    this.fragmentSize = fragmentSize;
 
     if (
       isFragmentable(this.payload, fragmentSize, FrameTypes.REQUEST_RESPONSE)
@@ -78,6 +84,16 @@ export class RequestResponseRequesterStream
       });
     }
 
+    if (this.hasExtension) {
+      this.outbound.send({
+        type: FrameTypes.EXT,
+        streamId,
+        extendedContent: this.extendedContent,
+        extendedType: this.extendedType,
+        flags: this.flags,
+      });
+    }
+
     return true;
   }
 
@@ -94,12 +110,8 @@ export class RequestResponseRequesterStream
   handle(
     frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
   ): void {
-    if (this.done) {
-      return;
-    }
-
     switch (frame.type) {
-      case FrameTypes.PAYLOAD:
+      case FrameTypes.PAYLOAD: {
         const hasComplete = Flags.hasComplete(frame.flags);
         const hasPayload = Flags.hasNext(frame.flags);
 
@@ -127,8 +139,9 @@ export class RequestResponseRequesterStream
 
         Reassembler.add(this, frame.data, frame.metadata);
         return;
+      }
 
-      case FrameTypes.ERROR:
+      case FrameTypes.ERROR: {
         this.done = true;
 
         this.streamsRegistry.remove(this);
@@ -137,16 +150,31 @@ export class RequestResponseRequesterStream
 
         this.receiver.onError(new RSocketError(frame.code, frame.message));
         return;
+      }
 
-      case FrameTypes.EXT:
+      case FrameTypes.EXT: {
         this.receiver.onExtension(
           frame.extendedType,
           frame.extendedContent,
           Flags.hasIgnore(frame.flags)
         );
         return;
-      default:
-      // TODO: throw an exception if strict frame handling mode
+      }
+
+      default: {
+        this.streamsRegistry.remove(this);
+
+        this.close(
+          new RSocketError(ErrorCodes.CANCELED, "Received unexpected frame")
+        );
+        this.outbound.send({
+          type: FrameTypes.CANCEL,
+          streamId: this.streamId,
+          flags: Flags.NONE,
+        });
+        return;
+        // TODO: throw an exception if strict frame handling mode
+      }
     }
   }
 
@@ -172,12 +200,40 @@ export class RequestResponseRequesterStream
     Reassembler.cancel(this);
   }
 
+  onExtension(
+    extendedType: number,
+    content: Buffer | null | undefined,
+    canBeIgnored: boolean
+  ): void {
+    if (this.done) {
+      return;
+    }
+
+    if (!this.streamId) {
+      this.hasExtension = true;
+      this.extendedType = extendedType;
+      this.extendedContent = content;
+      this.flags = canBeIgnored ? Flags.IGNORE : Flags.NONE;
+      return;
+    }
+
+    this.outbound.send({
+      streamId: this.streamId,
+      type: FrameTypes.EXT,
+      extendedType,
+      extendedContent: content,
+      flags: canBeIgnored ? Flags.IGNORE : Flags.NONE,
+    });
+  }
+
   close(error?: Error): void {
     if (this.done) {
       return;
     }
 
     this.done = true;
+
+    Reassembler.cancel(this);
 
     if (error) {
       this.receiver.onError(error);
@@ -189,10 +245,11 @@ export class RequestResponseRequesterStream
 
 export class RequestResponseResponderStream
   implements
-    UnidirectionalStream,
+    Subscriber,
+    ExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
-  private cancellable?: Cancellable;
+  private receiver?: Cancellable & ExtensionSubscriber;
   private done: boolean;
 
   hasFragments: boolean;
@@ -206,8 +263,8 @@ export class RequestResponseResponderStream
     private fragmentSize: number,
     private handler: (
       payload: Payload,
-      senderStream: UnidirectionalStream
-    ) => Cancellable,
+      senderStream: Subscriber
+    ) => Cancellable & ExtensionSubscriber,
     frame: RequestResponseFrame
   ) {
     if (Flags.hasFollows(frame.flags)) {
@@ -220,22 +277,33 @@ export class RequestResponseResponderStream
       data: frame.data,
       metadata: frame.metadata,
     };
-    this.cancellable = handler(payload, this);
+    this.receiver = handler(payload, this);
   }
 
-  handle(frame: CancelFrame | ErrorFrame | PayloadFrame | RequestNFrame): void {
-    if (this.done) {
-      return;
-    }
+  handle(
+    frame: CancelFrame | ErrorFrame | PayloadFrame | RequestNFrame | ExtFrame
+  ): void {
+    if (!this.receiver) {
+      if (frame.type === FrameTypes.PAYLOAD) {
+        if (Flags.hasFollows(frame.flags)) {
+          Reassembler.add(this, frame.data, frame.metadata);
+          return;
+        }
 
-    if (frame.type == FrameTypes.PAYLOAD) {
-      if (Flags.hasFollows(frame.flags)) {
-        Reassembler.add(this, frame.data, frame.metadata);
+        const payload = Reassembler.reassemble(
+          this,
+          frame.data,
+          frame.metadata
+        );
+        this.receiver = this.handler(payload, this);
         return;
       }
-
-      const payload = Reassembler.reassemble(this, frame.data, frame.metadata);
-      this.cancellable = this.handler(payload, this);
+    } else if (frame.type === FrameTypes.EXT) {
+      this.receiver.onExtension(
+        frame.extendedType,
+        frame.extendedContent,
+        Flags.hasIgnore(frame.flags)
+      );
       return;
     }
 
@@ -245,7 +313,7 @@ export class RequestResponseResponderStream
 
     Reassembler.cancel(this);
 
-    this.cancellable?.cancel();
+    this.receiver?.cancel();
 
     if (frame.type !== FrameTypes.CANCEL && frame.type !== FrameTypes.ERROR) {
       this.outbound.send({
@@ -259,7 +327,7 @@ export class RequestResponseResponderStream
     // TODO: throws if strict
   }
 
-  onError(error: Error | RSocketError): void {
+  onError(error: Error): void {
     if (this.done) {
       console.warn(
         `Trying to error for the second time. ${
@@ -294,12 +362,15 @@ export class RequestResponseResponderStream
 
     this.registry.remove(this);
 
+    // TODO: add payload size validation
+
     if (isFragmentable(payload, this.fragmentSize, FrameTypes.PAYLOAD)) {
       for (const frame of fragment(
         this.streamId,
         payload,
         this.fragmentSize,
-        FrameTypes.PAYLOAD
+        FrameTypes.PAYLOAD,
+        true
       )) {
         this.outbound.send(frame);
       }
@@ -333,10 +404,6 @@ export class RequestResponseResponderStream
     });
   }
 
-  request(requestN: number): void {}
-
-  cancel(): void {}
-
   onExtension(
     extendedType: number,
     content: Buffer,
@@ -349,7 +416,7 @@ export class RequestResponseResponderStream
     this.outbound.send({
       type: FrameTypes.EXT,
       streamId: this.streamId,
-      flags: canBeIgnored ? Flags.IGNORE : 0,
+      flags: canBeIgnored ? Flags.IGNORE : Flags.NONE,
       extendedType,
       extendedContent: content,
     });
@@ -367,6 +434,6 @@ export class RequestResponseResponderStream
 
     Reassembler.cancel(this);
 
-    this.cancellable?.cancel();
+    this.receiver?.cancel();
   }
 }
