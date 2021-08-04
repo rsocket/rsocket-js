@@ -358,7 +358,7 @@ export class RequestStreamResponderStream
     if (this.done) {
       console.warn(
         `Trying to error for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -457,7 +457,7 @@ export class RequestStreamResponderStream
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;

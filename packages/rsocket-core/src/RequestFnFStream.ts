@@ -95,7 +95,7 @@ export class RequestFnFRequesterHandler
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
@@ -166,7 +166,7 @@ export class RequestFnfResponderHandler
     if (this.done) {
       console.warn(
         `Trying to close for the second time. ${
-          error ? `Droppeing error [${error}].` : ""
+          error ? `Dropping error [${error}].` : ""
         }`
       );
       return;
