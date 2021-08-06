@@ -11,7 +11,7 @@
     "start-request-stream": "ts-node -r tsconfig-paths/register src/RequestStreamExample.ts",
     "start-request-channel": "ts-node -r tsconfig-paths/register src/RequestChannelExample.ts",
     "start-multiple-example": "ts-node -r tsconfig-paths/register src/Multiple.ts",
-    "start-rxjs-example": "ts-node -r tsconfig-paths/register src/RequestStreamExampleRXJSs.ts"
+    "start-rxjs-example": "ts-node -r tsconfig-paths/register src/RequestStreamExampleRXJS.ts"
   },
   "dependencies": {},
   "devDependencies": {
