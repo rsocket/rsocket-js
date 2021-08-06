@@ -9,17 +9,19 @@
     "start-request-response-websocket-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleWebSocketClient.ts",
     "start-request-response-tcp-client": "ts-node -r tsconfig-paths/register src/RequestResponseExampleTcpClient.ts",
     "start-request-stream": "ts-node -r tsconfig-paths/register src/RequestStreamExample.ts",
-    "start-request-channel": "ts-node -r tsconfig-paths/register src/RequestChannelExample.ts"
+    "start-request-channel": "ts-node -r tsconfig-paths/register src/RequestChannelExample.ts",
+    "start-multiple-example": "ts-node -r tsconfig-paths/register src/Multiple.ts",
+    "start-rxjs-example": "ts-node -r tsconfig-paths/register src/RequestStreamExampleRXJSs.ts"
   },
-  "dependencies": {
-    "ws": "~8.0.0",
-    "@rsocket/rsocket-core": "^1.0.0",
-    "@rsocket/rsocket-websocket-client": "^1.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@rsocket/rsocket-core": "^1.0.0",
+    "@rsocket/rsocket-websocket-client": "^1.0.0",
     "rimraf": "~3.0.2",
-    "typescript": "~4.3.0",
+    "rxjs": "^7.3.0",
     "ts-node": "~10.1.0",
-    "tsconfig-paths": "~3.10.1"
+    "tsconfig-paths": "~3.10.1",
+    "typescript": "~4.3.0",
+    "ws": "~8.0.0"
   }
 }
