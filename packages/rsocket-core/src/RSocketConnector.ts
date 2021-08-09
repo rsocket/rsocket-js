@@ -1,15 +1,10 @@
 import {
-  ClientTransport,
-  Flags,
-  FrameTypes,
-  Payload,
-  RSocket,
-  SetupFrame,
-} from "@rsocket/rsocket-types";
-import {
   ClientServerInputMultiplexerDemultiplexer,
   RSocketRequester,
 } from "./ClientServerMultiplexerDemultiplexer";
+import { Payload, RSocket } from "./RSocket";
+import { ClientTransport } from "./Transport";
+import { Flags, FrameTypes, SetupFrame } from "./Frames";
 
 export type Config = {
   setup?: {

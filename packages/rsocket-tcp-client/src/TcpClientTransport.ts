@@ -1,5 +1,5 @@
 import net, { SocketConnectOpts } from "net";
-import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-types";
+import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-core";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 
 type TcpSocketCreator = (

@@ -1,4 +1,4 @@
-import { Payload } from "@rsocket/rsocket-types";
+import { Payload } from "./RSocket";
 
 export interface FragmentsHolder {
   hasFragments: boolean;

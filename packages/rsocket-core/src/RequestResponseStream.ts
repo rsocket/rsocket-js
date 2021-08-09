@@ -1,26 +1,27 @@
+import { fragment, isFragmentable } from "./Fragmenter";
+import * as Reassembler from "./Reassembler";
 import {
-  CancelFrame,
   Cancellable,
-  ErrorCodes,
-  ErrorFrame,
   ExtensionSubscriber,
-  ExtFrame,
-  Flags,
-  FrameTypes,
-  Outbound,
   Payload,
-  PayloadFrame,
-  RequestNFrame,
-  RequestResponseFrame,
-  RSocketError,
   StreamConfig,
   StreamFrameHandler,
   StreamLifecycleHandler,
   StreamsRegistry,
   Subscriber,
-} from "@rsocket/rsocket-types";
-import { fragment, isFragmentable } from "./Fragmenter";
-import * as Reassembler from "./Reassembler";
+} from "./RSocket";
+import { Outbound } from "./Transport";
+import {
+  CancelFrame,
+  ErrorFrame,
+  ExtFrame,
+  Flags,
+  FrameTypes,
+  PayloadFrame,
+  RequestNFrame,
+  RequestResponseFrame,
+} from "./Frames";
+import { ErrorCodes, RSocketError } from "./Errors";
 
 export class RequestResponseRequesterStream
   implements

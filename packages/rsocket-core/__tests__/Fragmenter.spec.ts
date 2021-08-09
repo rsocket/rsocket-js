@@ -1,5 +1,5 @@
 import { fragment, isFragmentable } from "../src/Fragmenter";
-import { FrameTypes } from "@rsocket/rsocket-types";
+import { FrameTypes } from "@rsocket/rsocket-core";
 
 describe("isFragmentable", () => {
   it("returns false when fragmentSize is 0", () => {
@@ -78,6 +78,7 @@ describe.skip("fragment", () => {
         ],
       ];
 
+      // @ts-ignore
       expect(generator).toMatchYields(expectedYields);
     });
   });
