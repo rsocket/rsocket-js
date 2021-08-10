@@ -1,17 +1,5 @@
+import { ErrorCodes, RSocketError } from "./Errors";
 import { fragment, fragmentWithRequestN, isFragmentable } from "./Fragmenter";
-import * as Reassembler from "./Reassembler";
-import {
-  Cancellable,
-  ExtensionSubscriber,
-  Payload,
-  StreamConfig,
-  StreamFrameHandler,
-  StreamLifecycleHandler,
-  StreamsRegistry,
-  Subscriber,
-  Subscription,
-} from "./RSocket";
-import { Outbound } from "./Transport";
 import {
   CancelFrame,
   ErrorFrame,
@@ -22,13 +10,26 @@ import {
   RequestNFrame,
   RequestStreamFrame,
 } from "./Frames";
-import { ErrorCodes, RSocketError } from "./Errors";
+import * as Reassembler from "./Reassembler";
+import {
+  Cancellable,
+  OnExtensionSubscriber,
+  OnNextSubscriber,
+  OnTerminalSubscriber,
+  Payload,
+  Requestable,
+  StreamConfig,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+  StreamsRegistry,
+} from "./RSocket";
+import { Outbound } from "./Transport";
 
 export class RequestStreamRequesterStream
   implements
     Cancellable,
-    Subscription,
-    ExtensionSubscriber,
+    Requestable,
+    OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
@@ -49,7 +50,9 @@ export class RequestStreamRequesterStream
   constructor(
     private payload: Payload,
     private initialRequestN: number,
-    private receiver: Subscriber & ExtensionSubscriber,
+    private receiver: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber,
     private streamsRegistry: StreamsRegistry
   ) {
     // TODO: add payload size validation
@@ -267,11 +270,12 @@ export class RequestStreamRequesterStream
 
 export class RequestStreamResponderStream
   implements
-    Subscriber,
-    ExtensionSubscriber,
+    OnTerminalSubscriber,
+    OnNextSubscriber,
+    OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
-  private receiver?: Subscription & ExtensionSubscriber;
+  private receiver?: Cancellable & Requestable & OnExtensionSubscriber;
   private done: boolean;
   private initialRequestN: number;
 
@@ -287,8 +291,10 @@ export class RequestStreamResponderStream
     private handler: (
       payload: Payload,
       initialRequestN: number,
-      senderStream: Subscriber
-    ) => Subscription & ExtensionSubscriber,
+      senderStream: OnTerminalSubscriber &
+        OnNextSubscriber &
+        OnExtensionSubscriber
+    ) => Cancellable & Requestable & OnExtensionSubscriber,
     frame: RequestStreamFrame
   ) {
     if (Flags.hasFollows(frame.flags)) {

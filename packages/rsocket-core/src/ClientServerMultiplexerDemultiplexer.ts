@@ -1,3 +1,19 @@
+import { Closeable } from "./Common";
+import {
+  ErrorFrame,
+  Frame,
+  FrameTypes,
+  KeepAliveFrame,
+  LeaseFrame,
+  MetadataPushFrame,
+  RequestChannelFrame,
+  RequestFnfFrame,
+  RequestResponseFrame,
+  RequestStreamFrame,
+  ResumeFrame,
+  ResumeOkFrame,
+  SetupFrame,
+} from "./Frames";
 import {
   RequestChannelRequesterStream,
   RequestChannelResponderStream,
@@ -14,18 +30,18 @@ import {
   RequestStreamRequesterStream,
   RequestStreamResponderStream,
 } from "./RequestStreamStream";
-import { Closeable } from "./Common";
 import {
   Cancellable,
-  ExtensionSubscriber,
+  OnExtensionSubscriber,
+  OnNextSubscriber,
+  OnTerminalSubscriber,
   Payload,
+  Requestable,
   RSocket,
   SocketAcceptor,
   StreamFrameHandler,
   StreamLifecycleHandler,
   StreamsRegistry,
-  Subscriber,
-  Subscription,
 } from "./RSocket";
 import {
   DuplexConnection,
@@ -34,21 +50,6 @@ import {
   FrameHandler,
   Outbound,
 } from "./Transport";
-import {
-  ErrorFrame,
-  Frame,
-  FrameTypes,
-  KeepAliveFrame,
-  LeaseFrame,
-  MetadataPushFrame,
-  RequestChannelFrame,
-  RequestFnfFrame,
-  RequestResponseFrame,
-  RequestStreamFrame,
-  ResumeFrame,
-  ResumeOkFrame,
-  SetupFrame,
-} from "./Frames";
 
 export class ClientServerInputMultiplexerDemultiplexer
   implements Closeable, StreamsRegistry, FlowControlledFrameHandler {
@@ -352,7 +353,10 @@ class SetupFrameHandler implements FlowControlledFrameHandler {
 export class RSocketRequester implements RSocket {
   constructor(private multiplexer: ClientServerInputMultiplexerDemultiplexer) {}
 
-  fireAndForget(payload: Payload, responderStream: Subscriber): Cancellable {
+  fireAndForget(
+    payload: Payload,
+    responderStream: OnTerminalSubscriber
+  ): Cancellable {
     return new RequestFnFRequesterHandler(
       payload,
       responderStream,
@@ -362,8 +366,10 @@ export class RSocketRequester implements RSocket {
 
   requestResponse(
     payload: Payload,
-    responderStream: Subscriber & ExtensionSubscriber
-  ): Cancellable & ExtensionSubscriber {
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber
+  ): Cancellable & OnExtensionSubscriber {
     return new RequestResponseRequesterStream(
       payload,
       responderStream,
@@ -374,8 +380,10 @@ export class RSocketRequester implements RSocket {
   requestStream(
     payload: Payload,
     initialRequestN: number,
-    responderStream: Subscriber & ExtensionSubscriber
-  ): Subscription & ExtensionSubscriber {
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber
+  ): Requestable & OnExtensionSubscriber & Cancellable {
     return new RequestStreamRequesterStream(
       payload,
       initialRequestN,
@@ -388,8 +396,16 @@ export class RSocketRequester implements RSocket {
     payload: Payload,
     initialRequestN: number,
     isCompleted: boolean,
-    responderStream: Subscriber & ExtensionSubscriber & Subscription
-  ): Subscriber & ExtensionSubscriber & Subscription {
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber &
+      Requestable &
+      Cancellable
+  ): OnTerminalSubscriber &
+    OnNextSubscriber &
+    OnExtensionSubscriber &
+    Requestable &
+    Cancellable {
     return new RequestChannelRequesterStream(
       payload,
       initialRequestN,
@@ -399,7 +415,7 @@ export class RSocketRequester implements RSocket {
     );
   }
 
-  metadataPush(metadata: Buffer, responderStream: Subscriber): void {
+  metadataPush(metadata: Buffer, responderStream: OnTerminalSubscriber): void {
     throw new Error("Method not implemented.");
   }
 

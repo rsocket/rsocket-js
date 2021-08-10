@@ -26,7 +26,9 @@ async function main() {
           );
           resolve(payload);
         },
-        onComplete: () => {},
+        onComplete: () => {
+          resolve(null);
+        },
         onExtension: () => {},
       }
     )

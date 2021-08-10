@@ -1,14 +1,5 @@
+import { ErrorCodes, RSocketError } from "./Errors";
 import { fragment, isFragmentable } from "./Fragmenter";
-import * as Reassembler from "./Reassembler";
-import {
-  Cancellable,
-  Payload,
-  StreamConfig,
-  StreamFrameHandler,
-  StreamLifecycleHandler,
-  StreamsRegistry,
-  Subscriber,
-} from "./RSocket";
 import {
   CancelFrame,
   ErrorFrame,
@@ -18,7 +9,16 @@ import {
   RequestFnfFrame,
   RequestNFrame,
 } from "./Frames";
-import { ErrorCodes, RSocketError } from "./Errors";
+import * as Reassembler from "./Reassembler";
+import {
+  Cancellable,
+  OnTerminalSubscriber,
+  Payload,
+  StreamConfig,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+  StreamsRegistry,
+} from "./RSocket";
 
 export class RequestFnFRequesterHandler
   implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
@@ -27,9 +27,9 @@ export class RequestFnFRequesterHandler
   streamId: number;
 
   constructor(
-    private payload: Payload,
-    private receiver: Subscriber,
-    private streamRegistry: StreamsRegistry
+    private readonly payload: Payload,
+    private readonly receiver: OnTerminalSubscriber,
+    private readonly streamRegistry: StreamsRegistry
   ) {
     // TODO: add payload size validation
     streamRegistry.add(this);
@@ -111,7 +111,10 @@ export class RequestFnFRequesterHandler
 }
 
 export class RequestFnfResponderHandler
-  implements Subscriber, StreamFrameHandler, Reassembler.FragmentsHolder {
+  implements
+    OnTerminalSubscriber,
+    StreamFrameHandler,
+    Reassembler.FragmentsHolder {
   private cancellable?: Cancellable;
   private done: boolean;
 
@@ -124,7 +127,7 @@ export class RequestFnfResponderHandler
     private registry: StreamsRegistry,
     private handler: (
       payload: Payload,
-      senderStream: Subscriber
+      senderStream: OnTerminalSubscriber
     ) => Cancellable,
     frame: RequestFnfFrame
   ) {
@@ -183,8 +186,6 @@ export class RequestFnfResponderHandler
   onError(error: Error): void {}
 
   onComplete(): void {}
-
-  onNext(payload: Payload, isCompletion: boolean): void {}
 }
 
 /*
