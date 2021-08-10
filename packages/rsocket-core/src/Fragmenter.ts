@@ -1,4 +1,3 @@
-import { Payload } from "./RSocket";
 import {
   Flags,
   FrameTypes,
@@ -9,6 +8,7 @@ import {
   RequestResponseFrame,
   RequestStreamFrame,
 } from "./Frames";
+import { Payload } from "./RSocket";
 
 export function isFragmentable(
   payload: Payload,
@@ -44,114 +44,133 @@ export function* fragment(
     | FrameTypes.REQUEST_RESPONSE,
   isComplete: boolean = false
 ): Generator<PayloadFrame | RequestFnfFrame | RequestResponseFrame> {
-  const length = payload.data.byteLength + payload.metadata?.byteLength;
+  const dataLength = payload.data?.byteLength ?? 0;
+
   let firstFrame = frameType !== FrameTypes.PAYLOAD;
-  let metadataPosition = 0;
-  let dataPosition = 0;
-  while (dataPosition + metadataPosition < length) {
-    let remaining = fragmentSize;
-    let metadata: Buffer;
 
-    if (payload.metadata && metadataPosition < payload.metadata.byteLength) {
-      const nextMetadataPosition = Math.min(
-        payload.metadata.byteLength - metadataPosition,
-        remaining
-      );
+  let remaining = fragmentSize;
 
-      metadata = payload.data.slice(metadataPosition, nextMetadataPosition);
-      remaining -= metadata.byteLength + Lengths.METADATA;
-      metadataPosition = nextMetadataPosition;
+  let metadata: Buffer;
 
-      if (!remaining && dataPosition + metadataPosition < length) {
-        if (firstFrame) {
+  if (payload.metadata) {
+    const metadataLength = payload.metadata.byteLength;
+
+    if (metadataLength === 0) {
+      remaining -= Lengths.METADATA;
+      metadata = Buffer.from([]);
+    } else {
+      let metadataPosition = 0;
+      if (firstFrame) {
+        remaining -= Lengths.METADATA;
+        const nextMetadataPosition = Math.min(
+          metadataLength,
+          metadataPosition + remaining
+        );
+
+        metadata = payload.metadata.slice(
+          metadataPosition,
+          nextMetadataPosition
+        );
+        remaining -= metadata.byteLength;
+        metadataPosition = nextMetadataPosition;
+
+        if (remaining === 0) {
           firstFrame = false;
           yield {
             type: frameType,
             flags: Flags.FOLLOWS | Flags.METADATA,
-            data: null,
+            data: undefined,
             metadata,
             streamId,
           };
-        } else {
+          metadata = undefined;
+          remaining = fragmentSize;
+        }
+      }
+
+      while (metadataPosition < metadataLength) {
+        remaining -= Lengths.METADATA;
+        const nextMetadataPosition = Math.min(
+          metadataLength,
+          metadataPosition + remaining
+        );
+
+        metadata = payload.metadata.slice(
+          metadataPosition,
+          nextMetadataPosition
+        );
+        remaining -= metadata.byteLength;
+        metadataPosition = nextMetadataPosition;
+
+        if (remaining === 0 || dataLength === 0) {
           yield {
             type: FrameTypes.PAYLOAD,
-            flags: Flags.FOLLOWS | Flags.NEXT | Flags.METADATA,
-            data: null,
+            flags:
+              Flags.NEXT |
+              Flags.METADATA |
+              (metadataPosition === metadataLength &&
+              isComplete &&
+              dataLength === 0
+                ? Flags.COMPLETE
+                : Flags.FOLLOWS),
+            data: undefined,
             metadata,
             streamId,
           };
+          metadata = undefined;
+          remaining = fragmentSize;
         }
-        continue;
       }
     }
-
-    let data: Buffer;
-    if (dataPosition < payload.data.byteLength) {
-      const nextDataPosition = Math.min(
-        payload.data.byteLength - dataPosition,
-        remaining
-      );
-
-      data = payload.data.slice(dataPosition, nextDataPosition);
-      remaining -= data.byteLength;
-      dataPosition = nextDataPosition;
-    }
-
-    if (remaining || dataPosition + metadataPosition >= length) {
-      return {
-        type: FrameTypes.PAYLOAD,
-        flags:
-          Flags.NEXT |
-          (isComplete ? Flags.COMPLETE : 0) |
-          (metadata ? Flags.METADATA : 0),
-        data,
-        metadata,
-        streamId,
-      };
-    }
-
-    if (firstFrame) {
-      firstFrame = false;
-      yield {
-        type: frameType,
-        flags: Flags.FOLLOWS | (metadata ? Flags.METADATA : 0),
-        data,
-        metadata,
-        streamId,
-      };
-    } else {
-      yield {
-        type: FrameTypes.PAYLOAD,
-        flags: Flags.FOLLOWS | Flags.NEXT | (metadata ? Flags.METADATA : 0),
-        data,
-        metadata,
-        streamId,
-      };
-    }
   }
-  //   Object.defineProperty(payload, Symbol.iterator, {
-  //     value: payload,
-  //     writable: false,
-  //   });
-  //   Object.defineProperty(payload, "next", {
-  //     value: (function() {
 
-  //     }).bind,
-  //     writable: false,
-  //   });
-  //   return {
-  //     [Symbol.iterator]: function () {
-  //       return this;
-  //     },
-  //     next: () => {
-  //       return {
-  //         done: false,
-  //         value: ({
-  //           type: FrameTypes.PAYLOAD,
-  //         } as unknown) as PayloadFrame,
-  //       };
-  //     },
-  //   };
+  let dataPosition = 0;
+  let data: Buffer;
+
+  if (firstFrame) {
+    const nextDataPosition = Math.min(dataLength, dataPosition + remaining);
+
+    data = payload.data.slice(dataPosition, nextDataPosition);
+    remaining -= data.byteLength;
+    dataPosition = nextDataPosition;
+
+    yield {
+      type: frameType,
+      flags: Flags.FOLLOWS | (metadata ? Flags.METADATA : Flags.NONE),
+      data,
+      metadata,
+      streamId,
+    };
+
+    metadata = undefined;
+    data = undefined;
+    remaining = fragmentSize;
+  }
+
+  while (dataPosition < dataLength) {
+    const nextDataPosition = Math.min(dataLength, dataPosition + remaining);
+
+    data = payload.data.slice(dataPosition, nextDataPosition);
+    remaining -= data.byteLength;
+    dataPosition = nextDataPosition;
+
+    yield {
+      type: FrameTypes.PAYLOAD,
+      flags:
+        dataPosition === dataLength
+          ? (isComplete ? Flags.COMPLETE : Flags.NONE) |
+            Flags.NEXT |
+            (metadata ? Flags.METADATA : 0)
+          : Flags.FOLLOWS | Flags.NEXT | (metadata ? Flags.METADATA : 0),
+      data,
+      metadata,
+      streamId,
+    };
+
+    metadata = undefined;
+    data = undefined;
+    remaining = fragmentSize;
+  }
 }
 
 export function* fragmentWithRequestN(
@@ -162,114 +181,134 @@ export function* fragmentWithRequestN(
   requestN: number,
   isComplete: boolean = false
 ): Generator<PayloadFrame | RequestStreamFrame | RequestChannelFrame> {
-  const length = payload.data.byteLength + payload.metadata?.byteLength;
+  const dataLength = payload.data?.byteLength ?? 0;
+
   let firstFrame = true;
-  let metadataPosition = 0;
-  let dataPosition = 0;
-  while (dataPosition + metadataPosition < length) {
-    let remaining = fragmentSize - (firstFrame ? Lengths.REQUEST : 0);
-    let metadata: Buffer;
 
-    if (payload.metadata && metadataPosition < payload.metadata.byteLength) {
-      const nextMetadataPosition = Math.min(
-        payload.metadata.byteLength - metadataPosition,
-        remaining
-      );
+  let remaining = fragmentSize;
 
-      metadata = payload.data.slice(metadataPosition, nextMetadataPosition);
-      remaining -= metadata.byteLength + Lengths.METADATA;
-      metadataPosition = nextMetadataPosition;
+  let metadata: Buffer;
 
-      if (!remaining && dataPosition + metadataPosition < length) {
-        if (firstFrame) {
+  if (payload.metadata) {
+    const metadataLength = payload.metadata.byteLength;
+
+    if (metadataLength === 0) {
+      remaining -= Lengths.METADATA;
+      metadata = Buffer.from([]);
+    } else {
+      let metadataPosition = 0;
+      if (firstFrame) {
+        remaining -= Lengths.METADATA + Lengths.REQUEST;
+        const nextMetadataPosition = Math.min(
+          metadataLength,
+          metadataPosition + remaining
+        );
+
+        metadata = payload.metadata.slice(
+          metadataPosition,
+          nextMetadataPosition
+        );
+        remaining -= metadata.byteLength;
+        metadataPosition = nextMetadataPosition;
+
+        if (remaining === 0) {
           firstFrame = false;
           yield {
             type: frameType,
             flags: Flags.FOLLOWS | Flags.METADATA,
+            data: undefined,
             requestN,
-            data: null,
             metadata,
             streamId,
           };
-        } else {
+          metadata = undefined;
+          remaining = fragmentSize;
+        }
+      }
+
+      while (metadataPosition < metadataLength) {
+        remaining -= Lengths.METADATA;
+        const nextMetadataPosition = Math.min(
+          metadataLength,
+          metadataPosition + remaining
+        );
+
+        metadata = payload.metadata.slice(
+          metadataPosition,
+          nextMetadataPosition
+        );
+        remaining -= metadata.byteLength;
+        metadataPosition = nextMetadataPosition;
+
+        if (remaining === 0 || dataLength === 0) {
           yield {
             type: FrameTypes.PAYLOAD,
-            flags: Flags.FOLLOWS | Flags.NEXT | Flags.METADATA,
-            data: null,
+            flags:
+              Flags.NEXT |
+              Flags.METADATA |
+              (metadataPosition === metadataLength &&
+              isComplete &&
+              dataLength === 0
+                ? Flags.COMPLETE
+                : Flags.FOLLOWS),
+            data: undefined,
             metadata,
             streamId,
           };
+          metadata = undefined;
+          remaining = fragmentSize;
         }
-        continue;
       }
     }
-
-    let data: Buffer;
-    if (dataPosition < payload.data.byteLength) {
-      const nextDataPosition = Math.min(
-        payload.data.byteLength - dataPosition,
-        remaining
-      );
-
-      data = payload.data.slice(dataPosition, nextDataPosition);
-      remaining -= data.byteLength;
-      dataPosition = nextDataPosition;
-    }
-
-    if (remaining || dataPosition + metadataPosition >= length) {
-      return {
-        type: FrameTypes.PAYLOAD,
-        flags:
-          Flags.NEXT |
-          (isComplete ? Flags.COMPLETE : 0) |
-          (metadata ? Flags.METADATA : 0),
-        data,
-        metadata,
-        streamId,
-      };
-    }
-
-    if (firstFrame) {
-      firstFrame = false;
-      yield {
-        type: frameType,
-        flags: Flags.FOLLOWS | (metadata ? Flags.METADATA : 0),
-        requestN,
-        data,
-        metadata,
-        streamId,
-      };
-    } else {
-      yield {
-        type: FrameTypes.PAYLOAD,
-        flags: Flags.FOLLOWS | Flags.NEXT | (metadata ? Flags.METADATA : 0),
-        data,
-        metadata,
-        streamId,
-      };
-    }
   }
-  //   Object.defineProperty(payload, Symbol.iterator, {
-  //     value: payload,
-  //     writable: false,
-  //   });
-  //   Object.defineProperty(payload, "next", {
-  //     value: (function() {
 
-  //     }).bind,
-  //     writable: false,
-  //   });
-  //   return {
-  //     [Symbol.iterator]: function () {
-  //       return this;
-  //     },
-  //     next: () => {
-  //       return {
-  //         done: false,
-  //         value: ({
-  //           type: FrameTypes.PAYLOAD,
-  //         } as unknown) as PayloadFrame,
-  //       };
-  //     },
-  //   };
+  let dataPosition = 0;
+  let data: Buffer;
+
+  if (firstFrame) {
+    remaining -= Lengths.REQUEST;
+    const nextDataPosition = Math.min(dataLength, dataPosition + remaining);
+
+    data = payload.data.slice(dataPosition, nextDataPosition);
+    remaining -= data.byteLength;
+    dataPosition = nextDataPosition;
+
+    yield {
+      type: frameType,
+      flags: Flags.FOLLOWS | (metadata ? Flags.METADATA : Flags.NONE),
+      data,
+      requestN,
+      metadata,
+      streamId,
+    };
+
+    metadata = undefined;
+    data = undefined;
+    remaining = fragmentSize;
+  }
+
+  while (dataPosition < dataLength) {
+    const nextDataPosition = Math.min(dataLength, dataPosition + remaining);
+
+    data = payload.data.slice(dataPosition, nextDataPosition);
+    remaining -= data.byteLength;
+    dataPosition = nextDataPosition;
+
+    yield {
+      type: FrameTypes.PAYLOAD,
+      flags:
+        dataPosition === dataLength
+          ? (isComplete ? Flags.COMPLETE : Flags.NONE) |
+            Flags.NEXT |
+            (metadata ? Flags.METADATA : 0)
+          : Flags.FOLLOWS | Flags.NEXT | (metadata ? Flags.METADATA : 0),
+      data,
+      metadata,
+      streamId,
+    };
+
+    metadata = undefined;
+    data = undefined;
+    remaining = fragmentSize;
+  }
 }
