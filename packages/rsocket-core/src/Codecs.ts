@@ -118,8 +118,7 @@ export function deserializeFrameWithLength(buffer: Buffer): Frame {
  * by zero or more bytes of a (partial) subsequent frame, returns an array of
  * the frames and a buffer of the leftover bytes.
  */
-export function deserializeFrames(buffer: Buffer): [Array<Frame>, Buffer] {
-  const frames = [];
+export function* deserializeFrames(buffer: Buffer): Generator<[Frame, number]> {
   let offset = 0;
   while (offset + UINT24_SIZE < buffer.length) {
     const frameLength = readUInt24BE(buffer, offset);
@@ -131,10 +130,9 @@ export function deserializeFrames(buffer: Buffer): [Array<Frame>, Buffer] {
     }
     const frameBuffer = buffer.slice(frameStart, frameEnd);
     const frame = deserializeFrame(frameBuffer);
-    frames.push(frame);
     offset = frameEnd;
+    yield [frame, offset];
   }
-  return [frames, buffer.slice(offset, buffer.length)];
 }
 
 /**
