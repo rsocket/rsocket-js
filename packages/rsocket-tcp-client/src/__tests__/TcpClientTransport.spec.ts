@@ -1,4 +1,4 @@
-import { TcpClientTransport } from "../TcpClientTransport";
+import { TcpClientTransport } from "../index";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
 import * as net from "net";
 import sinon from "sinon";

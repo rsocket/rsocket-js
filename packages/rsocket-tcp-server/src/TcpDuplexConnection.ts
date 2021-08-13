@@ -2,6 +2,7 @@ import {
   Deferred,
   deserializeFrames,
   DuplexConnection,
+  FlowControl,
   FlowControlledFrameHandler,
   Frame,
   serializeFrameWithLength,
@@ -12,6 +13,20 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
   private handler: FlowControlledFrameHandler;
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
+
+  private state = FlowControl.NEXT;
+  private readonly resolver = (controlAction: FlowControl) => {
+    if (this.state === undefined) {
+      this.state = controlAction;
+      if (this.socket.isPaused()) {
+        this.socket.resume();
+
+        if (this.remainingBuffer.byteLength > 0) {
+          this.handleData(Buffer.from([]));
+        }
+      }
+    }
+  };
 
   constructor(private socket: net.Socket) {
     super();
@@ -77,9 +92,30 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
       // then extract any complete frames plus any remaining data.
       const buffer = Buffer.concat([this.remainingBuffer, chunks]);
       let lastOffset = 0;
-      for (const [frame, offset] of deserializeFrames(buffer)) {
-        lastOffset = offset;
-        this.handler.handle(frame);
+      if (this.state === FlowControl.ALL) {
+        for (const [frame, offset] of deserializeFrames(buffer)) {
+          lastOffset = offset;
+          this.handler.handle(frame);
+        }
+      } else {
+        outer: for (const [frame, offset] of deserializeFrames(buffer)) {
+          lastOffset = offset;
+          switch (this.state) {
+            case FlowControl.NEXT: {
+              this.state = undefined;
+              this.handler.handle(frame, this.resolver);
+              if (this.state === undefined) {
+                this.socket.pause();
+                break outer;
+              }
+              break;
+            }
+            case FlowControl.ALL: {
+              this.handler.handle(frame);
+              break;
+            }
+          }
+        }
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {

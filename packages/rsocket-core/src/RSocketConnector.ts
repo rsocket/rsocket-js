@@ -6,7 +6,7 @@ import { Payload, RSocket } from "./RSocket";
 import { ClientTransport } from "./Transport";
 import { Flags, FrameTypes, SetupFrame } from "./Frames";
 
-export type Config = {
+export type ConnectorConfig = {
   setup?: {
     payload?: Payload;
     dataMimeType?: string;
@@ -25,7 +25,7 @@ export class RSocketConnector {
   private transport: ClientTransport;
   private responder: Partial<RSocket>;
 
-  constructor(config: Config) {
+  constructor(config: ConnectorConfig) {
     this.setupFrame = {
       type: FrameTypes.SETUP,
       dataMimeType: config.setup?.dataMimeType ?? "application/octet-stream",
@@ -45,7 +45,7 @@ export class RSocketConnector {
     this.transport = config.transport;
   }
 
-  async bind(): Promise<RSocket> {
+  async connect(): Promise<RSocket> {
     const connection = await this.transport.connect();
 
     const multiplexer = new ClientServerInputMultiplexerDemultiplexer(
@@ -54,7 +54,7 @@ export class RSocketConnector {
       connection,
       0,
       () => 1,
-      {}
+      this.responder
     );
 
     connection.send(this.setupFrame);

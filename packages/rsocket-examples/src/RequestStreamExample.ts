@@ -7,11 +7,11 @@ async function main() {
   const connector = new RSocketConnector({
     transport: new WebsocketClientTransport({
       url: "ws://localhost:8080",
-      wsCreator: (url) => new WebSocket(url),
+      wsCreator: (url) => new WebSocket(url) as any,
     }),
   });
 
-  const rsocket = await connector.bind();
+  const rsocket = await connector.connect();
 
   await new Promise((resolve, reject) => {
     const requester = rsocket.requestStream(

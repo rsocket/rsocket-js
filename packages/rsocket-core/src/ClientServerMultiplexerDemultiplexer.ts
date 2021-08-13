@@ -1,6 +1,8 @@
 import { Closeable } from "./Common";
+import { ErrorCodes } from "./Errors";
 import {
   ErrorFrame,
+  Flags,
   Frame,
   FrameTypes,
   KeepAliveFrame,
@@ -64,12 +66,11 @@ export class ClientServerInputMultiplexerDemultiplexer
     private connection: DuplexConnection,
     private fragmentSize: number,
     private streamIdSupplier: (occupiedIds: Array<number>) => number,
-    handlers: { [requestType: number]: any },
-    socketAcceptor?: SocketAcceptor
+    rsocketOrSocketAcceptor: Partial<RSocket> | SocketAcceptor
   ) {
     this.delegateHandler = isServer
       ? new SetupFrameHandler(
-          socketAcceptor,
+          rsocketOrSocketAcceptor as SocketAcceptor,
           this,
           this.connection,
           this.fragmentSize
@@ -79,9 +80,12 @@ export class ClientServerInputMultiplexerDemultiplexer
             this,
             this.connection,
             this.fragmentSize,
-            handlers
+            rsocketOrSocketAcceptor as Partial<RSocket>
           ),
-          new ConnectionFrameHandler(this, handlers),
+          new ConnectionFrameHandler(
+            this,
+            rsocketOrSocketAcceptor as Partial<RSocket>
+          ),
           this
         );
 
@@ -156,7 +160,7 @@ class RequestFrameHandler implements FrameHandler {
     private registry: StreamsRegistry,
     private outbound: Outbound,
     private fragmentSize: number,
-    private handlers: { [requestType: number]: any }
+    private rsocket: Partial<RSocket>
   ) {}
 
   handle(
@@ -168,54 +172,76 @@ class RequestFrameHandler implements FrameHandler {
   ): void {
     switch (frame.type) {
       case FrameTypes.REQUEST_FNF:
-        if (this.handlers[FrameTypes.REQUEST_FNF]) {
+        if (this.rsocket.fireAndForget) {
           new RequestFnfResponderHandler(
             frame.streamId,
             this.registry,
-            this.handlers[FrameTypes.REQUEST_FNF],
+            this.rsocket.fireAndForget.bind(this.rsocket),
             frame
           );
         }
         return;
       case FrameTypes.REQUEST_RESPONSE:
-        if (this.handlers[FrameTypes.REQUEST_RESPONSE]) {
+        if (this.rsocket.requestResponse) {
           new RequestResponseResponderStream(
             frame.streamId,
             this.registry,
             this.outbound,
             this.fragmentSize,
-            this.handlers[FrameTypes.REQUEST_RESPONSE],
+            this.rsocket.requestResponse.bind(this.rsocket),
             frame
           );
+          return;
         }
+
+        this.rejectRequest(frame.streamId);
+
         return;
 
       case FrameTypes.REQUEST_STREAM:
-        if (this.handlers[FrameTypes.REQUEST_STREAM]) {
+        if (this.rsocket.requestStream) {
           new RequestStreamResponderStream(
             frame.streamId,
             this.registry,
             this.outbound,
             this.fragmentSize,
-            this.handlers[FrameTypes.REQUEST_STREAM],
+            this.rsocket.requestStream.bind(this.rsocket),
             frame
           );
+          return;
         }
+
+        this.rejectRequest(frame.streamId);
+
         return;
 
       case FrameTypes.REQUEST_CHANNEL:
-        if (this.handlers[FrameTypes.REQUEST_CHANNEL]) {
+        if (this.rsocket.requestChannel) {
           new RequestChannelResponderStream(
             frame.streamId,
             this.registry,
             this.outbound,
             this.fragmentSize,
-            this.handlers[FrameTypes.REQUEST_CHANNEL],
+            this.rsocket.requestChannel.bind(this.rsocket),
             frame
           );
+          return;
         }
+
+        this.rejectRequest(frame.streamId);
+
         return;
     }
+  }
+
+  rejectRequest(streamId: number) {
+    this.outbound.send({
+      type: FrameTypes.ERROR,
+      streamId,
+      flags: Flags.NONE,
+      code: ErrorCodes.REJECTED,
+      message: "No available handler found",
+    });
   }
 }
 
@@ -259,7 +285,7 @@ class GenericFrameHandler implements FlowControlledFrameHandler {
 class ConnectionFrameHandler implements FrameHandler {
   constructor(
     private registry: StreamsRegistry,
-    private handlers: { [requestType: number]: any }
+    private rsocket: Partial<RSocket>
   ) {}
 
   handle(
@@ -283,7 +309,8 @@ class ConnectionFrameHandler implements FrameHandler {
         // TODO: add connection errors handling
         return;
       case FrameTypes.METADATA_PUSH:
-        if (this.handlers[FrameTypes.METADATA_PUSH]) {
+        if (this.rsocket.metadataPush) {
+          // this.rsocket.metadataPush()
         }
 
         return;

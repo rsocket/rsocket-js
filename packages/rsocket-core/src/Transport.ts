@@ -49,3 +49,9 @@ export interface DuplexConnection
 export interface ClientTransport {
   connect(): Promise<DuplexConnection>;
 }
+
+export interface ServerTransport {
+  bind(
+    connectionAcceptor: (connection: DuplexConnection) => void
+  ): Promise<Closeable>;
+}
