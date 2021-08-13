@@ -1,6 +1,4 @@
-import { TcpServerTransport } from "../TcpServerTransport";
 // import { TcpDuplexConnection } from "../TcpDuplexConnection";
-import * as net from "net";
 // import sinon from "sinon";
 // import EventEmitter from "events";
 // import { DuplexConnection } from "@rsocket/rsocket-core/src";
@@ -11,18 +9,15 @@ describe("TcpClientTransport", function () {
       // arrange
       // const netStub = new EventEmitter();
       // const socketStub = sinon.createStubInstance(net.Socket);
-
-      const transport = new TcpServerTransport({
-        listenOptions: undefined,
-        serverOptions: undefined,
-        socketCreator(options: net.ServerOpts): net.Server {
-          return undefined;
-        },
-      });
-
+      // const transport = new TcpServerTransport({
+      //   listenOptions: undefined,
+      //   serverOptions: undefined,
+      //   socketCreator(): net.Server {
+      //     return undefined;
+      //   },
+      // });
       // act
-      const connectionPromise = await transport.bind((connection) => {});
-
+      // const connectionPromise = await transport.bind((connection) => {});
       // netStub.emit("connect", socketStub);
       //
       // // assert

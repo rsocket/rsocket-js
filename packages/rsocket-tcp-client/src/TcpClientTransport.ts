@@ -44,7 +44,7 @@ export class TcpClientTransport implements ClientTransport {
         reject(error);
       };
 
-      socket = this.socketCreator(this.connectionOptions);
+      socket = this.socketCreator();
 
       socket.once("connect", openListener);
       socket.once("error", errorListener);

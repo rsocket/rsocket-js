@@ -4,9 +4,8 @@ import {
   DuplexConnection,
   ServerTransport,
 } from "@rsocket/rsocket-core";
-import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 import WebSocket, { Server } from "ws";
-import { IncomingMessage } from "http";
+import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 
 export type SocketFactory = (options: SocketOptions) => Server;
 
@@ -15,7 +14,7 @@ export type SocketOptions = {
   port?: number;
 };
 
-export type ClientOptions = SocketOptions & {
+export type ServerOptions = SocketOptions & {
   wsCreator?: SocketFactory;
   debug?: boolean;
 };
@@ -32,7 +31,7 @@ export class WebsocketServerTransport implements ServerTransport {
   private readonly port: number;
   private readonly factory: SocketFactory;
 
-  constructor(options: ClientOptions) {
+  constructor(options: ServerOptions) {
     this.host = options.host;
     this.port = options.port;
     this.factory = options.wsCreator ?? defaultFactory;
@@ -44,10 +43,7 @@ export class WebsocketServerTransport implements ServerTransport {
     const websocketServer: Server = await this.connectServer();
     const serverCloseable = new ServerCloseable(websocketServer);
 
-    const connectionListener = (
-      websocket: WebSocket,
-      request: IncomingMessage
-    ) => {
+    const connectionListener = (websocket: WebSocket) => {
       websocket.binaryType = "nodebuffer";
       const duplex = WebSocket.createWebSocketStream(websocket);
       connectionAcceptor(new WebsocketDuplexConnection(duplex));

@@ -1,7 +1,8 @@
-import { ErrorCodes, Flags } from ".";
 import { Closeable } from "./Common";
+import { ErrorCodes } from "./Errors";
 import {
   ErrorFrame,
+  Flags,
   Frame,
   FrameTypes,
   KeepAliveFrame,
