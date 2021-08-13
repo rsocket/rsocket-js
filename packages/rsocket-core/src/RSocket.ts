@@ -31,11 +31,11 @@ export interface Cancellable {
   cancel(): void;
 }
 
-export interface Subscription extends Cancellable {
+export interface Requestable {
   request(requestN: number): void;
 }
 
-export interface ExtensionSubscriber {
+export interface OnExtensionSubscriber {
   onExtension(
     extendedType: number,
     content: Buffer | null | undefined,
@@ -43,9 +43,12 @@ export interface ExtensionSubscriber {
   ): void;
 }
 
-export interface Subscriber {
+export interface OnNextSubscriber {
+  onNext(payload: Payload, isComplete: boolean): void;
+}
+
+export interface OnTerminalSubscriber {
   onError(error: Error): void;
-  onNext(payload: Payload, isCompletion: boolean): void;
   onComplete(): void;
 }
 
@@ -87,7 +90,10 @@ export interface RSocket extends Closeable {
    * Fire and Forget interaction model of `ReactiveSocket`. The returned
    * Publisher resolves when the passed `payload` is successfully handled.
    */
-  fireAndForget(payload: Payload, responderStream: Subscriber): Cancellable;
+  fireAndForget(
+    payload: Payload,
+    responderStream: OnTerminalSubscriber
+  ): Cancellable;
 
   /**
    * Request-Response interaction model of `ReactiveSocket`. The returned
@@ -95,8 +101,10 @@ export interface RSocket extends Closeable {
    */
   requestResponse(
     payload: Payload,
-    responderStream: Subscriber & ExtensionSubscriber
-  ): Cancellable & ExtensionSubscriber;
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber
+  ): Cancellable & OnExtensionSubscriber;
 
   /**
    * Request-Stream interaction model of `ReactiveSocket`. The returned
@@ -105,8 +113,10 @@ export interface RSocket extends Closeable {
   requestStream(
     payload: Payload,
     initialRequestN: number,
-    responderStream: Subscriber & ExtensionSubscriber
-  ): Subscription & ExtensionSubscriber;
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber
+  ): Requestable & Cancellable & OnExtensionSubscriber;
 
   /**
    * Request-Channel interaction model of `ReactiveSocket`. The returned
@@ -116,12 +126,20 @@ export interface RSocket extends Closeable {
     payload: Payload,
     initialRequestN: number,
     isCompleted: boolean,
-    responderStream: Subscriber & ExtensionSubscriber & Subscription
-  ): Subscriber & ExtensionSubscriber & Subscription;
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber &
+      Requestable &
+      Cancellable
+  ): OnTerminalSubscriber &
+    OnNextSubscriber &
+    OnExtensionSubscriber &
+    Requestable &
+    Cancellable;
 
   /**
    * Metadata-Push interaction model of `ReactiveSocket`. The returned Publisher
    * resolves when the passed `payload` is successfully handled.
    */
-  metadataPush(metadata: Buffer, responderStream: Subscriber): void;
+  metadataPush(metadata: Buffer, responderStream: OnTerminalSubscriber): void;
 }

@@ -1,16 +1,5 @@
+import { ErrorCodes, RSocketError } from "./Errors";
 import { fragment, isFragmentable } from "./Fragmenter";
-import * as Reassembler from "./Reassembler";
-import {
-  Cancellable,
-  ExtensionSubscriber,
-  Payload,
-  StreamConfig,
-  StreamFrameHandler,
-  StreamLifecycleHandler,
-  StreamsRegistry,
-  Subscriber,
-} from "./RSocket";
-import { Outbound } from "./Transport";
 import {
   CancelFrame,
   ErrorFrame,
@@ -21,17 +10,29 @@ import {
   RequestNFrame,
   RequestResponseFrame,
 } from "./Frames";
-import { ErrorCodes, RSocketError } from "./Errors";
+import * as Reassembler from "./Reassembler";
+import {
+  Cancellable,
+  OnExtensionSubscriber,
+  OnNextSubscriber,
+  OnTerminalSubscriber,
+  Payload,
+  StreamConfig,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+  StreamsRegistry,
+} from "./RSocket";
+import { Outbound } from "./Transport";
 
 export class RequestResponseRequesterStream
   implements
     Cancellable,
-    ExtensionSubscriber,
+    OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
-  private done: boolean;
   private outbound: Outbound;
+  private done: boolean;
 
   private hasExtension: boolean;
   private extendedType: number;
@@ -45,9 +46,11 @@ export class RequestResponseRequesterStream
   streamId: number;
 
   constructor(
-    private payload: Payload,
-    private receiver: Subscriber & ExtensionSubscriber,
-    private streamsRegistry: StreamsRegistry
+    private readonly payload: Payload,
+    private readonly receiver: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber,
+    private readonly streamsRegistry: StreamsRegistry
   ) {
     // TODO: add payload size validation
     streamsRegistry.add(this);
@@ -246,11 +249,12 @@ export class RequestResponseRequesterStream
 
 export class RequestResponseResponderStream
   implements
-    Subscriber,
-    ExtensionSubscriber,
+    OnTerminalSubscriber,
+    OnNextSubscriber,
+    OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
-  private receiver?: Cancellable & ExtensionSubscriber;
+  private receiver?: Cancellable & OnExtensionSubscriber;
   private done: boolean;
 
   hasFragments: boolean;
@@ -259,13 +263,15 @@ export class RequestResponseResponderStream
 
   constructor(
     readonly streamId: number,
-    private registry: StreamsRegistry,
-    private outbound: Outbound,
-    private fragmentSize: number,
-    private handler: (
+    private readonly registry: StreamsRegistry,
+    private readonly outbound: Outbound,
+    private readonly fragmentSize: number,
+    private readonly handler: (
       payload: Payload,
-      senderStream: Subscriber
-    ) => Cancellable & ExtensionSubscriber,
+      senderStream: OnNextSubscriber &
+        OnTerminalSubscriber &
+        OnExtensionSubscriber
+    ) => Cancellable & OnExtensionSubscriber,
     frame: RequestResponseFrame
   ) {
     if (Flags.hasFollows(frame.flags)) {

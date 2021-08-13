@@ -1,17 +1,5 @@
+import { ErrorCodes, RSocketError } from "./Errors";
 import { fragment, fragmentWithRequestN, isFragmentable } from "./Fragmenter";
-import * as Reassembler from "./Reassembler";
-import {
-  Cancellable,
-  ExtensionSubscriber,
-  Payload,
-  StreamConfig,
-  StreamFrameHandler,
-  StreamLifecycleHandler,
-  StreamsRegistry,
-  Subscriber,
-  Subscription,
-} from "./RSocket";
-import { Outbound } from "./Transport";
 import {
   CancelFrame,
   ErrorFrame,
@@ -22,21 +10,35 @@ import {
   RequestChannelFrame,
   RequestNFrame,
 } from "./Frames";
-import { ErrorCodes, RSocketError } from "./Errors";
+import * as Reassembler from "./Reassembler";
+import {
+  Cancellable,
+  OnExtensionSubscriber,
+  OnNextSubscriber,
+  OnTerminalSubscriber,
+  Payload,
+  Requestable,
+  StreamConfig,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+  StreamsRegistry,
+} from "./RSocket";
+import { Outbound } from "./Transport";
 
 export class RequestChannelRequesterStream
   implements
     Cancellable,
-    Subscription,
-    Subscriber,
-    ExtensionSubscriber,
+    Requestable,
+    OnTerminalSubscriber,
+    OnNextSubscriber,
+    OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
-  private inboundDone: boolean;
-  private outboundDone: boolean;
   private outbound: Outbound;
   private fragmentSize: number;
+  private inboundDone: boolean;
+  private outboundDone: boolean;
 
   private hasExtension: boolean;
   private extendedType: number;
@@ -50,14 +52,15 @@ export class RequestChannelRequesterStream
   streamId: number;
 
   constructor(
-    private payload: Payload,
+    private readonly payload: Payload,
     private initialRequestN: number,
-    private isComplete: boolean,
-    private receiver: Subscriber &
-      ExtensionSubscriber &
-      Subscription &
+    private readonly isComplete: boolean,
+    private readonly receiver: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber &
+      Requestable &
       Cancellable,
-    private streamsRegistry: StreamsRegistry
+    private readonly streamsRegistry: StreamsRegistry
   ) {
     // TODO: add payload size validation
     streamsRegistry.add(this);
@@ -414,17 +417,23 @@ export class RequestChannelRequesterStream
 export class RequestChannelResponderStream
   implements
     Cancellable,
-    Subscription,
-    ExtensionSubscriber,
-    Subscriber,
+    Requestable,
+    OnExtensionSubscriber,
+    OnTerminalSubscriber,
+    OnNextSubscriber,
     Cancellable,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
-  private receiver?: Subscription & ExtensionSubscriber & Subscriber;
+  private receiver?: Cancellable &
+    Requestable &
+    OnExtensionSubscriber &
+    OnTerminalSubscriber &
+    OnNextSubscriber;
+  private readonly initialRequestN: number;
+  private readonly isComplete: boolean;
+
   private inboundDone: boolean;
   private outboundDone: boolean;
-  private initialRequestN: number;
-  private isComplete: boolean;
 
   hasFragments: boolean;
   data: Buffer;
@@ -432,15 +441,23 @@ export class RequestChannelResponderStream
 
   constructor(
     readonly streamId: number,
-    private registry: StreamsRegistry,
-    private outbound: Outbound,
-    private fragmentSize: number,
-    private handler: (
+    private readonly registry: StreamsRegistry,
+    private readonly outbound: Outbound,
+    private readonly fragmentSize: number,
+    private readonly handler: (
       payload: Payload,
       initialRequestN: number,
       isComplete: boolean,
-      senderStream: Subscription & ExtensionSubscriber & Subscriber
-    ) => Subscription & ExtensionSubscriber & Subscriber,
+      senderStream: Cancellable &
+        Requestable &
+        OnExtensionSubscriber &
+        OnTerminalSubscriber &
+        OnNextSubscriber
+    ) => Cancellable &
+      Requestable &
+      OnExtensionSubscriber &
+      OnTerminalSubscriber &
+      OnNextSubscriber,
     frame: RequestChannelFrame
   ) {
     if (Flags.hasFollows(frame.flags)) {
