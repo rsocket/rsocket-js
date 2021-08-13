@@ -1,5 +1,5 @@
-import net, { SocketConnectOpts } from "net";
 import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-core";
+import net, { SocketConnectOpts } from "net";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 
 type TcpSocketCreator = (
@@ -44,7 +44,7 @@ export class TcpClientTransport implements ClientTransport {
         reject(error);
       };
 
-      socket = this.socketCreator();
+      socket = this.socketCreator(this.connectionOptions);
 
       socket.once("connect", openListener);
       socket.once("error", errorListener);
