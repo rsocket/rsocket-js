@@ -1,42 +1,75 @@
 import {
-  ServerTransport,
   Closeable,
-  DuplexConnection,
   Deferred,
+  DuplexConnection,
+  ServerTransport,
 } from "@rsocket/rsocket-core";
 import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 import WebSocket, { Server } from "ws";
 import { IncomingMessage } from "http";
 
-export type ClientOptions = {
+export type SocketFactory = (options: SocketOptions) => Server;
+
+export type SocketOptions = {
   host?: string;
   port?: number;
-  wsCreator?: (callback: () => void, host?: string, port?: number) => Server;
+};
+
+export type ClientOptions = SocketOptions & {
+  wsCreator?: SocketFactory;
   debug?: boolean;
 };
 
+const defaultFactory: SocketFactory = (options: SocketOptions) => {
+  return new Server({
+    host: options.host,
+    port: options.port,
+  });
+};
+
 export class WebsocketServerTransport implements ServerTransport {
-  private host: string;
-  private port: number;
-  private factory: (host: string, port: number) => Server;
+  private readonly host: string;
+  private readonly port: number;
+  private readonly factory: SocketFactory;
 
   constructor(options: ClientOptions) {
     this.host = options.host;
     this.port = options.port;
-    this.factory =
-      options.wsCreator ??
-      ((host, port) =>
-        new Server({
-          host,
-          port,
-        }));
+    this.factory = options.wsCreator ?? defaultFactory;
   }
 
-  bind(
+  async bind(
     connectionAcceptor: (connection: DuplexConnection) => void
   ): Promise<Closeable> {
+    const websocketServer: Server = await this.connectServer();
+    const serverCloseable = new ServerCloseable(websocketServer);
+
+    const connectionListener = (
+      websocket: WebSocket,
+      request: IncomingMessage
+    ) => {
+      websocket.binaryType = "nodebuffer";
+      const duplex = WebSocket.createWebSocketStream(websocket);
+      connectionAcceptor(new WebsocketDuplexConnection(duplex));
+    };
+
+    const closeListener = (error?: Error) => {
+      serverCloseable.close(error);
+    };
+
+    websocketServer.addListener("connection", connectionListener);
+    websocketServer.addListener("close", closeListener);
+    websocketServer.addListener("error", closeListener);
+
+    return serverCloseable;
+  }
+
+  private connectServer(): Promise<Server> {
     return new Promise((resolve, reject) => {
-      const websocketServer = this.factory(this.host, this.port);
+      const websocketServer = this.factory({
+        host: this.host,
+        port: this.port,
+      });
 
       const earlyCloseListener = (error?: Error) => {
         reject(error);
@@ -45,24 +78,7 @@ export class WebsocketServerTransport implements ServerTransport {
       websocketServer.addListener("close", earlyCloseListener);
       websocketServer.addListener("error", earlyCloseListener);
       websocketServer.addListener("listening", () => {
-        const serverCloseable = new ServerCloseable(websocketServer);
-        const connectionListener = (
-          websocket: WebSocket,
-          request: IncomingMessage
-        ) => {
-          websocket.binaryType = "nodebuffer";
-          const duplex = WebSocket.createWebSocketStream(websocket);
-          connectionAcceptor(new WebsocketDuplexConnection(duplex));
-        };
-        const closeListener = (error?: Error) => {
-          serverCloseable.close(error);
-        };
-
-        websocketServer.addListener("connection", connectionListener);
-        websocketServer.addListener("close", closeListener);
-        websocketServer.addListener("error", closeListener);
-
-        resolve(serverCloseable);
+        resolve(websocketServer);
       });
     });
   }

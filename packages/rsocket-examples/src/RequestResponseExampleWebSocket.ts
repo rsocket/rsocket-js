@@ -14,13 +14,11 @@ import WebSocket from "ws";
 async function main() {
   const server = new RSocketServer({
     transport: new WebsocketServerTransport({
-      wsCreator: (callback) =>
-        new WebSocket.Server(
-          {
-            port: 8080,
-          },
-          callback
-        ),
+      wsCreator: (options) => {
+        return new WebSocket.Server({
+          port: 8080,
+        });
+      },
     }),
     acceptor: {
       accept: async () => ({
