@@ -6,9 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "clean": "lerna run clean",
     "build": "lerna run build",
+    "clean": "lerna run clean",
     "pub": "lerna publish",
+    "pretest": "yarn clean",
     "test": "lerna run test",
     "lint": "eslint --ext js,ts .",
     "lint:fix": "npm run lint -- --fix"
