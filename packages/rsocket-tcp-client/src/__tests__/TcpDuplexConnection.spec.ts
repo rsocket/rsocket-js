@@ -1,12 +1,8 @@
-import { TcpClientTransport } from "../index";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
 import * as net from "net";
 import sinon from "sinon";
-import EventEmitter from "events";
 import { mock } from "jest-mock-extended";
 import { FrameHandler } from "@rsocket/rsocket-core/src";
-
-// const frameHandlerStub = mock<FrameHandler>();
 
 describe("TcpDuplexConnection", function () {
   describe("handle", () => {
