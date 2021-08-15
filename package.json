@@ -22,6 +22,7 @@
     "eslint-plugin-import": "~2.23.0",
     "jest": "^27.0.6",
     "jest-config": "^27.0.6",
+    "jest-mock-extended": "^2.0.2-beta2",
     "lerna": "^4.0.0",
     "sinon": "^11.1.2",
     "ts-jest": "^27.0.4",

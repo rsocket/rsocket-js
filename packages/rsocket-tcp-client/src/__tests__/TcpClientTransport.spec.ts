@@ -3,6 +3,8 @@ import { TcpDuplexConnection } from "../TcpDuplexConnection";
 import * as net from "net";
 import sinon from "sinon";
 import EventEmitter from "events";
+import { mock } from "jest-mock-extended";
+import { FrameHandler } from "@rsocket/rsocket-core/src";
 
 describe("TcpClientTransport", function () {
   describe("connect", () => {
