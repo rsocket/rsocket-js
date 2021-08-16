@@ -1,4 +1,8 @@
-import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-core";
+import {
+  ClientTransport,
+  Deserializer,
+  DuplexConnection,
+} from "@rsocket/rsocket-core";
 import net, { SocketConnectOpts } from "net";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 
@@ -34,7 +38,7 @@ export class TcpClientTransport implements ClientTransport {
         socket.removeListener("error", errorListener);
         socket.removeListener("close", errorListener);
         socket.removeListener("end", errorListener);
-        resolve(new TcpDuplexConnection(socket));
+        resolve(new TcpDuplexConnection(socket, new Deserializer()));
       };
 
       const errorListener = (error: Error) => {
