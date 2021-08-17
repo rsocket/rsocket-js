@@ -274,9 +274,10 @@ export class RequestResponseResponderStream
     ) => Cancellable & OnExtensionSubscriber,
     frame: RequestResponseFrame
   ) {
+    registry.add(this, streamId);
+
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
-      registry.add(this, streamId);
       return;
     }
 
