@@ -1156,4 +1156,11 @@ export class Deserializer {
   deserializeFrameWithLength(buffer: Buffer): Frame {
     return deserializeFrameWithLength(buffer);
   }
+
+  /**
+   * Read a frame from the buffer.
+   */
+  deserializeFrame(buffer: Buffer): Frame {
+    return deserializeFrame(buffer);
+  }
 }

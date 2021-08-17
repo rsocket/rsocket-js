@@ -1,18 +1,22 @@
-import { Deferred } from "@rsocket/rsocket-core";
 import {
-  deserializeFrame,
+  Deferred,
+  Deserializer,
   DuplexConnection,
   FlowControlledFrameHandler,
   Frame,
   serializeFrame,
 } from "@rsocket/rsocket-core";
+import WebSocket, { ErrorEvent, CloseEvent } from "ws";
 
 export class WebsocketDuplexConnection
   extends Deferred
   implements DuplexConnection {
   private handler: FlowControlledFrameHandler;
 
-  constructor(private websocket: WebSocket) {
+  constructor(
+    private websocket: WebSocket,
+    private deserializer: Deserializer
+  ) {
     super();
 
     websocket.addEventListener("close", this.handleClosed.bind(this));
@@ -57,21 +61,8 @@ export class WebsocketDuplexConnection
       return;
     }
 
-    //   if (__DEV__) {
-    //     if (this._options.debug) {
-    //       console.log(printFrame(frame));
-    //     }
-    //   }
-    const buffer = /* this._options.lengthPrefixedFrames
-          ? serializeFrameWithLength(frame, this._encoders)
-          :*/ serializeFrame(
-      frame
-    );
-    // if (!this._socket) {
-    //   throw new Error(
-    //     "RSocketWebSocketClient: Cannot send frame, not connected."
-    //   );
-    // }
+    const buffer = serializeFrame(frame);
+
     this.websocket.send(buffer);
   }
 
@@ -90,16 +81,8 @@ export class WebsocketDuplexConnection
   private handleMessage = (message: MessageEvent): void => {
     try {
       const buffer = Buffer.from(message.data);
-      const frame = /* this._options.lengthPrefixedFrames
-          ? deserializeFrameWithLength(buffer, this._encoders)
-          :  */ deserializeFrame(
-        buffer
-      );
-      // if (__DEV__) {
-      //   if (this._options.debug) {
-      //     console.log(printFrame(frame));
-      //   }
-      // }
+      const frame = this.deserializer.deserializeFrame(buffer);
+
       this.handler.handle(frame);
     } catch (error) {
       this.close(error);
