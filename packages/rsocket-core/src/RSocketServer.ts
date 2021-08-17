@@ -21,14 +21,14 @@ export class RSocketServer {
 
   async bind(): Promise<Closeable> {
     return await this.transport.bind((connection) => {
-      new ClientServerInputMultiplexerDemultiplexer(
-        true,
-        () => {},
-        connection,
-        0,
-        () => 2,
-        this.acceptor
-      );
+      new ClientServerInputMultiplexerDemultiplexer(connection, {
+        fragmentSize: 0,
+        keepAlive: {
+          hasSender: false,
+        },
+        streamIdSupplier: () => 2,
+        acceptor: this.acceptor,
+      });
     });
   }
 }

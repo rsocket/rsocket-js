@@ -49,12 +49,16 @@ export class RSocketConnector {
     const connection = await this.transport.connect();
 
     const multiplexer = new ClientServerInputMultiplexerDemultiplexer(
-      false,
-      () => {},
       connection,
-      0,
-      () => 1,
-      this.responder
+      {
+        fragmentSize: 0,
+        keepAlive: {
+          timeout: this.setupFrame.lifetime,
+          period: this.setupFrame.keepAlive,
+        },
+        streamIdSupplier: () => 1,
+        responder: this.responder,
+      }
     );
 
     connection.send(this.setupFrame);

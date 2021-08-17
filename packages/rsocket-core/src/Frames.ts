@@ -49,6 +49,10 @@ export namespace Flags {
   export function hasIgnore(flags: number): boolean {
     return (flags & Flags.IGNORE) === Flags.IGNORE;
   }
+
+  export function hasRespond(flags: number): boolean {
+    return (flags & Flags.RESPOND) === Flags.RESPOND;
+  }
 }
 
 export enum Lengths {
