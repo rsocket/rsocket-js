@@ -1,10 +1,10 @@
 import {
   Deferred,
-  deserializeFrames,
   DuplexConnection,
   FlowControlledFrameHandler,
   Frame,
   serializeFrameWithLength,
+  Deserializer,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
@@ -13,7 +13,11 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
 
-  constructor(private socket: net.Socket) {
+  constructor(
+    private socket: net.Socket,
+    // dependency injected to facilitate testing
+    private deserializer: Deserializer
+  ) {
     super();
 
     /**
@@ -100,7 +104,8 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
       // then extract any complete frames plus any remaining data.
       const buffer = Buffer.concat([this.remainingBuffer, chunks]);
       let lastOffset = 0;
-      for (const [frame, offset] of deserializeFrames(buffer)) {
+      const frames = this.deserializer.deserializeFrames(buffer);
+      for (const [frame, offset] of frames) {
         lastOffset = offset;
         this.handler.handle(frame);
       }

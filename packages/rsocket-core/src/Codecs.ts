@@ -116,7 +116,7 @@ export function deserializeFrameWithLength(buffer: Buffer): Frame {
 /**
  * Given a buffer that may contain zero or more length-prefixed frames followed
  * by zero or more bytes of a (partial) subsequent frame, returns an array of
- * the frames and a buffer of the leftover bytes.
+ * the frames and an int representing the buffer offset.
  */
 export function* deserializeFrames(buffer: Buffer): Generator<[Frame, number]> {
   let offset = 0;
@@ -1136,5 +1136,24 @@ function readPayload(
   }
   if (offset < buffer.length) {
     frame.data = buffer.slice(offset, buffer.length);
+  }
+}
+
+// exported as class to facilitate testing
+export class Deserializer {
+  /**
+   * Given a buffer that may contain zero or more length-prefixed frames followed
+   * by zero or more bytes of a (partial) subsequent frame, returns an array of
+   * the frames and a int representing the buffer offset.
+   */
+  deserializeFrames(buffer: Buffer): Generator<[Frame, number]> {
+    return deserializeFrames(buffer);
+  }
+
+  /**
+   * Reads a frame from a buffer that is prefixed with the frame length.
+   */
+  deserializeFrameWithLength(buffer: Buffer): Frame {
+    return deserializeFrameWithLength(buffer);
   }
 }
