@@ -1,3 +1,4 @@
+import { RSocketError } from ".";
 import { Closeable } from "./Common";
 import { ErrorCodes } from "./Errors";
 import {
@@ -53,42 +54,65 @@ import {
   Outbound,
 } from "./Transport";
 
+type ServerConfig = {
+  fragmentSize: number;
+  keepAlive: {
+    hasSender: boolean;
+  };
+  streamIdSupplier: (occupiedIds: Array<number>) => number;
+  acceptor: SocketAcceptor;
+};
+
+type ClientConfig = {
+  fragmentSize: number;
+  keepAlive: {
+    timeout: number;
+    period: number;
+  };
+  streamIdSupplier: (occupiedIds: Array<number>) => number;
+  responder: Partial<RSocket>;
+};
+
+function isServerConfig(
+  config: ClientConfig | ServerConfig
+): config is ServerConfig {
+  return config["acceptor"] !== undefined;
+}
+
 export class ClientServerInputMultiplexerDemultiplexer
   implements Closeable, StreamsRegistry, FlowControlledFrameHandler {
   private done: boolean;
-  private registry: { [id: number]: StreamFrameHandler } = {};
+  private readonly registry: { [id: number]: StreamFrameHandler } = {};
+  private readonly config: ClientConfig | ServerConfig;
 
-  private delegateHandler: FlowControlledFrameHandler;
+  private delegateHandler: FlowControlledFrameHandler & {
+    close: (error?: Error) => void;
+  };
 
   constructor(
-    private isServer: boolean,
-    private keepAliveHandler: (frame: Frame, outbound: Outbound) => void,
-    private connection: DuplexConnection,
-    private fragmentSize: number,
-    private streamIdSupplier: (occupiedIds: Array<number>) => number,
-    rsocketOrSocketAcceptor: Partial<RSocket> | SocketAcceptor
+    private readonly connection: DuplexConnection,
+    config: ClientConfig | ServerConfig
   ) {
-    this.delegateHandler = isServer
-      ? new SetupFrameHandler(
-          rsocketOrSocketAcceptor as SocketAcceptor,
-          this,
-          this.connection,
-          this.fragmentSize
-        )
+    this.config = config;
+    this.delegateHandler = isServerConfig(config)
+      ? new SetupFrameHandler(this, connection, config)
       : new GenericFrameHandler(
           new RequestFrameHandler(
             this,
-            this.connection,
-            this.fragmentSize,
-            rsocketOrSocketAcceptor as Partial<RSocket>
+            connection,
+            config.fragmentSize,
+            config.responder
           ),
           new ConnectionFrameHandler(
             this,
-            rsocketOrSocketAcceptor as Partial<RSocket>
+            new KeepAliveHandler(this, connection, config.keepAlive.timeout),
+            config.responder
           ),
-          this
+          this,
+          new KeepAliveSender(connection, config.keepAlive.period)
         );
 
+    connection.onClose(this.clean.bind(this));
     connection.handle(this);
   }
 
@@ -107,7 +131,7 @@ export class ClientServerInputMultiplexerDemultiplexer
     }
 
     const registry = this.registry;
-    const streamId = this.streamIdSupplier(
+    const streamId = this.config.streamIdSupplier(
       (Object.keys(registry) as any) as Array<number>
     );
 
@@ -116,7 +140,7 @@ export class ClientServerInputMultiplexerDemultiplexer
     if (
       !stream.handleReady(streamId, {
         outbound: this.connection,
-        fragmentSize: this.fragmentSize,
+        fragmentSize: this.config.fragmentSize,
       })
     ) {
       // TODO: return stream id
@@ -137,6 +161,18 @@ export class ClientServerInputMultiplexerDemultiplexer
       return;
     }
 
+    this.clean(error);
+
+    this.connection.close(error);
+  }
+
+  private clean(error?: Error): void {
+    if (this.done) {
+      return;
+    }
+
+    this.done = true;
+
     for (const streamId in this.registry) {
       const stream = this.registry[streamId];
 
@@ -145,9 +181,7 @@ export class ClientServerInputMultiplexerDemultiplexer
       );
     }
 
-    this.done = true;
-
-    this.connection.close(error);
+    this.delegateHandler.close(error);
   }
 
   onClose(callback): void {
@@ -249,7 +283,8 @@ class GenericFrameHandler implements FlowControlledFrameHandler {
   constructor(
     private requestHandler: RequestFrameHandler,
     private connectionHandler: ConnectionFrameHandler,
-    private registry: StreamsRegistry
+    private registry: StreamsRegistry,
+    private keepAliveSender: KeepAliveSender | undefined
   ) {}
 
   handle(frame: Frame): void {
@@ -280,12 +315,18 @@ class GenericFrameHandler implements FlowControlledFrameHandler {
 
     // TODO: add extensions support
   }
+
+  close(error?: Error): void {
+    this.connectionHandler.close(error);
+    this.keepAliveSender?.close();
+  }
 }
 
 class ConnectionFrameHandler implements FrameHandler {
   constructor(
-    private registry: StreamsRegistry,
-    private rsocket: Partial<RSocket>
+    private readonly multiplexere: ClientServerInputMultiplexerDemultiplexer,
+    private readonly keepAliveHandler: KeepAliveHandler,
+    private readonly rsocket: Partial<RSocket>
   ) {}
 
   handle(
@@ -300,13 +341,14 @@ class ConnectionFrameHandler implements FrameHandler {
   ): void {
     switch (frame.type) {
       case FrameTypes.KEEPALIVE:
-        // TODO: add keepalive handling
+        this.keepAliveHandler.handle(frame);
         return;
       case FrameTypes.LEASE:
         // TODO: add lease handling
         return;
       case FrameTypes.ERROR:
-        // TODO: add connection errors handling
+        // TODO: add code validation
+        this.multiplexere.close(new RSocketError(frame.code, frame.message));
         return;
       case FrameTypes.METADATA_PUSH:
         if (this.rsocket.metadataPush) {
@@ -318,14 +360,99 @@ class ConnectionFrameHandler implements FrameHandler {
       // TODO: throw an exception and close connection
     }
   }
+
+  close(error?: Error) {
+    this.keepAliveHandler.close();
+    this.rsocket.close?.call(this.rsocket, error);
+  }
+}
+
+class KeepAliveHandler implements FrameHandler {
+  private keepAliveLastReceivedMillis = Date.now();
+  private activeTimeout: any;
+
+  constructor(
+    private readonly multiplexer: ClientServerInputMultiplexerDemultiplexer,
+    private readonly outbound: Outbound,
+    private keepAliveTimeoutDuration: number
+  ) {
+    this.activeTimeout = setTimeout(
+      this.timeoutCheck.bind(this),
+      keepAliveTimeoutDuration
+    );
+  }
+
+  handle(frame: KeepAliveFrame): void {
+    this.keepAliveLastReceivedMillis = Date.now();
+    if (Flags.hasRespond(frame.flags)) {
+      this.outbound.send({
+        type: FrameTypes.KEEPALIVE,
+        streamId: 0,
+        data: undefined,
+        flags: frame.flags ^ Flags.RESPOND,
+        lastReceivedPosition: 0,
+      });
+    }
+  }
+
+  close() {
+    clearTimeout(this.activeTimeout);
+  }
+
+  private timeoutCheck() {
+    const now = Date.now();
+    const noKeepAliveDuration = now - this.keepAliveLastReceivedMillis;
+    if (noKeepAliveDuration >= this.keepAliveTimeoutDuration) {
+      this.multiplexer.close(
+        new Error(
+          `No keep-alive acks for ${this.keepAliveTimeoutDuration} millis`
+        )
+      );
+    } else {
+      this.activeTimeout = setTimeout(
+        this.timeoutCheck.bind(this),
+        Math.max(100, this.keepAliveTimeoutDuration - noKeepAliveDuration)
+      );
+    }
+  }
+}
+
+class KeepAliveSender {
+  private activeInterval: any;
+
+  constructor(
+    private readonly outbound: Outbound,
+    keepAlivePeriodDuration: number
+  ) {
+    this.activeInterval = setInterval(
+      this.sendKeepAlive.bind(this),
+      keepAlivePeriodDuration
+    );
+  }
+
+  private sendKeepAlive() {
+    this.outbound.send({
+      type: FrameTypes.KEEPALIVE,
+      streamId: 0,
+      data: undefined,
+      flags: Flags.RESPOND,
+      lastReceivedPosition: 0,
+    });
+  }
+
+  close(): void {
+    clearInterval(this.activeInterval);
+  }
 }
 
 class SetupFrameHandler implements FlowControlledFrameHandler {
+  private done: boolean;
+  private error: Error | undefined;
+
   constructor(
-    private socketAcceptor: SocketAcceptor,
-    private multiplexer: ClientServerInputMultiplexerDemultiplexer,
-    private outbound: Outbound,
-    private fragmentSize: number
+    private readonly multiplexer: ClientServerInputMultiplexerDemultiplexer,
+    private readonly outbound: Outbound,
+    private readonly config: ServerConfig
   ) {}
 
   handle(
@@ -340,7 +467,7 @@ class SetupFrameHandler implements FlowControlledFrameHandler {
     callback?: (controlRequest: FlowControl) => void
   ): void {
     if (frame.type === FrameTypes.SETUP) {
-      this.socketAcceptor
+      this.config.acceptor
         .accept(
           {
             data: frame.data,
@@ -356,15 +483,31 @@ class SetupFrameHandler implements FlowControlledFrameHandler {
         )
         .then(
           (responder) => {
+            if (this.done) {
+              responder.close?.call(responder, this.error);
+              return;
+            }
+
             this.multiplexer["delegateHandler"] = new GenericFrameHandler(
               new RequestFrameHandler(
                 this.multiplexer,
                 this.outbound,
-                this.fragmentSize,
-                responder as any
+                this.config.fragmentSize,
+                responder
               ),
-              new ConnectionFrameHandler(this.multiplexer, responder as any),
-              this.multiplexer
+              new ConnectionFrameHandler(
+                this.multiplexer,
+                new KeepAliveHandler(
+                  this.multiplexer,
+                  this.outbound,
+                  frame.lifetime
+                ),
+                responder
+              ),
+              this.multiplexer,
+              this.config.keepAlive.hasSender
+                ? new KeepAliveSender(this.outbound, frame.keepAlive)
+                : undefined
             );
 
             callback(FlowControl.ALL);
@@ -374,6 +517,12 @@ class SetupFrameHandler implements FlowControlledFrameHandler {
       return;
     }
     // TODO: throw an exception and close connection
+  }
+
+  close(error?: Error): void {
+    this.done = true;
+    this.error = error;
+    // FIXME: send reject frame
   }
 }
 

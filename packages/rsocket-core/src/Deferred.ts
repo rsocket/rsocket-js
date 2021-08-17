@@ -2,7 +2,8 @@ import { Closeable } from "./Common";
 
 export class Deferred implements Closeable {
   private _done: boolean = false;
-  private onCloseCallback: (reason?: any) => void = () => {};
+  private _error: Error | undefined;
+  private onCloseCallbacks: Array<(reason?: Error) => void> = [];
 
   get done(): boolean {
     return this._done;
@@ -23,19 +24,28 @@ export class Deferred implements Closeable {
     }
 
     this._done = true;
+    this._error = error;
 
     if (error) {
-      this.onCloseCallback(error);
+      for (const callback of this.onCloseCallbacks) {
+        callback(error);
+      }
       return;
     }
 
-    this.onCloseCallback();
+    for (const callback of this.onCloseCallbacks) {
+      callback();
+    }
   }
 
   /**
    * Registers a callback to be called when the Closeable is closed. optionally with an Error.
    */
-  onClose(callback): void {
-    this.onCloseCallback = callback;
+  onClose(callback: (reason?: Error) => void): void {
+    if (this._done) {
+      callback(this._error);
+      return;
+    }
+    this.onCloseCallbacks.push(callback);
   }
 }

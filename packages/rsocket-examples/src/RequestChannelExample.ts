@@ -5,6 +5,10 @@ import WebSocket from "ws";
 
 async function main() {
   const connector = new RSocketConnector({
+    setup: {
+      keepAlive: 100,
+      lifetime: 10000,
+    },
     transport: new WebsocketClientTransport({
       url: "ws://localhost:8080",
       wsCreator: (url) => new WebSocket(url) as any,

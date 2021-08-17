@@ -8,7 +8,7 @@ export interface Closeable {
   /**
    * Registers a callback to be called when the Closeable is closed. optionally with an Error.
    */
-  onClose(callback: (error?: Error) => void);
+  onClose(callback: (error?: Error) => void): void;
 }
 
 export interface Availability {
