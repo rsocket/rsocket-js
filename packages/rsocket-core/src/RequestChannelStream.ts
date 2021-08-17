@@ -460,9 +460,10 @@ export class RequestChannelResponderStream
       OnNextSubscriber,
     frame: RequestChannelFrame
   ) {
+    registry.add(this, streamId);
+
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
-      registry.add(this, streamId);
       this.initialRequestN = frame.requestN;
       this.isComplete = Flags.hasComplete(frame.flags);
       return;

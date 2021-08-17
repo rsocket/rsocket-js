@@ -297,10 +297,11 @@ export class RequestStreamResponderStream
     ) => Cancellable & Requestable & OnExtensionSubscriber,
     frame: RequestStreamFrame
   ) {
+    registry.add(this, streamId);
+
     if (Flags.hasFollows(frame.flags)) {
       this.initialRequestN = frame.requestN;
       Reassembler.add(this, frame.data, frame.metadata);
-      registry.add(this, streamId);
       return;
     }
 
