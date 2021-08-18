@@ -1,5 +1,10 @@
-import { ClientTransport, DuplexConnection } from "@rsocket/rsocket-core";
+import {
+  ClientTransport,
+  Deserializer,
+  DuplexConnection,
+} from "@rsocket/rsocket-core";
 import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
+import WebSocket, { ErrorEvent } from "ws";
 
 export type ClientOptions = {
   url: string;
@@ -8,8 +13,8 @@ export type ClientOptions = {
 };
 
 export class WebsocketClientTransport implements ClientTransport {
-  private url: string;
-  private factory: (url: string) => WebSocket;
+  private readonly url: string;
+  private readonly factory: (url: string) => WebSocket;
 
   constructor(options: ClientOptions) {
     this.url = options.url;
@@ -25,7 +30,7 @@ export class WebsocketClientTransport implements ClientTransport {
       const openListener = () => {
         websocket.removeEventListener("open", openListener);
         websocket.removeEventListener("error", errorListener);
-        resolve(new WebsocketDuplexConnection(websocket));
+        resolve(new WebsocketDuplexConnection(websocket, new Deserializer()));
       };
 
       const errorListener = (ev: ErrorEvent) => {

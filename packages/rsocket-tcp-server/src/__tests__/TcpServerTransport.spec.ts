@@ -8,11 +8,11 @@ describe("TcpClientTransport", function () {
     it.skip("resolves to an instance of DuplexConnection on successful connection", async () => {
       // arrange
       // const netStub = new EventEmitter();
-      // const socketStub = sinon.createStubInstance(net.Socket);
+      // const socketStub = sinon.createStubInstance(ws.Socket);
       // const transport = new TcpServerTransport({
       //   listenOptions: undefined,
       //   serverOptions: undefined,
-      //   socketCreator(): net.Server {
+      //   socketCreator(): ws.Server {
       //     return undefined;
       //   },
       // });

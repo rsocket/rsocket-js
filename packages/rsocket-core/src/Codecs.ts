@@ -239,6 +239,7 @@ export function serializeFrame(frame: Frame): Buffer {
     // );
   }
 }
+
 /**
  * Byte size of frame without size prefix
  */
@@ -290,6 +291,7 @@ export function sizeOfFrame(frame: Frame): number {
  */
 const SETUP_FIXED_SIZE = 14;
 const RESUME_TOKEN_LENGTH_SIZE = 2;
+
 function serializeSetupFrame(frame: SetupFrame): Buffer {
   const resumeTokenLength =
     frame.resumeToken != null ? frame.resumeToken.byteLength : 0;
@@ -466,6 +468,7 @@ function deserializeSetupFrame(
  * Prefix size is for the error code (uint32 = 4).
  */
 const ERROR_FIXED_SIZE = 4;
+
 function serializeErrorFrame(frame: ErrorFrame): Buffer {
   const messageLength =
     frame.message != null ? Buffer.byteLength(frame.message, "utf8") : 0;
@@ -526,6 +529,7 @@ function deserializeErrorFrame(
  * Prefix size is for the last received position (uint64 = 8).
  */
 const KEEPALIVE_FIXED_SIZE = 8;
+
 function serializeKeepAliveFrame(frame: KeepAliveFrame): Buffer {
   const dataLength = frame.data != null ? frame.data.byteLength : 0;
   const buffer = Buffer.allocUnsafe(
@@ -581,6 +585,7 @@ function deserializeKeepAliveFrame(
  * Prefix size is for the ttl (uint32) and requestcount (uint32).
  */
 const LEASE_FIXED_SIZE = 8;
+
 function serializeLeaseFrame(frame: LeaseFrame): Buffer {
   const metaLength = frame.metadata != null ? frame.metadata.byteLength : 0;
   const buffer = Buffer.allocUnsafe(
@@ -756,6 +761,7 @@ function deserializeMetadataPushFrame(
  * Prefix size is for requestN (uint32 = 4).
  */
 const REQUEST_MANY_HEADER = 4;
+
 function serializeRequestManyFrame(
   frame: RequestStreamFrame | RequestChannelFrame
 ): Buffer {
@@ -844,6 +850,7 @@ function deserializeRequestChannelFrame(
  * Prefix size is for requestN (uint32 = 4).
  */
 const REQUEST_N_HEADER = 4;
+
 function serializeRequestNFrame(frame: RequestNFrame): Buffer {
   const buffer = Buffer.allocUnsafe(FRAME_HEADER_SIZE + REQUEST_N_HEADER);
   const offset = writeHeader(frame, buffer);
@@ -960,6 +967,7 @@ function deserializePayloadFrame(
  * - server position (uint64 = 8)
  */
 const RESUME_FIXED_SIZE = 22;
+
 function serializeResumeFrame(frame: ResumeFrame): Buffer {
   const resumeTokenLength = frame.resumeToken.byteLength;
   const buffer = Buffer.allocUnsafe(
@@ -1032,6 +1040,7 @@ function deserializeResumeFrame(
  * - client position (uint64 = 8)
  */
 const RESUME_OK_FIXED_SIZE = 8;
+
 function serializeResumeOkFrame(frame: ResumeOkFrame): Buffer {
   const buffer = Buffer.allocUnsafe(FRAME_HEADER_SIZE + RESUME_OK_FIXED_SIZE);
   const offset = writeHeader(frame, buffer);
@@ -1142,12 +1151,10 @@ function readPayload(
 // exported as class to facilitate testing
 export class Deserializer {
   /**
-   * Given a buffer that may contain zero or more length-prefixed frames followed
-   * by zero or more bytes of a (partial) subsequent frame, returns an array of
-   * the frames and a int representing the buffer offset.
+   * Read a frame from the buffer.
    */
-  deserializeFrames(buffer: Buffer): Generator<[Frame, number]> {
-    return deserializeFrames(buffer);
+  deserializeFrame(buffer: Buffer): Frame {
+    return deserializeFrame(buffer);
   }
 
   /**
@@ -1155,5 +1162,14 @@ export class Deserializer {
    */
   deserializeFrameWithLength(buffer: Buffer): Frame {
     return deserializeFrameWithLength(buffer);
+  }
+
+  /**
+   * Given a buffer that may contain zero or more length-prefixed frames followed
+   * by zero or more bytes of a (partial) subsequent frame, returns an array of
+   * the frames and a int representing the buffer offset.
+   */
+  deserializeFrames(buffer: Buffer): Generator<[Frame, number]> {
+    return deserializeFrames(buffer);
   }
 }

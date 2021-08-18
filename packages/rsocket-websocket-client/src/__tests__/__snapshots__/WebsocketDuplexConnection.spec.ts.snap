@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`WebsocketDuplexConnection when receiving data when buffer contains a single frame deserializes received frames and calls the configured handler 1`] = `undefined`;
