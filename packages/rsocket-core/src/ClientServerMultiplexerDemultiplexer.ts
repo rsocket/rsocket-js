@@ -388,7 +388,7 @@ class KeepAliveHandler implements FrameHandler {
       this.outbound.send({
         type: FrameTypes.KEEPALIVE,
         streamId: 0,
-        data: undefined,
+        data: frame.data,
         flags: frame.flags ^ Flags.RESPOND,
         lastReceivedPosition: 0,
       });
