@@ -138,7 +138,7 @@ export class ClientServerInputMultiplexerDemultiplexer
     this.registry[streamId] = stream;
 
     if (
-      !stream.handleReady(streamId, {
+      !stream.handleReady?.(streamId, {
         outbound: this.connection,
         fragmentSize: this.config.fragmentSize,
       })
