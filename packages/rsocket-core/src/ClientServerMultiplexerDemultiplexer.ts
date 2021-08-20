@@ -79,6 +79,16 @@ function isServerConfig(
   return config["acceptor"] !== undefined;
 }
 
+class StreamClosedError extends Error {
+  constructor(cause?: Error) {
+    super("Stream Closed.");
+    Error.captureStackTrace(this, StreamClosedError);
+    if (cause) {
+      this.stack += "\n" + cause.stack;
+    }
+  }
+}
+
 export class ClientServerInputMultiplexerDemultiplexer
   implements Closeable, StreamsRegistry, FlowControlledFrameHandler {
   private done: boolean;
@@ -175,10 +185,7 @@ export class ClientServerInputMultiplexerDemultiplexer
 
     for (const streamId in this.registry) {
       const stream = this.registry[streamId];
-
-      stream.close(
-        new Error(`Closed. ${error ? `Original cause [${error}].` : ""}`)
-      );
+      stream.close(new StreamClosedError(error));
     }
 
     this.delegateHandler.close(error);
