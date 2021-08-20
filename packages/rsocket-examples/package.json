@@ -6,10 +6,10 @@
   ],
   "scripts": {
     "clean": "rimraf -rf ./dist",
-    "start-request-response-websocket": "ts-node -r tsconfig-paths/register src/RequestResponseExampleWebSocket.ts",
-    "start-request-response-tcp": "ts-node -r tsconfig-paths/register src/RequestResponseExampleTcp.ts",
-    "start-request-stream": "ts-node -r tsconfig-paths/register src/RequestStreamExample.ts",
-    "start-request-channel": "ts-node -r tsconfig-paths/register src/RequestChannelExample.ts"
+    "start-client-request-channel": "ts-node -r tsconfig-paths/register src/ClientRequestChannelExample.ts",
+    "start-client-server-request-stream": "ts-node -r tsconfig-paths/register src/ClientRequestStreamExample.ts",
+    "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleTcp.ts",
+    "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts"
   },
   "dependencies": {
     "ws": "~8.0.0",

@@ -6,18 +6,18 @@ import {
   RSocketConnector,
   RSocketServer,
 } from "@rsocket/rsocket-core";
-import { WebsocketClientTransport } from "@rsocket/rsocket-websocket-client";
-import { WebsocketServerTransport } from "@rsocket/rsocket-websocket-server";
+import { TcpClientTransport } from "@rsocket/rsocket-tcp-client";
+import { TcpServerTransport } from "@rsocket/rsocket-tcp-server";
 import { exit } from "process";
-import WebSocket from "ws";
 
-async function main() {
-  const server = new RSocketServer({
-    transport: new WebsocketServerTransport({
-      wsCreator: (options) => {
-        return new WebSocket.Server({
-          port: 8080,
-        });
+let serverCloseable;
+
+function makeServer() {
+  return new RSocketServer({
+    transport: new TcpServerTransport({
+      listenOptions: {
+        port: 9090,
+        host: "127.0.0.1",
       },
     }),
     acceptor: {
@@ -51,40 +51,58 @@ async function main() {
       }),
     },
   });
+}
 
-  const connector = new RSocketConnector({
-    transport: new WebsocketClientTransport({
-      url: "ws://localhost:8080",
-      wsCreator: (url) => new WebSocket(url) as any,
+function makeConnector() {
+  return new RSocketConnector({
+    transport: new TcpClientTransport({
+      connectionOptions: {
+        host: "127.0.0.1",
+        port: 9090,
+      },
     }),
   });
+}
 
-  const serverCloseable = await server.bind();
-
-  const rsocket = await connector.connect();
-
-  await new Promise((resolve, reject) =>
-    rsocket.requestResponse(
+async function requestResponse(rsocket) {
+  return new Promise((resolve, reject) => {
+    return rsocket.requestResponse(
       {
         data: Buffer.from("Hello World"),
       },
       {
-        onError: (e) => reject(e),
+        onError: (e) => {
+          reject(e);
+        },
         onNext: (payload, isComplete) => {
           console.log(
             `payload[data: ${payload.data}; metadata: ${payload.metadata}]|${isComplete}`
           );
           resolve(payload);
         },
-        onComplete: () => {
-          resolve(null);
-        },
+        onComplete: () => {},
         onExtension: () => {},
       }
-    )
-  );
-
-  serverCloseable.close();
+    );
+  });
 }
 
-main().then(() => exit());
+async function main() {
+  const server = makeServer();
+  const connector = makeConnector();
+
+  serverCloseable = await server.bind();
+  const rsocket = await connector.connect();
+
+  await requestResponse(rsocket);
+}
+
+main()
+  .then(() => exit())
+  .catch((error: Error) => {
+    console.error(error);
+    exit(1);
+  })
+  .finally(() => {
+    serverCloseable.close();
+  });

@@ -6,16 +6,18 @@ import {
   RSocketConnector,
   RSocketServer,
 } from "@rsocket/rsocket-core";
-import { TcpClientTransport } from "@rsocket/rsocket-tcp-client";
-import { TcpServerTransport } from "@rsocket/rsocket-tcp-server";
+import { WebsocketClientTransport } from "@rsocket/rsocket-websocket-client";
+import { WebsocketServerTransport } from "@rsocket/rsocket-websocket-server";
 import { exit } from "process";
+import WebSocket from "ws";
 
 async function main() {
   const server = new RSocketServer({
-    transport: new TcpServerTransport({
-      listenOptions: {
-        port: 9090,
-        host: "127.0.0.1",
+    transport: new WebsocketServerTransport({
+      wsCreator: (options) => {
+        return new WebSocket.Server({
+          port: 8080,
+        });
       },
     }),
     acceptor: {
@@ -51,11 +53,9 @@ async function main() {
   });
 
   const connector = new RSocketConnector({
-    transport: new TcpClientTransport({
-      connectionOptions: {
-        host: "127.0.0.1",
-        port: 9090,
-      },
+    transport: new WebsocketClientTransport({
+      url: "ws://localhost:8080",
+      wsCreator: (url) => new WebSocket(url) as any,
     }),
   });
 
@@ -76,7 +76,9 @@ async function main() {
           );
           resolve(payload);
         },
-        onComplete: () => {},
+        onComplete: () => {
+          resolve(null);
+        },
         onExtension: () => {},
       }
     )
