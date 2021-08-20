@@ -124,7 +124,17 @@ export class ClientServerInputMultiplexerDemultiplexer
     return this.registry[streamId];
   }
 
-  add(stream: StreamFrameHandler & StreamLifecycleHandler): void {
+  add(handler: StreamFrameHandler, streamId: number): void;
+  add(handler: StreamFrameHandler & StreamLifecycleHandler): void;
+  add(handler: StreamFrameHandler, providedStreamId?: number): void {
+    if (providedStreamId !== undefined) {
+      // handle responder side stream registration
+      this.registry[providedStreamId] = handler;
+      return;
+    }
+
+    // handle requester side stream registration
+    const stream = handler as StreamFrameHandler & StreamLifecycleHandler;
     if (this.done) {
       stream.handleReject(new Error("Already closed"));
       return;
