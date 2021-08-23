@@ -24,6 +24,7 @@
     "jest-config": "^27.0.6",
     "jest-mock-extended": "^2.0.2-beta2",
     "lerna": "^4.0.0",
+    "rxjs": "^7.3.0",
     "sinon": "^11.1.2",
     "ts-jest": "^27.0.4",
     "typescript": "~4.3.0"
