@@ -1,12 +1,4 @@
 import { Closeable } from "./Common";
-import {
-  CancelFrame,
-  ErrorFrame,
-  ExtFrame,
-  PayloadFrame,
-  RequestNFrame,
-} from "./Frames";
-import { FrameHandler, Outbound } from "./Transport";
 
 /**
  * A single unit of data exchanged between the peers of a `RSocket`.
@@ -50,31 +42,6 @@ export interface OnNextSubscriber {
 export interface OnTerminalSubscriber {
   onError(error: Error): void;
   onComplete(): void;
-}
-
-export type StreamConfig = {
-  outbound: Outbound;
-  fragmentSize: number;
-};
-
-export interface StreamLifecycleHandler {
-  handleReady(streamId: number, config: StreamConfig): boolean;
-  handleReject(error: Error): void;
-}
-
-export interface StreamFrameHandler extends FrameHandler {
-  readonly streamId: number;
-  handle(
-    frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
-  ): void;
-  close(error?: Error): void;
-}
-
-export interface StreamsRegistry {
-  get(streamId: number): StreamFrameHandler;
-  add(handler: StreamFrameHandler, streamId: number): void;
-  add(handler: StreamFrameHandler & StreamLifecycleHandler): void;
-  remove(handler: StreamFrameHandler): void;
 }
 
 export interface SocketAcceptor {

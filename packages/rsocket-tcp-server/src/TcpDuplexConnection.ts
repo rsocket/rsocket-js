@@ -1,61 +1,56 @@
 import {
-  Deferred,
+  ClientServerInputMultiplexerDemultiplexer,
+  Demultiplexer,
   deserializeFrames,
   DuplexConnection,
-  FlowControl,
-  FlowControlledFrameHandler,
   Frame,
+  Multiplexer,
   serializeFrameWithLength,
+  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
-export class TcpDuplexConnection extends Deferred implements DuplexConnection {
-  private handler: FlowControlledFrameHandler;
+export class TcpDuplexConnection
+  extends ClientServerInputMultiplexerDemultiplexer
+  implements DuplexConnection {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
 
-  private state = FlowControl.NEXT;
-  private readonly resolver = (controlAction: FlowControl) => {
-    if (this.state === undefined) {
-      this.state = controlAction;
-      if (this.socket.isPaused()) {
-        this.socket.resume();
-
-        if (this.remainingBuffer.byteLength > 0) {
-          this.handleData(Buffer.from([]));
-        }
-      }
-    }
-  };
-
-  constructor(private socket: net.Socket) {
-    super();
+  constructor(
+    private socket: net.Socket,
+    private connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>
+  ) {
+    super(StreamIdGenerator.create(0));
 
     socket.on("close", this.handleClosed.bind(this));
     socket.on("error", this.handleError.bind(this));
-    socket.on("data", this.handleData.bind(this));
+    socket.once("data", this.handleFirst.bind(this));
   }
 
-  handle(handler: FlowControlledFrameHandler): void {
-    if (this.handler) {
-      throw new Error("Handle has already been installed");
-    }
+  get multiplexer(): Multiplexer {
+    return this;
+  }
 
-    this.handler = handler;
+  get demultiplexer(): Demultiplexer {
+    return this;
   }
 
   get availability(): number {
-    throw new Error("Method not implemented.");
+    return this.done ? 0 : 1;
   }
 
   close(error?: Error) {
     if (this.done) {
+      super.close(error);
       return;
     }
 
     this.socket.removeListener("close", this.handleClosed.bind(this));
     this.socket.removeListener("error", this.handleError.bind(this));
-    this.socket.removeListener("message", this.handleData.bind(this));
+    this.socket.removeListener("data", this.handleData.bind(this));
 
     this.socket.destroy(error);
 
@@ -86,36 +81,31 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
     this.close(error);
   }
 
-  private handleData(chunks: Buffer) {
+  private async handleFirst(buffer: Buffer): Promise<void> {
+    try {
+      this.socket.pause();
+      this.socket.on("data", this.handleData.bind(this));
+
+      const [frame, offset] = deserializeFrames(buffer).next().value;
+      await this.connectionAcceptor(frame, this);
+      this.socket.resume();
+      if (offset < buffer.length) {
+        this.handleData(buffer.slice(offset, buffer.length));
+      }
+    } catch (error) {
+      this.close(error);
+    }
+  }
+
+  private handleData(chunks: Buffer): void {
     try {
       // Combine partial frame data from previous chunks with the next chunk,
       // then extract any complete frames plus any remaining data.
       const buffer = Buffer.concat([this.remainingBuffer, chunks]);
       let lastOffset = 0;
-      if (this.state === FlowControl.ALL) {
-        for (const [frame, offset] of deserializeFrames(buffer)) {
-          lastOffset = offset;
-          this.handler.handle(frame);
-        }
-      } else {
-        outer: for (const [frame, offset] of deserializeFrames(buffer)) {
-          lastOffset = offset;
-          switch (this.state) {
-            case FlowControl.NEXT: {
-              this.state = undefined;
-              this.handler.handle(frame, this.resolver);
-              if (this.state === undefined) {
-                this.socket.pause();
-                break outer;
-              }
-              break;
-            }
-            case FlowControl.ALL: {
-              this.handler.handle(frame);
-              break;
-            }
-          }
-        }
+      for (const [frame, offset] of deserializeFrames(buffer)) {
+        lastOffset = offset;
+        this.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {

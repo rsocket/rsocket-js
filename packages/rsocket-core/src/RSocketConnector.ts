@@ -1,10 +1,13 @@
-import {
-  ClientServerInputMultiplexerDemultiplexer,
-  RSocketRequester,
-} from "./ClientServerMultiplexerDemultiplexer";
-import { Payload, RSocket } from "./RSocket";
-import { ClientTransport } from "./Transport";
 import { Flags, FrameTypes, SetupFrame } from "./Frames";
+import { Payload, RSocket } from "./RSocket";
+import {
+  ConnectionFrameHandler,
+  KeepAliveHandler,
+  KeepAliveSender,
+  RSocketRequester,
+  StreamHandler,
+} from "./RSocketSupport";
+import { ClientTransport } from "./Transport";
 
 export type ConnectorConfig = {
   setup?: {
@@ -47,22 +50,36 @@ export class RSocketConnector {
 
   async connect(): Promise<RSocket> {
     const connection = await this.transport.connect();
-
-    const multiplexer = new ClientServerInputMultiplexerDemultiplexer(
-      connection,
-      {
-        fragmentSize: 0,
-        keepAlive: {
-          timeout: this.setupFrame.lifetime,
-          period: this.setupFrame.keepAlive,
-        },
-        streamIdSupplier: () => 1,
-        responder: this.responder,
-      }
+    const keepAliveSender = new KeepAliveSender(
+      connection.multiplexer.connectionOutbound,
+      this.setupFrame.keepAlive
     );
+    const keepAliveHandler = new KeepAliveHandler(
+      connection,
+      this.setupFrame.lifetime
+    );
+    const connectionFrameHandler = new ConnectionFrameHandler(
+      connection,
+      keepAliveHandler,
+      this.responder
+    );
+    const streamsHandler = new StreamHandler(this.responder, 0);
 
-    connection.send(this.setupFrame);
+    connection.onClose((e) => {
+      keepAliveSender.close();
+      keepAliveHandler.close();
+      connectionFrameHandler.close(e);
+    });
+    connection.demultiplexer.handleConnectionFrames(
+      connectionFrameHandler.handle.bind(connectionFrameHandler)
+    );
+    connection.demultiplexer.handleStream(
+      streamsHandler.handle.bind(connectionFrameHandler)
+    );
+    connection.multiplexer.connectionOutbound.send(this.setupFrame);
+    keepAliveHandler.start();
+    keepAliveSender.start();
 
-    return new RSocketRequester(multiplexer);
+    return new RSocketRequester(connection, 0);
   }
 }

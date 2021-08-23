@@ -23,3 +23,4 @@ export * from "./RSocket";
 export * from "./RSocketConnector";
 export * from "./RSocketServer";
 export * from "./Transport";
+export * from "./ClientServerMultiplexerDemultiplexer";

@@ -1,15 +1,18 @@
 import {
-  Deferred,
-  DuplexConnection,
-  FlowControlledFrameHandler,
-  Frame,
-  serializeFrameWithLength,
+  ClientServerInputMultiplexerDemultiplexer,
+  Demultiplexer,
   Deserializer,
+  DuplexConnection,
+  Frame,
+  Multiplexer,
+  serializeFrameWithLength,
+  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
-export class TcpDuplexConnection extends Deferred implements DuplexConnection {
-  private handler: FlowControlledFrameHandler;
+export class TcpDuplexConnection
+  extends ClientServerInputMultiplexerDemultiplexer
+  implements DuplexConnection {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
 
@@ -18,7 +21,7 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
     // dependency injected to facilitate testing
     private deserializer: Deserializer
   ) {
-    super();
+    super(StreamIdGenerator.create(-1));
 
     /**
      * Emitted when an error occurs. The 'close' event will be called directly following this event.
@@ -38,16 +41,16 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
     socket.on("data", this.handleData.bind(this));
   }
 
-  handle(handler: FlowControlledFrameHandler): void {
-    if (this.handler) {
-      throw new Error("Handle has already been installed");
-    }
+  get multiplexer(): Multiplexer {
+    return this;
+  }
 
-    this.handler = handler;
+  get demultiplexer(): Demultiplexer {
+    return this;
   }
 
   get availability(): number {
-    throw new Error("Method not implemented.");
+    return this.done ? 0 : 1;
   }
 
   close(error?: Error) {
@@ -107,7 +110,7 @@ export class TcpDuplexConnection extends Deferred implements DuplexConnection {
       const frames = this.deserializer.deserializeFrames(buffer);
       for (const [frame, offset] of frames) {
         lastOffset = offset;
-        this.handler.handle(frame);
+        this.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {

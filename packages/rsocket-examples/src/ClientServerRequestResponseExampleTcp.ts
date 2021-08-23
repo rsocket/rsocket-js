@@ -3,6 +3,7 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
+  RSocket,
   RSocketConnector,
   RSocketServer,
 } from "@rsocket/rsocket-core";
@@ -64,7 +65,7 @@ function makeConnector() {
   });
 }
 
-async function requestResponse(rsocket) {
+async function requestResponse(rsocket: RSocket) {
   return new Promise((resolve, reject) => {
     return rsocket.requestResponse(
       {

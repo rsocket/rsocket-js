@@ -1,43 +1,38 @@
 import {
-  Deferred,
+  ClientServerInputMultiplexerDemultiplexer,
+  Demultiplexer,
   deserializeFrame,
   DuplexConnection,
-  FlowControl,
-  FlowControlledFrameHandler,
   Frame,
+  Multiplexer,
   serializeFrame,
+  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import { Duplex } from "stream";
 
 export class WebsocketDuplexConnection
-  extends Deferred
+  extends ClientServerInputMultiplexerDemultiplexer
   implements DuplexConnection {
-  private handler: FlowControlledFrameHandler;
+  constructor(
+    private websocketDuplex: Duplex,
+    private connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>
+  ) {
+    super(StreamIdGenerator.create(0));
 
-  private state = FlowControl.NEXT;
-  private readonly resolver = (controlAction: FlowControl) => {
-    if (this.state === undefined) {
-      this.state = controlAction;
-      if (this.websocketDuplex.isPaused()) {
-        this.websocketDuplex.resume();
-      }
-    }
-  };
-
-  constructor(private websocketDuplex: Duplex) {
-    super();
-
-    websocketDuplex.addListener("close", this.handleClosed.bind(this));
-    websocketDuplex.addListener("error", this.handleError.bind(this));
-    websocketDuplex.addListener("data", this.handleMessage.bind(this));
+    websocketDuplex.on("close", this.handleClosed.bind(this));
+    websocketDuplex.on("error", this.handleError.bind(this));
+    websocketDuplex.once("data", this.handleFirst.bind(this));
   }
 
-  handle(handler: FlowControlledFrameHandler): void {
-    if (this.handler) {
-      throw new Error("Handle has already been installed");
-    }
+  get multiplexer(): Multiplexer {
+    return this;
+  }
 
-    this.handler = handler;
+  get demultiplexer(): Demultiplexer {
+    return this;
   }
 
   get availability(): number {
@@ -93,7 +88,23 @@ export class WebsocketDuplexConnection
     this.close(e.error);
   }
 
-  private handleMessage = (buffer: Buffer): void => {
+  private async handleFirst(buffer: Buffer): Promise<void> {
+    try {
+      this.websocketDuplex.pause();
+      this.websocketDuplex.on("data", this.handleMessage.bind(this));
+      const frame = /* this._options.lengthPrefixedFrames
+          ? deserializeFrameWithLength(buffer, this._encoders)
+          :  */ deserializeFrame(
+        buffer
+      );
+      await this.connectionAcceptor(frame, this);
+      this.websocketDuplex.resume();
+    } catch (error) {
+      this.close(error);
+    }
+  }
+
+  private handleMessage(buffer: Buffer): void {
     try {
       const frame = /* this._options.lengthPrefixedFrames
           ? deserializeFrameWithLength(buffer, this._encoders)
@@ -105,22 +116,9 @@ export class WebsocketDuplexConnection
       //     console.log(printFrame(frame));
       //   }
       // }
-      switch (this.state) {
-        case FlowControl.NEXT: {
-          this.state = undefined;
-          this.handler.handle(frame, this.resolver);
-          if (this.state === undefined) {
-            this.websocketDuplex.pause();
-          }
-          return;
-        }
-        case FlowControl.ALL: {
-          this.handler.handle(frame);
-          return;
-        }
-      }
+      this.handle(frame);
     } catch (error) {
       this.close(error);
     }
-  };
+  }
 }

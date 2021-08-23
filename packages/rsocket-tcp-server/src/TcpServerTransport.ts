@@ -2,6 +2,7 @@ import {
   Closeable,
   Deferred,
   DuplexConnection,
+  Frame,
   ServerTransport,
 } from "@rsocket/rsocket-core";
 import net from "net";
@@ -30,7 +31,10 @@ export class TcpServerTransport implements ServerTransport {
   }
 
   bind(
-    connectionAcceptor: (connection: DuplexConnection) => void
+    connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>
   ): Promise<Closeable> {
     return new Promise((resolve, reject) => {
       const socketServer = this.serverCreator(this.serverOptions);
@@ -44,7 +48,7 @@ export class TcpServerTransport implements ServerTransport {
       socketServer.addListener("listening", () => {
         const serverCloseable = new ServerCloseable(socketServer);
         const connectionListener = (socket: net.Socket) => {
-          connectionAcceptor(new TcpDuplexConnection(socket));
+          new TcpDuplexConnection(socket, connectionAcceptor);
         };
         const closeListener = (error?: Error) => {
           serverCloseable.close(error);
