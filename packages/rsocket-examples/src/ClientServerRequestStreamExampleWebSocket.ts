@@ -95,7 +95,7 @@ async function main() {
 
   await new Promise((resolve, reject) => {
     let payloadsReceived = 0;
-    let maxPayloads = 10;
+    const maxPayloads = 10;
     const requester = rsocket.requestStream(
       {
         data: Buffer.from("Hello World"),
