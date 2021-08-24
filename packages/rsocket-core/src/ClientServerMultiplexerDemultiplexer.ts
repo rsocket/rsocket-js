@@ -16,7 +16,6 @@ import {
   SetupFrame,
 } from "./Frames";
 import {
-  FrameHandler,
   Outbound,
   StreamFrameHandler,
   StreamLifecycleHandler,
@@ -48,13 +47,7 @@ export namespace StreamIdGenerator {
 
 export abstract class ClientServerInputMultiplexerDemultiplexer
   extends Deferred
-  implements
-    Closeable,
-    Multiplexer,
-    Demultiplexer,
-    Stream,
-    Outbound,
-    FrameHandler {
+  implements Closeable, Multiplexer, Demultiplexer, Stream {
   private readonly registry: { [id: number]: StreamFrameHandler } = {};
 
   private connectionFramesHandler: (
@@ -73,14 +66,14 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
       | RequestResponseFrame
       | RequestStreamFrame
       | RequestChannelFrame,
-    stream: Outbound & Stream
+    stream: Stream
   ) => boolean;
 
   constructor(private readonly streamIdSupplier: StreamIdGenerator) {
     super();
   }
 
-  handle(frame: Frame): void {
+  protected handle(frame: Frame): void {
     if (frame.type === FrameTypes.RESERVED) {
       // TODO: throw
       return;
@@ -109,7 +102,7 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
     // TODO: add extensions support
   }
 
-  handleConnectionFrames(
+  connectionInbound(
     handler: (
       frame:
         | SetupFrame
@@ -121,10 +114,13 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
         | MetadataPushFrame
     ) => void
   ): void {
+    if (this.connectionFramesHandler) {
+      throw new Error("Connection frame handler has already been installed");
+    }
     this.connectionFramesHandler = handler;
   }
 
-  handleStream(
+  handleRequestStream(
     handler: (
       frame:
         | RequestFnfFrame
@@ -134,6 +130,9 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
       stream: Outbound & Stream
     ) => boolean
   ): void {
+    if (this.requestFramesHandler) {
+      throw new Error("Stream handler has already been installed");
+    }
     this.requestFramesHandler = handler;
   }
 
@@ -143,25 +142,20 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
     return this;
   }
 
-  createStream(
-    stream: StreamFrameHandler & StreamLifecycleHandler,
-    streamType:
-      | FrameTypes.REQUEST_FNF
-      | FrameTypes.REQUEST_RESPONSE
-      | FrameTypes.REQUEST_STREAM
-      | FrameTypes.REQUEST_CHANNEL
+  createRequestStream(
+    streamHandler: StreamFrameHandler & StreamLifecycleHandler
   ): void {
     // handle requester side stream registration
     if (this.done) {
-      stream.handleReject(new Error("Already closed"));
+      streamHandler.handleReject(new Error("Already closed"));
       return;
     }
 
     const registry = this.registry;
     this.streamIdSupplier.next((streamId) => {
-      registry[streamId] = stream;
+      registry[streamId] = streamHandler;
 
-      return stream.handleReady(streamId, this);
+      return streamHandler.handleReady(streamId, this);
     }, (Object.keys(registry) as any) as Array<number>);
   }
 

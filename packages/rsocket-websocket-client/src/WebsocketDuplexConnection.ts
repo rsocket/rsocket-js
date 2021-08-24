@@ -1,10 +1,8 @@
 import {
   ClientServerInputMultiplexerDemultiplexer,
-  Demultiplexer,
   Deserializer,
   DuplexConnection,
   Frame,
-  Multiplexer,
   serializeFrame,
   StreamIdGenerator,
 } from "@rsocket/rsocket-core";
@@ -22,14 +20,6 @@ export class WebsocketDuplexConnection
     websocket.addEventListener("close", this.handleClosed.bind(this));
     websocket.addEventListener("error", this.handleError.bind(this));
     websocket.addEventListener("message", this.handleMessage.bind(this));
-  }
-
-  get multiplexer(): Multiplexer {
-    return this;
-  }
-
-  get demultiplexer(): Demultiplexer {
-    return this;
   }
 
   get availability(): number {

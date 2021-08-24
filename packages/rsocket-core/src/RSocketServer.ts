@@ -54,7 +54,7 @@ export class RSocketServer {
             );
             const keepAliveSender = this.serverSideKeepAlive
               ? new KeepAliveSender(
-                  connection.multiplexer.connectionOutbound,
+                  connection.connectionOutbound,
                   frame.keepAlive
                 )
               : undefined;
@@ -70,10 +70,10 @@ export class RSocketServer {
               keepAliveHandler.close();
               connectionFrameHandler.close(e);
             });
-            connection.demultiplexer.handleConnectionFrames(
+            connection.connectionInbound(
               connectionFrameHandler.handle.bind(connectionFrameHandler)
             );
-            connection.demultiplexer.handleStream(
+            connection.handleRequestStream(
               streamsHandler.handle.bind(connectionFrameHandler)
             );
 

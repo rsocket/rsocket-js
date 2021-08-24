@@ -51,7 +51,7 @@ export class RSocketConnector {
   async connect(): Promise<RSocket> {
     const connection = await this.transport.connect();
     const keepAliveSender = new KeepAliveSender(
-      connection.multiplexer.connectionOutbound,
+      connection.connectionOutbound,
       this.setupFrame.keepAlive
     );
     const keepAliveHandler = new KeepAliveHandler(
@@ -70,13 +70,13 @@ export class RSocketConnector {
       keepAliveHandler.close();
       connectionFrameHandler.close(e);
     });
-    connection.demultiplexer.handleConnectionFrames(
+    connection.connectionInbound(
       connectionFrameHandler.handle.bind(connectionFrameHandler)
     );
-    connection.demultiplexer.handleStream(
+    connection.handleRequestStream(
       streamsHandler.handle.bind(connectionFrameHandler)
     );
-    connection.multiplexer.connectionOutbound.send(this.setupFrame);
+    connection.connectionOutbound.send(this.setupFrame);
     keepAliveHandler.start();
     keepAliveSender.start();
 

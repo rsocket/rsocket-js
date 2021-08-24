@@ -28,7 +28,9 @@ export interface Outbound {
 
 export interface Stream extends Outbound {
   add(handler: StreamFrameHandler): void;
+
   remove(handler: StreamFrameHandler): void;
+
   send(
     frame:
       | CancelFrame
@@ -49,22 +51,26 @@ export interface FrameHandler {
 
 export interface StreamLifecycleHandler {
   handleReady(streamId: number, stream: Outbound & Stream): boolean;
+
   handleReject(error: Error): void;
 }
 
 export interface StreamFrameHandler extends FrameHandler {
   readonly streamId: number;
+
   handle(
     frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
   ): void;
+
   close(error?: Error): void;
 }
 
 export interface Multiplexer {
   readonly connectionOutbound: Outbound;
-  createStream(
-    handler: StreamFrameHandler & StreamLifecycleHandler,
-    streamType:
+
+  createRequestStream(
+    streamHandler: StreamFrameHandler & StreamLifecycleHandler,
+    requestType:
       | FrameTypes.REQUEST_FNF
       | FrameTypes.REQUEST_RESPONSE
       | FrameTypes.REQUEST_STREAM
@@ -73,7 +79,7 @@ export interface Multiplexer {
 }
 
 export interface Demultiplexer {
-  handleConnectionFrames(
+  connectionInbound(
     handler: (
       frame:
         | SetupFrame
@@ -84,16 +90,16 @@ export interface Demultiplexer {
         | ErrorFrame
         | MetadataPushFrame
     ) => void
-  ): void;
+  );
 
-  handleStream(
+  handleRequestStream(
     handler: (
       frame:
         | RequestFnfFrame
         | RequestResponseFrame
         | RequestStreamFrame
         | RequestChannelFrame,
-      stream: Outbound & Stream
+      stream: Stream
     ) => boolean
   ): void;
 }
@@ -102,10 +108,11 @@ export interface Demultiplexer {
  * Represents a network connection with input/output used by a ReactiveSocket to
  * send/receive data.
  */
-export interface DuplexConnection extends Closeable, Availability {
-  readonly multiplexer: Multiplexer;
-  readonly demultiplexer: Demultiplexer;
-}
+export interface DuplexConnection
+  extends Multiplexer,
+    Demultiplexer,
+    Closeable,
+    Availability {}
 
 export interface ClientTransport {
   connect(): Promise<DuplexConnection>;

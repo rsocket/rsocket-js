@@ -57,7 +57,7 @@ export class RSocketRequester implements RSocket {
       this.fragmentSize
     );
 
-    this.connection.multiplexer.createStream(handler, FrameTypes.REQUEST_FNF);
+    this.connection.createRequestStream(handler, FrameTypes.REQUEST_FNF);
 
     return handler;
   }
@@ -74,10 +74,7 @@ export class RSocketRequester implements RSocket {
       this.fragmentSize
     );
 
-    this.connection.multiplexer.createStream(
-      handler,
-      FrameTypes.REQUEST_RESPONSE
-    );
+    this.connection.createRequestStream(handler, FrameTypes.REQUEST_RESPONSE);
 
     return handler;
   }
@@ -96,10 +93,7 @@ export class RSocketRequester implements RSocket {
       initialRequestN
     );
 
-    this.connection.multiplexer.createStream(
-      handler,
-      FrameTypes.REQUEST_STREAM
-    );
+    this.connection.createRequestStream(handler, FrameTypes.REQUEST_STREAM);
 
     return handler;
   }
@@ -126,10 +120,7 @@ export class RSocketRequester implements RSocket {
       initialRequestN
     );
 
-    this.connection.multiplexer.createStream(
-      handler,
-      FrameTypes.REQUEST_STREAM
-    );
+    this.connection.createRequestStream(handler, FrameTypes.REQUEST_CHANNEL);
 
     return handler;
   }
@@ -288,7 +279,7 @@ export class KeepAliveHandler implements FrameHandler {
     private readonly connection: DuplexConnection,
     private readonly keepAliveTimeoutDuration: number
   ) {
-    this.outbound = connection.multiplexer.connectionOutbound;
+    this.outbound = connection.connectionOutbound;
   }
 
   handle(frame: KeepAliveFrame): void {

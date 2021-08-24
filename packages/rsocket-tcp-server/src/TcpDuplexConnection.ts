@@ -1,10 +1,8 @@
 import {
   ClientServerInputMultiplexerDemultiplexer,
-  Demultiplexer,
   deserializeFrames,
   DuplexConnection,
   Frame,
-  Multiplexer,
   serializeFrameWithLength,
   StreamIdGenerator,
 } from "@rsocket/rsocket-core";
@@ -28,14 +26,6 @@ export class TcpDuplexConnection
     socket.on("close", this.handleClosed.bind(this));
     socket.on("error", this.handleError.bind(this));
     socket.once("data", this.handleFirst.bind(this));
-  }
-
-  get multiplexer(): Multiplexer {
-    return this;
-  }
-
-  get demultiplexer(): Demultiplexer {
-    return this;
   }
 
   get availability(): number {

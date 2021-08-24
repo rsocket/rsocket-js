@@ -1,10 +1,8 @@
 import {
   ClientServerInputMultiplexerDemultiplexer,
-  Demultiplexer,
   Deserializer,
   DuplexConnection,
   Frame,
-  Multiplexer,
   serializeFrameWithLength,
   StreamIdGenerator,
 } from "@rsocket/rsocket-core";
@@ -39,14 +37,6 @@ export class TcpDuplexConnection
      * socket.setEncoding(). The data will be lost if there is no listener when a Socket emits a 'data' event.
      */
     socket.on("data", this.handleData.bind(this));
-  }
-
-  get multiplexer(): Multiplexer {
-    return this;
-  }
-
-  get demultiplexer(): Demultiplexer {
-    return this;
   }
 
   get availability(): number {

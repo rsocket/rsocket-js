@@ -275,9 +275,9 @@ export class RequestStreamResponderStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
+  private readonly initialRequestN: number;
   private receiver?: Cancellable & Requestable & OnExtensionSubscriber;
   private done: boolean;
-  private initialRequestN: number;
 
   hasFragments: boolean;
   data: Buffer;

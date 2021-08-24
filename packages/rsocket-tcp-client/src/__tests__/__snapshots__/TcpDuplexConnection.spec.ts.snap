@@ -68,7 +68,7 @@ Array [
     },
     "flags": 32,
     "metadata": null,
-    "streamId": 0,
+    "streamId": 1,
     "type": 10,
   },
 ]
@@ -97,7 +97,7 @@ Array [
     },
     "flags": 32,
     "metadata": null,
-    "streamId": 0,
+    "streamId": 1,
     "type": 10,
   },
 ]
