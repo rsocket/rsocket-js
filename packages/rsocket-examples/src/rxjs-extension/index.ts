@@ -14,56 +14,56 @@ async function main() {
   const rsocket = await connector.connect();
   const rxjsRsocket = wrapConnector(rsocket);
 
+  const fnfObs = rxjsRsocket.fireAndForget({
+    data: Buffer.from("[fireAndForget] Hello World"),
+  });
+
+  const reqResObs = rxjsRsocket.requestResponse({
+    data: Buffer.from("[requestResponse] Hello World"),
+  });
+
+  const reqStreamObs = rxjsRsocket.requestStream(
+    {
+      data: Buffer.from("[requestStream] Hello World"),
+    },
+    5
+  );
+
   await new Promise((resolve, reject) => {
-    rxjsRsocket
-      .fireAndForget({
-        data: Buffer.from("Hello World"),
-      })
-      .subscribe({
-        error: (err) => reject(err),
-        complete: () => {
-          Logger.info("[client] [fireAndForget] completed");
-          resolve(null);
-        },
-      });
+    fnfObs.subscribe({
+      error: (err) => reject(err),
+      complete: () => {
+        Logger.info("[client] [fireAndForget] completed");
+        resolve(null);
+      },
+    });
   });
 
   await new Promise((resolve, reject) => {
-    rxjsRsocket
-      .requestResponse({
-        data: Buffer.from("Hello World"),
-      })
-      .subscribe({
-        next: (payload) => {
-          Logger.info("[client] [requestResponse] next", payload);
-          resolve(payload);
-        },
-        error: (err) => reject(err),
-        complete: () => {
-          Logger.info("[client] [requestResponse] completed");
-          resolve(null);
-        },
-      });
+    reqResObs.subscribe({
+      next: (payload) => {
+        Logger.info("[client] [requestResponse] next", payload);
+        resolve(payload);
+      },
+      error: (err) => reject(err),
+      complete: () => {
+        Logger.info("[client] [requestResponse] completed");
+        resolve(null);
+      },
+    });
   });
 
   await new Promise((resolve, reject) => {
-    rxjsRsocket
-      .requestStream(
-        {
-          data: Buffer.from("Hello World"),
-        },
-        5
-      )
-      .subscribe({
-        next: (payload) => {
-          Logger.info("[client] [requestStream] next", payload);
-        },
-        error: (err) => reject(err),
-        complete: () => {
-          Logger.info("[client] [requestStream] completed");
-          resolve(null);
-        },
-      });
+    reqStreamObs.subscribe({
+      next: (payload) => {
+        Logger.info("[client] [requestStream] next", payload);
+      },
+      error: (err) => reject(err),
+      complete: () => {
+        Logger.info("[client] [requestStream] completed");
+        resolve(null);
+      },
+    });
   });
 }
 
