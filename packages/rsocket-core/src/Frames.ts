@@ -53,6 +53,10 @@ export namespace Flags {
   export function hasRespond(flags: number): boolean {
     return (flags & Flags.RESPOND) === Flags.RESPOND;
   }
+
+  export function hasLease(flags: number): boolean {
+    return (flags & Flags.LEASE) === Flags.LEASE;
+  }
 }
 
 export enum Lengths {

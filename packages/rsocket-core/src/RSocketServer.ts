@@ -1,10 +1,11 @@
-import { ErrorCodes, FrameTypes, RSocketError } from ".";
+import { ErrorCodes, Flags, FrameTypes, RSocketError } from ".";
 import { Closeable } from "./Common";
 import { SocketAcceptor } from "./RSocket";
 import {
   ConnectionFrameHandler,
   KeepAliveHandler,
   KeepAliveSender,
+  LeaseHandler,
   RSocketRequester,
   StreamHandler,
 } from "./RSocketSupport";
@@ -14,18 +15,32 @@ export type ServerConfig = {
   transport: ServerTransport;
   acceptor: SocketAcceptor;
   serverSideKeepAlive?: boolean;
-  lease?: {};
-  resume?: {};
+  fragmentation?: {
+    maxOutboundFragmentSize?: number;
+  };
+  lease?: {
+    maxPendingRequests?: number;
+  };
+  resume?: {
+    casheSize: number;
+  };
 };
 
 export class RSocketServer {
   private transport: ServerTransport;
   private acceptor: SocketAcceptor;
   private serverSideKeepAlive: boolean;
+  private lease?: {
+    maxPendingRequests?: number;
+  };
+  private fragmentation?: {
+    maxOutboundFragmentSize?: number;
+  };
 
   constructor(config: ServerConfig) {
     this.acceptor = config.acceptor;
     this.transport = config.transport;
+    this.lease = config.lease;
     this.serverSideKeepAlive = config.serverSideKeepAlive;
   }
 
@@ -34,7 +49,35 @@ export class RSocketServer {
       switch (frame.type) {
         case FrameTypes.SETUP: {
           try {
-            const requester = new RSocketRequester(connection, 0);
+            if (this.lease && !Flags.hasLease(frame.flags)) {
+              connection.close(
+                new RSocketError(
+                  ErrorCodes.REJECTED_SETUP,
+                  "Lease has to be enabled"
+                )
+              );
+              return;
+            }
+            if (Flags.hasLease(frame.flags) && !this.lease) {
+              connection.close(
+                new RSocketError(
+                  ErrorCodes.REJECTED_SETUP,
+                  "Lease has to be disabled"
+                )
+              );
+              return;
+            }
+            const leaseHandler = Flags.hasLease(frame.flags)
+              ? new LeaseHandler(
+                  this.lease.maxPendingRequests ?? 256,
+                  connection
+                )
+              : undefined;
+            const requester = new RSocketRequester(
+              connection,
+              this.fragmentation?.maxOutboundFragmentSize ?? 0,
+              leaseHandler
+            );
             const responder = await this.acceptor.accept(
               {
                 data: frame.data,
@@ -61,6 +104,7 @@ export class RSocketServer {
             const connectionFrameHandler = new ConnectionFrameHandler(
               connection,
               keepAliveHandler,
+              leaseHandler,
               responder
             );
             const streamsHandler = new StreamHandler(responder, 0);

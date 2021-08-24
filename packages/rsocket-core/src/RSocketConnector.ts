@@ -4,6 +4,7 @@ import {
   ConnectionFrameHandler,
   KeepAliveHandler,
   KeepAliveSender,
+  LeaseHandler,
   RSocketRequester,
   StreamHandler,
 } from "./RSocketSupport";
@@ -17,16 +18,29 @@ export type ConnectorConfig = {
     keepAlive?: number;
     lifetime?: number;
   };
+  fragmentation?: {
+    maxOutboundFragmentSize?: number;
+  };
   transport: ClientTransport;
   responder?: Partial<RSocket>;
-  lease?: {};
-  resume?: {};
+  lease?: {
+    maxPendingRequests?: number;
+  };
+  resume?: {
+    casheSize: number;
+  };
 };
 
 export class RSocketConnector {
   private setupFrame: SetupFrame;
   private transport: ClientTransport;
   private responder: Partial<RSocket>;
+  private lease?: {
+    maxPendingRequests?: number;
+  };
+  private fragmentation?: {
+    maxOutboundFragmentSize?: number;
+  };
 
   constructor(config: ConnectorConfig) {
     this.setupFrame = {
@@ -42,10 +56,13 @@ export class RSocketConnector {
       streamId: 0,
       majorVersion: 1,
       minorVersion: 0,
-      flags: config.setup?.payload?.metadata ? Flags.METADATA : Flags.NONE,
+      flags:
+        (config.setup?.payload?.metadata ? Flags.METADATA : Flags.NONE) |
+        (config.lease ? Flags.LEASE : Flags.NONE),
     };
     this.responder = config.responder ?? {};
     this.transport = config.transport;
+    this.lease = config.lease;
   }
 
   async connect(): Promise<RSocket> {
@@ -58,9 +75,13 @@ export class RSocketConnector {
       connection,
       this.setupFrame.lifetime
     );
+    const leaseHandler: LeaseHandler = this.lease
+      ? new LeaseHandler(this.lease.maxPendingRequests ?? 256, connection)
+      : undefined;
     const connectionFrameHandler = new ConnectionFrameHandler(
       connection,
       keepAliveHandler,
+      leaseHandler,
       this.responder
     );
     const streamsHandler = new StreamHandler(this.responder, 0);
@@ -80,6 +101,10 @@ export class RSocketConnector {
     keepAliveHandler.start();
     keepAliveSender.start();
 
-    return new RSocketRequester(connection, 0);
+    return new RSocketRequester(
+      connection,
+      this.fragmentation?.maxOutboundFragmentSize ?? 0,
+      leaseHandler
+    );
   }
 }
