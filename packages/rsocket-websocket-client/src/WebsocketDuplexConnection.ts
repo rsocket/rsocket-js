@@ -1,39 +1,29 @@
 import {
-  Deferred,
+  ClientServerInputMultiplexerDemultiplexer,
   Deserializer,
   DuplexConnection,
-  FlowControlledFrameHandler,
   Frame,
   serializeFrame,
+  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
-import WebSocket, { ErrorEvent, CloseEvent } from "ws";
+import WebSocket, { CloseEvent, ErrorEvent } from "ws";
 
 export class WebsocketDuplexConnection
-  extends Deferred
+  extends ClientServerInputMultiplexerDemultiplexer
   implements DuplexConnection {
-  private handler: FlowControlledFrameHandler;
-
   constructor(
     private websocket: WebSocket,
     private deserializer: Deserializer
   ) {
-    super();
+    super(StreamIdGenerator.create(-1));
 
     websocket.addEventListener("close", this.handleClosed.bind(this));
     websocket.addEventListener("error", this.handleError.bind(this));
     websocket.addEventListener("message", this.handleMessage.bind(this));
   }
 
-  handle(handler: FlowControlledFrameHandler): void {
-    if (this.handler) {
-      throw new Error("Handle has already been installed");
-    }
-
-    this.handler = handler;
-  }
-
   get availability(): number {
-    throw new Error("Method not implemented.");
+    return this.done ? 0 : 1;
   }
 
   close(error?: Error) {
@@ -83,7 +73,7 @@ export class WebsocketDuplexConnection
       const buffer = Buffer.from(message.data);
       const frame = this.deserializer.deserializeFrame(buffer);
 
-      this.handler.handle(frame);
+      this.handle(frame);
     } catch (error) {
       this.close(error);
     }

@@ -18,12 +18,12 @@ import {
   OnTerminalSubscriber,
   Payload,
   Requestable,
-  StreamConfig,
+} from "./RSocket";
+import {
+  Stream,
   StreamFrameHandler,
   StreamLifecycleHandler,
-  StreamsRegistry,
-} from "./RSocket";
-import { Outbound } from "./Transport";
+} from "./Transport";
 
 export class RequestStreamRequesterStream
   implements
@@ -34,7 +34,7 @@ export class RequestStreamRequesterStream
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
   private done: boolean;
-  private outbound: Outbound;
+  private stream: Stream;
 
   private hasExtension: boolean;
   private extendedType: number;
@@ -48,37 +48,38 @@ export class RequestStreamRequesterStream
   streamId: number;
 
   constructor(
-    private payload: Payload,
-    private initialRequestN: number,
-    private receiver: OnTerminalSubscriber &
+    private readonly payload: Payload,
+    private readonly receiver: OnTerminalSubscriber &
       OnNextSubscriber &
       OnExtensionSubscriber,
-    private streamsRegistry: StreamsRegistry
+    private readonly fragmentSize: number,
+    private initialRequestN: number
   ) {
     // TODO: add payload size validation
-    streamsRegistry.add(this);
   }
 
-  handleReady(streamId: number, { outbound, fragmentSize }: StreamConfig) {
+  handleReady(streamId: number, stream: Stream) {
     if (this.done) {
       return false;
     }
 
     this.streamId = streamId;
-    this.outbound = outbound;
+    this.stream = stream;
 
-    if (isFragmentable(this.payload, fragmentSize, FrameTypes.REQUEST_STREAM)) {
+    if (
+      isFragmentable(this.payload, this.fragmentSize, FrameTypes.REQUEST_STREAM)
+    ) {
       for (const frame of fragmentWithRequestN(
         streamId,
         this.payload,
-        fragmentSize,
+        this.fragmentSize,
         FrameTypes.REQUEST_STREAM,
         this.initialRequestN
       )) {
-        this.outbound.send(frame);
+        this.stream.send(frame);
       }
     } else {
-      this.outbound.send({
+      this.stream.send({
         type: FrameTypes.REQUEST_STREAM,
         data: this.payload.data,
         metadata: this.payload.metadata,
@@ -89,7 +90,7 @@ export class RequestStreamRequesterStream
     }
 
     if (this.hasExtension) {
-      this.outbound.send({
+      this.stream.send({
         type: FrameTypes.EXT,
         streamId,
         extendedContent: this.extendedContent,
@@ -123,7 +124,7 @@ export class RequestStreamRequesterStream
           if (hasComplete) {
             this.done = true;
 
-            this.streamsRegistry.remove(this);
+            this.stream.remove(this);
 
             if (!hasNext) {
               // TODO: add validation no frame in reassembly
@@ -150,7 +151,7 @@ export class RequestStreamRequesterStream
       case FrameTypes.ERROR: {
         this.done = true;
 
-        this.streamsRegistry.remove(this);
+        this.stream.remove(this);
 
         Reassembler.cancel(this);
 
@@ -168,13 +169,13 @@ export class RequestStreamRequesterStream
       }
 
       default: {
-        this.streamsRegistry.remove(this);
+        this.stream.remove(this);
 
         this.close(
           new RSocketError(ErrorCodes.CANCELED, "Received unexpected frame")
         );
 
-        this.outbound.send({
+        this.stream.send({
           type: FrameTypes.CANCEL,
           streamId: this.streamId,
           flags: Flags.NONE,
@@ -195,7 +196,7 @@ export class RequestStreamRequesterStream
       return;
     }
 
-    this.outbound.send({
+    this.stream.send({
       type: FrameTypes.REQUEST_N,
       flags: Flags.NONE,
       requestN: n,
@@ -210,13 +211,12 @@ export class RequestStreamRequesterStream
 
     this.done = true;
 
-    this.streamsRegistry.remove(this);
-
     if (!this.streamId) {
       return;
     }
 
-    this.outbound.send({
+    this.stream.remove(this);
+    this.stream.send({
       type: FrameTypes.CANCEL,
       flags: Flags.NONE,
       streamId: this.streamId,
@@ -242,7 +242,7 @@ export class RequestStreamRequesterStream
       return;
     }
 
-    this.outbound.send({
+    this.stream.send({
       streamId: this.streamId,
       type: FrameTypes.EXT,
       extendedType,
@@ -275,9 +275,9 @@ export class RequestStreamResponderStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
+  private readonly initialRequestN: number;
   private receiver?: Cancellable & Requestable & OnExtensionSubscriber;
   private done: boolean;
-  private initialRequestN: number;
 
   hasFragments: boolean;
   data: Buffer;
@@ -285,10 +285,9 @@ export class RequestStreamResponderStream
 
   constructor(
     readonly streamId: number,
-    private registry: StreamsRegistry,
-    private outbound: Outbound,
-    private fragmentSize: number,
-    private handler: (
+    private readonly stream: Stream,
+    private readonly fragmentSize: number,
+    private readonly handler: (
       payload: Payload,
       initialRequestN: number,
       senderStream: OnTerminalSubscriber &
@@ -297,7 +296,7 @@ export class RequestStreamResponderStream
     ) => Cancellable & Requestable & OnExtensionSubscriber,
     frame: RequestStreamFrame
   ) {
-    registry.add(this, streamId);
+    stream.add(this);
 
     if (Flags.hasFollows(frame.flags)) {
       this.initialRequestN = frame.requestN;
@@ -344,14 +343,14 @@ export class RequestStreamResponderStream
 
     this.done = true;
 
-    this.registry.remove(this);
+    this.stream.remove(this);
 
     Reassembler.cancel(this);
 
     this.receiver?.cancel();
 
     if (frame.type !== FrameTypes.CANCEL && frame.type !== FrameTypes.ERROR) {
-      this.outbound.send({
+      this.stream.send({
         type: FrameTypes.ERROR,
         flags: Flags.NONE,
         code: ErrorCodes.CANCELED,
@@ -374,9 +373,9 @@ export class RequestStreamResponderStream
 
     this.done = true;
 
-    this.registry.remove(this);
+    this.stream.remove(this);
 
-    this.outbound.send({
+    this.stream.send({
       type: FrameTypes.ERROR,
       flags: Flags.NONE,
       code:
@@ -396,7 +395,7 @@ export class RequestStreamResponderStream
     if (isCompletion) {
       this.done = true;
 
-      this.registry.remove(this);
+      this.stream.remove(this);
     }
 
     // TODO: add payload size validation
@@ -409,10 +408,10 @@ export class RequestStreamResponderStream
         FrameTypes.PAYLOAD,
         isCompletion
       )) {
-        this.outbound.send(frame);
+        this.stream.send(frame);
       }
     } else {
-      this.outbound.send({
+      this.stream.send({
         type: FrameTypes.PAYLOAD,
         flags:
           Flags.NEXT |
@@ -432,9 +431,9 @@ export class RequestStreamResponderStream
 
     this.done = true;
 
-    this.registry.remove(this);
+    this.stream.remove(this);
 
-    this.outbound.send({
+    this.stream.send({
       type: FrameTypes.PAYLOAD,
       flags: Flags.COMPLETE,
       streamId: this.streamId,
@@ -452,7 +451,7 @@ export class RequestStreamResponderStream
       return;
     }
 
-    this.outbound.send({
+    this.stream.send({
       type: FrameTypes.EXT,
       streamId: this.streamId,
       flags: canBeIgnored ? Flags.IGNORE : Flags.NONE,

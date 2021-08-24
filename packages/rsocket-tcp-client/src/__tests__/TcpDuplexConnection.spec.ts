@@ -9,6 +9,7 @@ import {
   FrameTypes,
   serializeFrameWithLength,
   SetupFrame,
+  StreamFrameHandler,
 } from "@rsocket/rsocket-core";
 import { MockSocket } from "../__mocks__/net";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
@@ -146,11 +147,29 @@ describe("TcpDuplexConnection", function () {
 
       // assert
       expect(
-        connection.handle.bind(connection, frameHandlerStub)
+        connection.connectionInbound.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
       ).not.toThrow();
-      expect(connection.handle.bind(connection, frameHandlerStub)).toThrow(
-        "Handle has already been installed"
-      );
+      expect(
+        connection.connectionInbound.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).toThrow("Connection frame handler has already been installed");
+      expect(
+        connection.handleRequestStream.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).not.toThrow();
+      expect(
+        connection.handleRequestStream.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).toThrow("Stream handler has already been installed");
     });
   });
 
@@ -229,7 +248,7 @@ describe("TcpDuplexConnection", function () {
         );
 
         // act
-        connection.handle(handler);
+        connection.connectionInbound(handler.handle.bind(handler));
         socketStub.emit("data", serializeFrameWithLength(setupFrame));
 
         // assert
@@ -244,7 +263,11 @@ describe("TcpDuplexConnection", function () {
     describe("when buffer contains multiple frames", () => {
       it("deserializes received frames and calls the configured handler for each frame", () => {
         // arrange
-        const handler = mock<FrameHandler>();
+        const mockHandle = jest.fn();
+        const streamHandler = mock<StreamFrameHandler>({
+          streamId: 1,
+          handle: mockHandle,
+        });
         const socketStub = new EventEmitter() as net.Socket;
         const connection = new TcpDuplexConnection(
           socketStub,
@@ -252,7 +275,7 @@ describe("TcpDuplexConnection", function () {
         );
 
         // act
-        connection.handle(handler);
+        connection.add(streamHandler);
         socketStub.emit(
           "data",
           Buffer.concat([
@@ -261,22 +284,22 @@ describe("TcpDuplexConnection", function () {
               flags: Flags.NEXT,
               data: Buffer.from("hello world"),
               metadata: undefined,
-              streamId: 0,
+              streamId: 1,
             }),
             serializeFrameWithLength({
               type: FrameTypes.PAYLOAD,
               flags: Flags.NEXT,
               data: Buffer.from("hello world 2"),
               metadata: undefined,
-              streamId: 0,
+              streamId: 1,
             }),
           ])
         );
 
         // assert
-        expect(handler.handle).toBeCalledTimes(2);
+        expect(mockHandle).toBeCalledTimes(2);
 
-        const [call0, call1] = handler.handle.mock.calls;
+        const [call0, call1] = mockHandle.mock.calls;
 
         expect(call0).toMatchSnapshot();
         expect(call1).toMatchSnapshot();
@@ -286,7 +309,6 @@ describe("TcpDuplexConnection", function () {
     describe("causes an error", () => {
       it("the connection is closed", () => {
         // arrange
-        const handler = mock<FrameHandler>();
         const socketStub = new MockSocket();
         const deserializerStub = mock<Deserializer>();
         const connection = new TcpDuplexConnection(
@@ -300,7 +322,6 @@ describe("TcpDuplexConnection", function () {
         const data = Buffer.from([]);
 
         // act
-        connection.handle(handler);
         connection.onClose(onCloseCallback);
         socketStub.mock.data(data);
 

@@ -3,8 +3,8 @@ import {
   Deserializer,
   DuplexConnection,
 } from "@rsocket/rsocket-core";
-import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 import WebSocket, { ErrorEvent } from "ws";
+import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 
 export type ClientOptions = {
   url: string;

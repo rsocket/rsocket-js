@@ -2,6 +2,7 @@ import {
   Closeable,
   Deferred,
   DuplexConnection,
+  Frame,
   ServerTransport,
 } from "@rsocket/rsocket-core";
 import WebSocket, { Server } from "ws";
@@ -38,7 +39,10 @@ export class WebsocketServerTransport implements ServerTransport {
   }
 
   async bind(
-    connectionAcceptor: (connection: DuplexConnection) => void
+    connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>
   ): Promise<Closeable> {
     const websocketServer: Server = await this.connectServer();
     const serverCloseable = new ServerCloseable(websocketServer);
@@ -46,7 +50,7 @@ export class WebsocketServerTransport implements ServerTransport {
     const connectionListener = (websocket: WebSocket) => {
       websocket.binaryType = "nodebuffer";
       const duplex = WebSocket.createWebSocketStream(websocket);
-      connectionAcceptor(new WebsocketDuplexConnection(duplex));
+      new WebsocketDuplexConnection(duplex, connectionAcceptor);
     };
 
     const closeListener = (error?: Error) => {

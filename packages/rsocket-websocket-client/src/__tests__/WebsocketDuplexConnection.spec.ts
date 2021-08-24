@@ -5,7 +5,7 @@ import {
   Flags,
   FrameHandler,
   FrameTypes,
-  serializeFrameWithLength,
+  serializeFrame,
   SetupFrame,
 } from "@rsocket/rsocket-core";
 import { WebsocketDuplexConnection } from "../WebsocketDuplexConnection";
@@ -131,7 +131,6 @@ describe("WebsocketDuplexConnection", function () {
       const socket = (new MockSocket() as unknown) as WebSocket;
       const connection = new WebsocketDuplexConnection(socket, deserializer);
       const onCloseCallback = jest.fn();
-      const error = new Error("Test error 1");
       const expectedError = new Error(
         "WebsocketDuplexConnection: Test error 1"
       );
@@ -156,11 +155,29 @@ describe("WebsocketDuplexConnection", function () {
 
       // assert
       expect(
-        connection.handle.bind(connection, frameHandlerStub)
+        connection.connectionInbound.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
       ).not.toThrow();
-      expect(connection.handle.bind(connection, frameHandlerStub)).toThrow(
-        "Handle has already been installed"
-      );
+      expect(
+        connection.connectionInbound.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).toThrow("Connection frame handler has already been installed");
+      expect(
+        connection.handleRequestStream.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).not.toThrow();
+      expect(
+        connection.handleRequestStream.bind(
+          connection,
+          frameHandlerStub.handle.bind(frameHandlerStub)
+        )
+      ).toThrow("Stream handler has already been installed");
     });
   });
 
@@ -213,7 +230,7 @@ describe("WebsocketDuplexConnection", function () {
   });
 
   describe("when receiving data", () => {
-    const setupFrame = {
+    const setupFrame: SetupFrame = {
       type: FrameTypes.SETUP,
       dataMimeType: "application/octet-stream",
       metadataMimeType: "application/octet-stream",
@@ -226,7 +243,7 @@ describe("WebsocketDuplexConnection", function () {
       majorVersion: 1,
       minorVersion: 0,
       flags: Flags.METADATA,
-    } as SetupFrame;
+    };
 
     describe("when buffer contains a single frame", () => {
       it("deserializes received frames and calls the configured handler", () => {
@@ -235,13 +252,13 @@ describe("WebsocketDuplexConnection", function () {
         const socketStub = (new MockSocket() as unknown) as WebSocket;
         const connection = new WebsocketDuplexConnection(
           socketStub,
-          deserializer
+          new Deserializer()
         );
 
         // act
-        connection.handle(handler);
+        connection.connectionInbound(handler.handle.bind(handler));
         ((socketStub as unknown) as MockSocket).mock.message({
-          data: serializeFrameWithLength(setupFrame),
+          data: serializeFrame(setupFrame),
         });
 
         // assert
@@ -270,7 +287,7 @@ describe("WebsocketDuplexConnection", function () {
         const data = Buffer.from([]).toString();
 
         // act
-        connection.handle(handler);
+        connection.connectionInbound(handler.handle.bind(handler));
         connection.onClose(onCloseCallback);
         ((socketStub as unknown) as MockSocket).mock.message({ data });
 

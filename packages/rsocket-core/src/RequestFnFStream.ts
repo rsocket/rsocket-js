@@ -10,15 +10,12 @@ import {
   RequestNFrame,
 } from "./Frames";
 import * as Reassembler from "./Reassembler";
+import { Cancellable, OnTerminalSubscriber, Payload } from "./RSocket";
 import {
-  Cancellable,
-  OnTerminalSubscriber,
-  Payload,
-  StreamConfig,
+  Stream,
   StreamFrameHandler,
   StreamLifecycleHandler,
-  StreamsRegistry,
-} from "./RSocket";
+} from "./Transport";
 
 export class RequestFnFRequesterHandler
   implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
@@ -29,30 +26,29 @@ export class RequestFnFRequesterHandler
   constructor(
     private readonly payload: Payload,
     private readonly receiver: OnTerminalSubscriber,
-    private readonly streamRegistry: StreamsRegistry
-  ) {
-    // TODO: add payload size validation
-    streamRegistry.add(this);
-  }
+    private readonly fragmentSize: number
+  ) {}
 
-  handleReady(streamId: number, { outbound, fragmentSize }: StreamConfig) {
+  handleReady(streamId: number, stream: Stream) {
     if (this.done) {
       return false;
     }
 
     this.streamId = streamId;
 
-    if (isFragmentable(this.payload, fragmentSize, FrameTypes.REQUEST_FNF)) {
+    if (
+      isFragmentable(this.payload, this.fragmentSize, FrameTypes.REQUEST_FNF)
+    ) {
       for (const frame of fragment(
         streamId,
         this.payload,
-        fragmentSize,
+        this.fragmentSize,
         FrameTypes.REQUEST_FNF
       )) {
-        outbound.send(frame);
+        stream.send(frame);
       }
     } else {
-      outbound.send({
+      stream.send({
         type: FrameTypes.REQUEST_FNF,
         data: this.payload.data,
         metadata: this.payload.metadata,
@@ -85,7 +81,7 @@ export class RequestFnFRequesterHandler
 
     this.done = true;
 
-    this.streamRegistry.remove(this);
+    // this.streamRegistry.remove(this);
   }
 
   handle() {
@@ -124,7 +120,7 @@ export class RequestFnfResponderHandler
 
   constructor(
     readonly streamId: number,
-    private registry: StreamsRegistry,
+    private stream: Stream,
     private handler: (
       payload: Payload,
       senderStream: OnTerminalSubscriber
@@ -133,7 +129,7 @@ export class RequestFnfResponderHandler
   ) {
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
-      registry.add(this, streamId);
+      stream.add(this);
       return;
     }
 
@@ -151,7 +147,7 @@ export class RequestFnfResponderHandler
         return;
       }
 
-      this.registry.remove(this);
+      this.stream.remove(this);
 
       const payload = Reassembler.reassemble(this, frame.data, frame.metadata);
       this.cancellable = this.handler(payload, this);
@@ -160,7 +156,7 @@ export class RequestFnfResponderHandler
 
     this.done = true;
 
-    this.registry.remove(this);
+    this.stream.remove(this);
 
     Reassembler.cancel(this);
     // TODO: throws if strict

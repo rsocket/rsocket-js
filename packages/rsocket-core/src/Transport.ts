@@ -1,5 +1,23 @@
-import { Closeable, Availability } from "./Common";
-import { Frame } from "./Frames";
+import { Availability, Closeable } from "./Common";
+import {
+  CancelFrame,
+  ErrorFrame,
+  ExtFrame,
+  Frame,
+  FrameTypes,
+  KeepAliveFrame,
+  LeaseFrame,
+  MetadataPushFrame,
+  PayloadFrame,
+  RequestChannelFrame,
+  RequestFnfFrame,
+  RequestNFrame,
+  RequestResponseFrame,
+  RequestStreamFrame,
+  ResumeFrame,
+  ResumeOkFrame,
+  SetupFrame,
+} from "./Frames";
 
 export interface Outbound {
   /**
@@ -8,32 +26,82 @@ export interface Outbound {
   send(s: Frame): void;
 }
 
+export interface Stream extends Outbound {
+  add(handler: StreamFrameHandler): void;
+
+  remove(handler: StreamFrameHandler): void;
+
+  send(
+    frame:
+      | CancelFrame
+      | ErrorFrame
+      | PayloadFrame
+      | RequestChannelFrame
+      | RequestFnfFrame
+      | RequestNFrame
+      | RequestResponseFrame
+      | RequestStreamFrame
+      | ExtFrame
+  ): void;
+}
+
 export interface FrameHandler {
   handle(frame: Frame): void;
 }
 
-export enum FlowControl {
-  NEXT,
-  ALL,
+export interface StreamLifecycleHandler {
+  handleReady(streamId: number, stream: Outbound & Stream): boolean;
+
+  handleReject(error: Error): void;
 }
 
-export interface FlowControlledFrameHandler {
-  handle(frame: Frame, callback?: (request: FlowControl) => void): void;
+export interface StreamFrameHandler extends FrameHandler {
+  readonly streamId: number;
+
+  handle(
+    frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
+  ): void;
+
+  close(error?: Error): void;
 }
 
-export interface Inbound {
-  /**
-   * Returns a stream of all `Frame`s received on this connection.
-   *
-   * Notes:
-   * - Implementations must call `onComplete` if the underlying connection is
-   *   closed by the peer or by calling `close()`.
-   * - Implementations must call `onError` if there are any errors
-   *   sending/receiving frames.
-   * - Implemenations may optionally support multi-cast receivers. Those that do
-   *   not should throw if `receive` is called more than once.
-   */
-  handle(handler: FlowControlledFrameHandler): void;
+export interface Multiplexer {
+  readonly connectionOutbound: Outbound;
+
+  createRequestStream(
+    streamHandler: StreamFrameHandler & StreamLifecycleHandler,
+    requestType:
+      | FrameTypes.REQUEST_FNF
+      | FrameTypes.REQUEST_RESPONSE
+      | FrameTypes.REQUEST_STREAM
+      | FrameTypes.REQUEST_CHANNEL
+  ): void;
+}
+
+export interface Demultiplexer {
+  connectionInbound(
+    handler: (
+      frame:
+        | SetupFrame
+        | ResumeFrame
+        | ResumeOkFrame
+        | LeaseFrame
+        | KeepAliveFrame
+        | ErrorFrame
+        | MetadataPushFrame
+    ) => void
+  );
+
+  handleRequestStream(
+    handler: (
+      frame:
+        | RequestFnfFrame
+        | RequestResponseFrame
+        | RequestStreamFrame
+        | RequestChannelFrame,
+      stream: Stream
+    ) => boolean
+  ): void;
 }
 
 /**
@@ -41,8 +109,8 @@ export interface Inbound {
  * send/receive data.
  */
 export interface DuplexConnection
-  extends Inbound,
-    Outbound,
+  extends Multiplexer,
+    Demultiplexer,
     Closeable,
     Availability {}
 
@@ -52,6 +120,9 @@ export interface ClientTransport {
 
 export interface ServerTransport {
   bind(
-    connectionAcceptor: (connection: DuplexConnection) => void
+    connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>
   ): Promise<Closeable>;
 }
