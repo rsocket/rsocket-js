@@ -108,14 +108,16 @@ export interface Demultiplexer {
  * Represents a network connection with input/output used by a ReactiveSocket to
  * send/receive data.
  */
-export interface DuplexConnection
-  extends Multiplexer,
-    Demultiplexer,
-    Closeable,
-    Availability {}
+export interface DuplexConnection extends Closeable, Availability {
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer;
+}
 
 export interface ClientTransport {
-  connect(): Promise<DuplexConnection>;
+  connect(
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
+  ): Promise<DuplexConnection>;
 }
 
 export interface ServerTransport {
@@ -123,6 +125,10 @@ export interface ServerTransport {
     connectionAcceptor: (
       frame: Frame,
       connection: DuplexConnection
-    ) => Promise<void>
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      frame: Frame,
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
   ): Promise<Closeable>;
 }

@@ -76,7 +76,8 @@ export namespace Frame {
     | LeaseFrame
     | KeepAliveFrame
     | ErrorFrame
-    | MetadataPushFrame {
+    | MetadataPushFrame
+    | UnsupportedFrame {
     return frame.streamId === 0;
   }
 

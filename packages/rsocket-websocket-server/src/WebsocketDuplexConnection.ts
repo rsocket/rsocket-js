@@ -1,28 +1,42 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   deserializeFrame,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrame,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import { Duplex } from "stream";
 
 export class WebsocketDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
+  readonly multiplexerDemultiplexer: Multiplexer &
+    Demultiplexer &
+    FrameHandler &
+    Closeable;
+
   constructor(
     private websocketDuplex: Duplex,
     private connectionAcceptor: (
       frame: Frame,
       connection: DuplexConnection
-    ) => Promise<void>
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
   ) {
-    super(StreamIdGenerator.create(0));
+    super();
 
     websocketDuplex.on("close", this.handleClosed.bind(this));
     websocketDuplex.on("error", this.handleError.bind(this));
     websocketDuplex.once("data", this.handleFirst.bind(this));
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(this);
   }
 
   get availability(): number {
@@ -39,6 +53,8 @@ export class WebsocketDuplexConnection
     this.websocketDuplex.end();
 
     delete this.websocketDuplex;
+
+    this.multiplexerDemultiplexer.close(error);
 
     super.close(error);
   }
@@ -106,7 +122,7 @@ export class WebsocketDuplexConnection
       //     console.log(printFrame(frame));
       //   }
       // }
-      this.handle(frame);
+      this.multiplexerDemultiplexer.handle(frame);
     } catch (error) {
       this.close(error);
     }

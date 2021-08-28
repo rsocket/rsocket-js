@@ -1,25 +1,37 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   Deserializer,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrameWithLength,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
 export class TcpDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
+
+  readonly multiplexerDemultiplexer: Multiplexer &
+    Demultiplexer &
+    FrameHandler &
+    Closeable;
 
   constructor(
     private socket: net.Socket,
     // dependency injected to facilitate testing
-    private deserializer: Deserializer
+    private readonly deserializer: Deserializer,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
   ) {
-    super(StreamIdGenerator.create(-1));
+    super();
 
     /**
      * Emitted when an error occurs. The 'close' event will be called directly following this event.
@@ -37,6 +49,8 @@ export class TcpDuplexConnection
      * socket.setEncoding(). The data will be lost if there is no listener when a Socket emits a 'data' event.
      */
     socket.on("data", this.handleData.bind(this));
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(this);
   }
 
   get availability(): number {
@@ -55,6 +69,8 @@ export class TcpDuplexConnection
     this.socket.destroy(error);
 
     delete this.socket;
+
+    this.multiplexerDemultiplexer.close(error);
 
     super.close(error);
   }
@@ -100,7 +116,7 @@ export class TcpDuplexConnection
       const frames = this.deserializer.deserializeFrames(buffer);
       for (const [frame, offset] of frames) {
         lastOffset = offset;
-        this.handle(frame);
+        this.multiplexerDemultiplexer.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {

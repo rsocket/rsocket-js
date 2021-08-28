@@ -191,7 +191,7 @@ export class RequestResponseRequesterStream
     this.done = true;
 
     if (!this.streamId) {
-      this.leaseManager?.remove(this);
+      this.leaseManager?.cancelRequest(this);
       return;
     }
 

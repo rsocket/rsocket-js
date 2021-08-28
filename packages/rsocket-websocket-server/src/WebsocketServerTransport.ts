@@ -1,8 +1,12 @@
 import {
   Closeable,
   Deferred,
+  Demultiplexer,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   ServerTransport,
 } from "@rsocket/rsocket-core";
 import WebSocket, { Server } from "ws";
@@ -42,7 +46,10 @@ export class WebsocketServerTransport implements ServerTransport {
     connectionAcceptor: (
       frame: Frame,
       connection: DuplexConnection
-    ) => Promise<void>
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
   ): Promise<Closeable> {
     const websocketServer: Server = await this.connectServer();
     const serverCloseable = new ServerCloseable(websocketServer);
@@ -50,7 +57,11 @@ export class WebsocketServerTransport implements ServerTransport {
     const connectionListener = (websocket: WebSocket) => {
       websocket.binaryType = "nodebuffer";
       const duplex = WebSocket.createWebSocketStream(websocket);
-      new WebsocketDuplexConnection(duplex, connectionAcceptor);
+      new WebsocketDuplexConnection(
+        duplex,
+        connectionAcceptor,
+        multiplexerDemultiplexerFactory
+      );
     };
 
     const closeListener = (error?: Error) => {

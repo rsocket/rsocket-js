@@ -69,9 +69,9 @@ export class RSocketRequester implements RSocket {
     );
 
     if (this.leaseManager) {
-      this.leaseManager.add(handler);
+      this.leaseManager.requestLease(handler);
     } else {
-      this.connection.createRequestStream(handler);
+      this.connection.multiplexerDemultiplexer.createRequestStream(handler);
     }
 
     return handler;
@@ -91,9 +91,9 @@ export class RSocketRequester implements RSocket {
     );
 
     if (this.leaseManager) {
-      this.leaseManager.add(handler);
+      this.leaseManager.requestLease(handler);
     } else {
-      this.connection.createRequestStream(handler);
+      this.connection.multiplexerDemultiplexer.createRequestStream(handler);
     }
 
     return handler;
@@ -115,9 +115,9 @@ export class RSocketRequester implements RSocket {
     );
 
     if (this.leaseManager) {
-      this.leaseManager.add(handler);
+      this.leaseManager.requestLease(handler);
     } else {
-      this.connection.createRequestStream(handler);
+      this.connection.multiplexerDemultiplexer.createRequestStream(handler);
     }
 
     return handler;
@@ -147,9 +147,9 @@ export class RSocketRequester implements RSocket {
     );
 
     if (this.leaseManager) {
-      this.leaseManager.add(handler);
+      this.leaseManager.requestLease(handler);
     } else {
-      this.connection.createRequestStream(handler);
+      this.connection.multiplexerDemultiplexer.createRequestStream(handler);
     }
 
     return handler;
@@ -193,7 +193,7 @@ export class LeaseHandler implements LeaseManager {
     }
   }
 
-  add(handler: StreamFrameHandler & StreamLifecycleHandler): void {
+  requestLease(handler: StreamFrameHandler & StreamLifecycleHandler): void {
     const availableLease = this.availableLease;
     if (availableLease > 0 && Date.now() < this.expirationTime) {
       this.availableLease = availableLease - 1;
@@ -211,7 +211,7 @@ export class LeaseHandler implements LeaseManager {
     this.pendingRequests.push(handler);
   }
 
-  remove(handler: StreamFrameHandler & StreamLifecycleHandler): void {
+  cancelRequest(handler: StreamFrameHandler & StreamLifecycleHandler): void {
     const index = this.pendingRequests.indexOf(handler);
     if (index > -1) {
       this.pendingRequests.splice(index, 1);
@@ -366,7 +366,7 @@ export class KeepAliveHandler implements FrameHandler {
     private readonly connection: DuplexConnection,
     private readonly keepAliveTimeoutDuration: number
   ) {
-    this.outbound = connection.connectionOutbound;
+    this.outbound = connection.multiplexerDemultiplexer.connectionOutbound;
   }
 
   handle(frame: KeepAliveFrame): void {

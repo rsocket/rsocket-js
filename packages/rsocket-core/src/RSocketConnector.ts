@@ -1,3 +1,7 @@
+import {
+  ClientServerInputMultiplexerDemultiplexer,
+  StreamIdGenerator,
+} from "./ClientServerMultiplexerDemultiplexer";
 import { Flags, FrameTypes, SetupFrame } from "./Frames";
 import { Payload, RSocket } from "./RSocket";
 import {
@@ -66,9 +70,15 @@ export class RSocketConnector {
   }
 
   async connect(): Promise<RSocket> {
-    const connection = await this.transport.connect();
+    const connection = await this.transport.connect(
+      (outbound) =>
+        new ClientServerInputMultiplexerDemultiplexer(
+          StreamIdGenerator.create(-1),
+          outbound
+        )
+    );
     const keepAliveSender = new KeepAliveSender(
-      connection.connectionOutbound,
+      connection.multiplexerDemultiplexer.connectionOutbound,
       this.setupFrame.keepAlive
     );
     const keepAliveHandler = new KeepAliveHandler(
@@ -76,7 +86,10 @@ export class RSocketConnector {
       this.setupFrame.lifetime
     );
     const leaseHandler: LeaseHandler = this.lease
-      ? new LeaseHandler(this.lease.maxPendingRequests ?? 256, connection)
+      ? new LeaseHandler(
+          this.lease.maxPendingRequests ?? 256,
+          connection.multiplexerDemultiplexer
+        )
       : undefined;
     const connectionFrameHandler = new ConnectionFrameHandler(
       connection,
@@ -91,13 +104,15 @@ export class RSocketConnector {
       keepAliveHandler.close();
       connectionFrameHandler.close(e);
     });
-    connection.connectionInbound(
+    connection.multiplexerDemultiplexer.connectionInbound(
       connectionFrameHandler.handle.bind(connectionFrameHandler)
     );
-    connection.handleRequestStream(
+    connection.multiplexerDemultiplexer.handleRequestStream(
       streamsHandler.handle.bind(connectionFrameHandler)
     );
-    connection.connectionOutbound.send(this.setupFrame);
+    connection.multiplexerDemultiplexer.connectionOutbound.send(
+      this.setupFrame
+    );
     keepAliveHandler.start();
     keepAliveSender.start();
 

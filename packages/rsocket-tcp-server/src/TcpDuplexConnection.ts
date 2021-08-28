@@ -1,31 +1,45 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   deserializeFrames,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrameWithLength,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
 export class TcpDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
+
+  readonly multiplexerDemultiplexer: Multiplexer &
+    Demultiplexer &
+    FrameHandler &
+    Closeable;
 
   constructor(
     private socket: net.Socket,
     private connectionAcceptor: (
       frame: Frame,
       connection: DuplexConnection
-    ) => Promise<void>
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
   ) {
-    super(StreamIdGenerator.create(0));
+    super();
 
     socket.on("close", this.handleClosed.bind(this));
     socket.on("error", this.handleError.bind(this));
     socket.once("data", this.handleFirst.bind(this));
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(this);
   }
 
   get availability(): number {
@@ -45,6 +59,8 @@ export class TcpDuplexConnection
     this.socket.destroy(error);
 
     delete this.socket;
+
+    this.multiplexerDemultiplexer.close(error);
 
     super.close(error);
   }
@@ -95,7 +111,7 @@ export class TcpDuplexConnection
       let lastOffset = 0;
       for (const [frame, offset] of deserializeFrames(buffer)) {
         lastOffset = offset;
-        this.handle(frame);
+        this.multiplexerDemultiplexer.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {

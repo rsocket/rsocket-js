@@ -1,5 +1,5 @@
-import { Deferred, Demultiplexer, Multiplexer, Stream } from ".";
 import { Closeable } from "./Common";
+import { Deferred } from "./Deferred";
 import {
   ErrorFrame,
   Frame,
@@ -13,12 +13,17 @@ import {
   RequestStreamFrame,
   ResumeFrame,
   ResumeOkFrame,
-  SetupFrame,
+  SetupFrame
 } from "./Frames";
+import { FrameStore } from "./Resume";
 import {
+  Demultiplexer,
+  FrameHandler,
+  Multiplexer,
   Outbound,
+  Stream,
   StreamFrameHandler,
-  StreamLifecycleHandler,
+  StreamLifecycleHandler
 } from "./Transport";
 
 export interface StreamIdGenerator {
@@ -45,9 +50,9 @@ export namespace StreamIdGenerator {
   }
 }
 
-export abstract class ClientServerInputMultiplexerDemultiplexer
+export class ClientServerInputMultiplexerDemultiplexer
   extends Deferred
-  implements Closeable, Multiplexer, Demultiplexer, Stream {
+  implements Closeable, Multiplexer, Demultiplexer, Stream, FrameHandler {
   private readonly registry: { [id: number]: StreamFrameHandler } = {};
 
   private connectionFramesHandler: (
@@ -69,17 +74,20 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
     stream: Stream
   ) => boolean;
 
-  constructor(private readonly streamIdSupplier: StreamIdGenerator) {
+  constructor(
+    private readonly streamIdSupplier: StreamIdGenerator,
+    protected outbound: Outbound
+  ) {
     super();
   }
 
-  protected handle(frame: Frame): void {
-    if (frame.type === FrameTypes.RESERVED) {
-      // TODO: throw
-      return;
-    }
-
+  handle(frame: Frame): void {
     if (Frame.isConnection(frame)) {
+      if (frame.type === FrameTypes.RESERVED) {
+        // TODO: throw
+        return;
+      }
+
       this.connectionFramesHandler(frame);
       // TODO: Connection Handler
     } else if (Frame.isRequest(frame)) {
@@ -136,7 +144,9 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
     this.requestFramesHandler = handler;
   }
 
-  abstract send(frame: Frame): void;
+  send(frame: Frame): void {
+    this.outbound.send(frame);
+  }
 
   get connectionOutbound(): Outbound {
     return this;
@@ -181,4 +191,33 @@ export abstract class ClientServerInputMultiplexerDemultiplexer
     }
     super.close(error);
   }
+}
+
+export class ResumableClientServerInputMultiplexerDemultiplexer extends ClientServerInputMultiplexerDemultiplexer {
+  frameStore: FrameStore;
+
+  send(frame: Frame): void {
+    if (Frame.isConnection(frame)) {
+      if (frame.type === FrameTypes.KEEPALIVE) {
+        frame.lastReceivedPosition = this.frameStore.lastReceivedFramePosition;
+      }
+    } else {
+      this.frameStore.store(frame);
+    }
+    this.outbound.send(frame);
+  }
+
+  handle(frame: Frame): void {
+    if (Frame.isConnection(frame)) {
+      if (frame.type === FrameTypes.KEEPALIVE) {
+        this.frameStore.dropTo(frame.lastReceivedPosition);
+      }
+    } else {
+      this.frameStore.record(frame);
+    }
+
+    super.handle(frame);
+  }
+
+  
 }

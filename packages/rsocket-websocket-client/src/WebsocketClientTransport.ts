@@ -1,7 +1,12 @@
 import {
   ClientTransport,
+  Closeable,
+  Demultiplexer,
   Deserializer,
   DuplexConnection,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
 } from "@rsocket/rsocket-core";
 import WebSocket, { ErrorEvent } from "ws";
 import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
@@ -21,7 +26,11 @@ export class WebsocketClientTransport implements ClientTransport {
     this.factory = options.wsCreator ?? ((url: string) => new WebSocket(url));
   }
 
-  connect(): Promise<DuplexConnection> {
+  connect(
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound
+    ) => Multiplexer & Demultiplexer & FrameHandler & Closeable
+  ): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
       const websocket = this.factory(this.url);
 
@@ -30,7 +39,13 @@ export class WebsocketClientTransport implements ClientTransport {
       const openListener = () => {
         websocket.removeEventListener("open", openListener);
         websocket.removeEventListener("error", errorListener);
-        resolve(new WebsocketDuplexConnection(websocket, new Deserializer()));
+        resolve(
+          new WebsocketDuplexConnection(
+            websocket,
+            new Deserializer(),
+            multiplexerDemultiplexerFactory
+          )
+        );
       };
 
       const errorListener = (ev: ErrorEvent) => {

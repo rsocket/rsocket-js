@@ -267,7 +267,7 @@ export class RequestChannelRequesterStream
     }
 
     if (!this.streamId) {
-      this.leaseManager?.remove(this);
+      this.leaseManager?.cancelRequest(this);
       return;
     }
 

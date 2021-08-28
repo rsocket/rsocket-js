@@ -85,7 +85,7 @@ export class RequestFnFRequesterHandler
 
     this.done = true;
 
-    this.leaseManager?.remove(this);
+    this.leaseManager?.cancelRequest(this);
   }
 
   handle() {
