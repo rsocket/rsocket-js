@@ -4,11 +4,16 @@ import {
   ErrorCodes,
   Frame,
   FrameTypes,
+  Outbound,
   RSocketError,
   RSocketServer,
   ServerTransport,
 } from "../src";
 import { mock } from "jest-mock-extended";
+import {
+  ClientServerInputMultiplexerDemultiplexer,
+  StreamIdGenerator,
+} from "../src/ClientServerMultiplexerDemultiplexer";
 
 describe("RSocketServer", () => {
   describe("When receiving the first frame", () => {
@@ -25,7 +30,6 @@ describe("RSocketServer", () => {
       FrameTypes.PAYLOAD,
       FrameTypes.ERROR,
       FrameTypes.METADATA_PUSH,
-      FrameTypes.RESUME,
       FrameTypes.RESUME_OK,
       FrameTypes.EXT,
     ];
@@ -34,7 +38,15 @@ describe("RSocketServer", () => {
       it(`${FrameTypes[frameTypeKey]} is rejected with an UNSUPPORTED_SETUP error`, async function () {
         const mockTransport = mock<ServerTransport>();
         const mockClosable = mock<Closeable>();
+        const mockOutbound = mock<Outbound & Closeable>();
         const mockConnection = mock<DuplexConnection>();
+        (mockConnection as any)[
+          "multiplexerDemultiplexer"
+        ] = new ClientServerInputMultiplexerDemultiplexer(
+          StreamIdGenerator.create(-1),
+          mockOutbound,
+          mockOutbound
+        );
         mockTransport.bind.mockImplementation(
           jest.fn(async (acceptor) => {
             // @ts-ignore

@@ -1,7 +1,12 @@
 import {
   ClientTransport,
+  Closeable,
+  Demultiplexer,
   Deserializer,
   DuplexConnection,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
 } from "@rsocket/rsocket-core";
 import net, { SocketConnectOpts } from "net";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
@@ -30,7 +35,11 @@ export class TcpClientTransport implements ClientTransport {
       options.socketCreator ?? ((options) => net.connect(options));
   }
 
-  connect(): Promise<DuplexConnection> {
+  connect(
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
+  ): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
       let socket: net.Socket;
 
@@ -38,7 +47,13 @@ export class TcpClientTransport implements ClientTransport {
         socket.removeListener("error", errorListener);
         socket.removeListener("close", errorListener);
         socket.removeListener("end", errorListener);
-        resolve(new TcpDuplexConnection(socket, new Deserializer()));
+        resolve(
+          new TcpDuplexConnection(
+            socket,
+            new Deserializer(),
+            multiplexerDemultiplexerFactory
+          )
+        );
       };
 
       const errorListener = (error: Error) => {

@@ -1,31 +1,43 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   deserializeFrames,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrameWithLength,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
 export class TcpDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
 
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
+
   constructor(
     private socket: net.Socket,
-    private connectionAcceptor: (
+    frame: Frame,
+    multiplexerDemultiplexerFactory: (
       frame: Frame,
-      connection: DuplexConnection
-    ) => Promise<void>
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
   ) {
-    super(StreamIdGenerator.create(0));
+    super();
 
-    socket.on("close", this.handleClosed.bind(this));
-    socket.on("error", this.handleError.bind(this));
-    socket.once("data", this.handleFirst.bind(this));
+    socket.on("close", this.handleClosed);
+    socket.on("error", this.handleError);
+    socket.on("data", this.handleData);
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(
+      frame,
+      this
+    );
   }
 
   get availability(): number {
@@ -38,11 +50,11 @@ export class TcpDuplexConnection
       return;
     }
 
-    this.socket.removeListener("close", this.handleClosed.bind(this));
-    this.socket.removeListener("error", this.handleError.bind(this));
-    this.socket.removeListener("data", this.handleData.bind(this));
+    this.socket.off("close", this.handleClosed);
+    this.socket.off("error", this.handleError);
+    this.socket.off("data", this.handleData);
 
-    this.socket.destroy(error);
+    this.socket.end();
 
     delete this.socket;
 
@@ -59,35 +71,19 @@ export class TcpDuplexConnection
     this.socket.write(buffer);
   }
 
-  private handleClosed(hadError: boolean): void {
+  private handleClosed = (hadError: boolean): void => {
     const message = hadError
       ? `TcpDuplexConnection: ${this.error.message}`
       : "TcpDuplexConnection: Socket closed unexpectedly.";
     this.close(new Error(message));
-  }
+  };
 
-  private handleError(error: Error): void {
+  private handleError = (error: Error): void => {
     this.error = error;
     this.close(error);
-  }
+  };
 
-  private async handleFirst(buffer: Buffer): Promise<void> {
-    try {
-      this.socket.pause();
-      this.socket.on("data", this.handleData.bind(this));
-
-      const [frame, offset] = deserializeFrames(buffer).next().value;
-      await this.connectionAcceptor(frame, this);
-      this.socket.resume();
-      if (offset < buffer.length) {
-        this.handleData(buffer.slice(offset, buffer.length));
-      }
-    } catch (error) {
-      this.close(error);
-    }
-  }
-
-  private handleData(chunks: Buffer): void {
+  private handleData = (chunks: Buffer): void => {
     try {
       // Combine partial frame data from previous chunks with the next chunk,
       // then extract any complete frames plus any remaining data.
@@ -95,11 +91,46 @@ export class TcpDuplexConnection
       let lastOffset = 0;
       for (const [frame, offset] of deserializeFrames(buffer)) {
         lastOffset = offset;
-        this.handle(frame);
+        this.multiplexerDemultiplexer.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {
       this.close(error);
     }
+  };
+
+  static create(
+    socket: net.Socket,
+    connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      frame: Frame,
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
+  ): void {
+    // TODO: timeout on no data?
+    socket.once("data", async (buffer) => {
+      const [frame, offset] = deserializeFrames(buffer).next().value;
+      const connection = new TcpDuplexConnection(
+        socket,
+        frame,
+        multiplexerDemultiplexerFactory
+      );
+      if (connection.done) {
+        return;
+      }
+      try {
+        socket.pause();
+        await connectionAcceptor(frame, connection);
+        socket.resume();
+        if (offset < buffer.length) {
+          connection.handleData(buffer.slice(offset, buffer.length));
+        }
+      } catch (error) {
+        connection.close(error);
+      }
+    });
   }
 }

@@ -3,12 +3,21 @@ import { TcpDuplexConnection } from "../TcpDuplexConnection";
 import * as net from "net";
 import sinon from "sinon";
 import EventEmitter from "events";
+import {
+  Demultiplexer,
+  FrameHandler,
+  Multiplexer,
+} from "@rsocket/rsocket-core/src";
+import { mock } from "jest-mock-extended";
 
 describe("TcpClientTransport", function () {
   describe("connect", () => {
     it("resolves to an instance of DuplexConnection on successful connection", async () => {
       // arrange
       const netStub = new EventEmitter();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const socketStub = sinon.createStubInstance(net.Socket);
 
       const transport = new TcpClientTransport({
@@ -23,7 +32,9 @@ describe("TcpClientTransport", function () {
       });
 
       // act
-      const connectionPromise = transport.connect();
+      const connectionPromise = transport.connect(
+        () => multiplexerDemultiplexer
+      );
 
       netStub.emit("connect", socketStub);
 
@@ -48,6 +59,9 @@ describe("TcpClientTransport", function () {
       connectionRefusedError.syscall = "connect";
 
       const socketStub = new EventEmitter();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
 
       const transport = new TcpClientTransport({
         connectionOptions: {
@@ -61,7 +75,9 @@ describe("TcpClientTransport", function () {
       });
 
       // act
-      const connectionPromise = transport.connect();
+      const connectionPromise = transport.connect(
+        () => multiplexerDemultiplexer
+      );
 
       socketStub.emit("error", connectionRefusedError);
 

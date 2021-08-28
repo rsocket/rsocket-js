@@ -1,24 +1,35 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   Deserializer,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrame,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 
 export class WebsocketDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
+
   constructor(
     private websocket: WebSocket,
-    private deserializer: Deserializer
+    private deserializer: Deserializer,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
   ) {
-    super(StreamIdGenerator.create(-1));
+    super();
 
-    websocket.addEventListener("close", this.handleClosed.bind(this));
-    websocket.addEventListener("error", this.handleError.bind(this));
-    websocket.addEventListener("message", this.handleMessage.bind(this));
+    websocket.addEventListener("close", this.handleClosed);
+    websocket.addEventListener("error", this.handleError);
+    websocket.addEventListener("message", this.handleMessage);
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(this);
   }
 
   get availability(): number {
@@ -31,12 +42,9 @@ export class WebsocketDuplexConnection
       return;
     }
 
-    this.websocket.removeEventListener("close", this.handleClosed.bind(this));
-    this.websocket.removeEventListener("error", this.handleError.bind(this));
-    this.websocket.removeEventListener(
-      "message",
-      this.handleMessage.bind(this)
-    );
+    this.websocket.removeEventListener("close", this.handleClosed);
+    this.websocket.removeEventListener("error", this.handleError);
+    this.websocket.removeEventListener("message", this.handleMessage);
 
     this.websocket.close();
 
@@ -55,24 +63,24 @@ export class WebsocketDuplexConnection
     this.websocket.send(buffer);
   }
 
-  private handleClosed(e: CloseEvent): void {
+  private handleClosed = (e: CloseEvent): void => {
     this.close(
       new Error(
         e.reason || "WebsocketDuplexConnection: Socket closed unexpectedly."
       )
     );
-  }
+  };
 
-  private handleError(e: ErrorEvent): void {
+  private handleError = (e: ErrorEvent): void => {
     this.close(e.error);
-  }
+  };
 
   private handleMessage = (message: MessageEvent): void => {
     try {
       const buffer = Buffer.from(message.data);
       const frame = this.deserializer.deserializeFrame(buffer);
 
-      this.handle(frame);
+      this.multiplexerDemultiplexer.handle(frame);
     } catch (error) {
       this.close(error);
     }
