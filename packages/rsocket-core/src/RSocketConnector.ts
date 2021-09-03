@@ -94,9 +94,7 @@ export class RSocketConnector {
     connection.connectionInbound(
       connectionFrameHandler.handle.bind(connectionFrameHandler)
     );
-    connection.handleRequestStream(
-      streamsHandler.handle.bind(connectionFrameHandler)
-    );
+    connection.handleRequestStream(streamsHandler.handle.bind(streamsHandler));
     connection.connectionOutbound.send(this.setupFrame);
     keepAliveHandler.start();
     keepAliveSender.start();

@@ -118,7 +118,7 @@ export class RSocketServer {
               connectionFrameHandler.handle.bind(connectionFrameHandler)
             );
             connection.handleRequestStream(
-              streamsHandler.handle.bind(connectionFrameHandler)
+              streamsHandler.handle.bind(streamsHandler)
             );
 
             keepAliveHandler.start();
