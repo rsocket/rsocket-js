@@ -56,6 +56,11 @@ export interface StreamLifecycleHandler {
 }
 
 export interface StreamFrameHandler extends FrameHandler {
+  readonly streamType:
+    | FrameTypes.REQUEST_CHANNEL
+    | FrameTypes.REQUEST_FNF
+    | FrameTypes.REQUEST_RESPONSE
+    | FrameTypes.REQUEST_STREAM;
   readonly streamId: number;
 
   handle(
@@ -69,12 +74,7 @@ export interface Multiplexer {
   readonly connectionOutbound: Outbound;
 
   createRequestStream(
-    streamHandler: StreamFrameHandler & StreamLifecycleHandler,
-    requestType:
-      | FrameTypes.REQUEST_FNF
-      | FrameTypes.REQUEST_RESPONSE
-      | FrameTypes.REQUEST_STREAM
-      | FrameTypes.REQUEST_CHANNEL
+    streamHandler: StreamFrameHandler & StreamLifecycleHandler
   ): void;
 }
 

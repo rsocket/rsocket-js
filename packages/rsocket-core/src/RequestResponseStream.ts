@@ -10,6 +10,7 @@ import {
   RequestNFrame,
   RequestResponseFrame,
 } from "./Frames";
+import { LeaseManager } from "./Lease";
 import * as Reassembler from "./Reassembler";
 import {
   Cancellable,
@@ -31,6 +32,7 @@ export class RequestResponseRequesterStream
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
+  readonly streamType = FrameTypes.REQUEST_RESPONSE;
   private stream: Stream;
   private done: boolean;
 
@@ -50,7 +52,8 @@ export class RequestResponseRequesterStream
     private readonly receiver: OnTerminalSubscriber &
       OnNextSubscriber &
       OnExtensionSubscriber,
-    private readonly fragmentSize: number
+    private readonly fragmentSize: number,
+    private readonly leaseManager?: LeaseManager
   ) {}
 
   handleReady(streamId: number, stream: Stream): boolean {
@@ -188,6 +191,7 @@ export class RequestResponseRequesterStream
     this.done = true;
 
     if (!this.streamId) {
+      this.leaseManager?.remove(this);
       return;
     }
 
@@ -251,6 +255,8 @@ export class RequestResponseResponderStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
+  readonly streamType = FrameTypes.REQUEST_RESPONSE;
+
   private receiver?: Cancellable & OnExtensionSubscriber;
   private done: boolean;
 

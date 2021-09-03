@@ -14,6 +14,7 @@ import {
   ResumeOkFrame,
   SetupFrame,
 } from "./Frames";
+import { LeaseManager } from "./Lease";
 import {
   RequestChannelRequesterStream,
   RequestChannelResponderStream,
@@ -39,12 +40,21 @@ import {
   Requestable,
   RSocket,
 } from "./RSocket";
-import { DuplexConnection, FrameHandler, Outbound, Stream } from "./Transport";
+import {
+  DuplexConnection,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
+  Stream,
+  StreamFrameHandler,
+  StreamLifecycleHandler,
+} from "./Transport";
 
 export class RSocketRequester implements RSocket {
   constructor(
     private readonly connection: DuplexConnection,
-    private readonly fragmentSize: number
+    private readonly fragmentSize: number,
+    private readonly leaseManager: LeaseManager | undefined | null
   ) {}
 
   fireAndForget(
@@ -54,10 +64,15 @@ export class RSocketRequester implements RSocket {
     const handler = new RequestFnFRequesterHandler(
       payload,
       responderStream,
-      this.fragmentSize
+      this.fragmentSize,
+      this.leaseManager
     );
 
-    this.connection.createRequestStream(handler, FrameTypes.REQUEST_FNF);
+    if (this.leaseManager) {
+      this.leaseManager.add(handler);
+    } else {
+      this.connection.createRequestStream(handler);
+    }
 
     return handler;
   }
@@ -71,10 +86,15 @@ export class RSocketRequester implements RSocket {
     const handler = new RequestResponseRequesterStream(
       payload,
       responderStream,
-      this.fragmentSize
+      this.fragmentSize,
+      this.leaseManager
     );
 
-    this.connection.createRequestStream(handler, FrameTypes.REQUEST_RESPONSE);
+    if (this.leaseManager) {
+      this.leaseManager.add(handler);
+    } else {
+      this.connection.createRequestStream(handler);
+    }
 
     return handler;
   }
@@ -90,10 +110,15 @@ export class RSocketRequester implements RSocket {
       payload,
       responderStream,
       this.fragmentSize,
-      initialRequestN
+      initialRequestN,
+      this.leaseManager
     );
 
-    this.connection.createRequestStream(handler, FrameTypes.REQUEST_STREAM);
+    if (this.leaseManager) {
+      this.leaseManager.add(handler);
+    } else {
+      this.connection.createRequestStream(handler);
+    }
 
     return handler;
   }
@@ -117,10 +142,15 @@ export class RSocketRequester implements RSocket {
       isCompleted,
       responderStream,
       this.fragmentSize,
-      initialRequestN
+      initialRequestN,
+      this.leaseManager
     );
 
-    this.connection.createRequestStream(handler, FrameTypes.REQUEST_CHANNEL);
+    if (this.leaseManager) {
+      this.leaseManager.add(handler);
+    } else {
+      this.connection.createRequestStream(handler);
+    }
 
     return handler;
   }
@@ -135,6 +165,57 @@ export class RSocketRequester implements RSocket {
 
   onClose(callback): void {
     this.connection.onClose(callback);
+  }
+}
+
+export class LeaseHandler implements LeaseManager {
+  private readonly pendingRequests: Array<
+    StreamFrameHandler & StreamLifecycleHandler
+  > = [];
+
+  private expirationTime: number = 0;
+  private availableLease: number = 0;
+
+  constructor(
+    private readonly maxPendingRequests: number,
+    private readonly multiplexer: Multiplexer
+  ) {}
+
+  handle(frame: LeaseFrame): void {
+    this.expirationTime = frame.ttl + Date.now();
+    this.availableLease = frame.requestCount;
+
+    while (this.availableLease > 0 && this.pendingRequests.length > 0) {
+      const handler = this.pendingRequests.shift();
+
+      this.availableLease--;
+      this.multiplexer.createRequestStream(handler);
+    }
+  }
+
+  add(handler: StreamFrameHandler & StreamLifecycleHandler): void {
+    const availableLease = this.availableLease;
+    if (availableLease > 0 && Date.now() < this.expirationTime) {
+      this.availableLease = availableLease - 1;
+      this.multiplexer.createRequestStream(handler);
+      return;
+    }
+
+    if (this.pendingRequests.length >= this.maxPendingRequests) {
+      handler.handleReject(
+        new RSocketError(ErrorCodes.REJECTED, "No available lease given")
+      );
+      return;
+    }
+
+    this.pendingRequests.push(handler);
+  }
+
+  remove(handler: StreamFrameHandler & StreamLifecycleHandler): void {
+    const index = this.pendingRequests.indexOf(handler);
+    if (index > -1) {
+      this.pendingRequests.splice(index, 1);
+    }
   }
 }
 
@@ -228,6 +309,7 @@ export class ConnectionFrameHandler implements FrameHandler {
   constructor(
     private readonly connection: DuplexConnection,
     private readonly keepAliveHandler: KeepAliveHandler,
+    private readonly leaseHandler: LeaseHandler | undefined,
     private readonly rsocket: Partial<RSocket>
   ) {}
 
@@ -246,7 +328,12 @@ export class ConnectionFrameHandler implements FrameHandler {
         this.keepAliveHandler.handle(frame);
         return;
       case FrameTypes.LEASE:
-        // TODO: add lease handling
+        if (this.leaseHandler) {
+          this.leaseHandler.handle(frame);
+          return;
+        }
+
+        // TODO throw exception and close connection
         return;
       case FrameTypes.ERROR:
         // TODO: add code validation

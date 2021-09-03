@@ -10,6 +10,7 @@ import {
   RequestNFrame,
   RequestStreamFrame,
 } from "./Frames";
+import { LeaseManager } from "./Lease";
 import * as Reassembler from "./Reassembler";
 import {
   Cancellable,
@@ -33,6 +34,8 @@ export class RequestStreamRequesterStream
     StreamFrameHandler,
     StreamLifecycleHandler,
     Reassembler.FragmentsHolder {
+  readonly streamType = FrameTypes.REQUEST_STREAM;
+
   private done: boolean;
   private stream: Stream;
 
@@ -53,7 +56,8 @@ export class RequestStreamRequesterStream
       OnNextSubscriber &
       OnExtensionSubscriber,
     private readonly fragmentSize: number,
-    private initialRequestN: number
+    private initialRequestN: number,
+    private readonly leaseManager?: LeaseManager
   ) {
     // TODO: add payload size validation
   }
@@ -212,6 +216,7 @@ export class RequestStreamRequesterStream
     this.done = true;
 
     if (!this.streamId) {
+      this.leaseManager?.remove(this);
       return;
     }
 
@@ -275,6 +280,8 @@ export class RequestStreamResponderStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
+  readonly streamType = FrameTypes.REQUEST_STREAM;
+
   private readonly initialRequestN: number;
   private receiver?: Cancellable & Requestable & OnExtensionSubscriber;
   private done: boolean;

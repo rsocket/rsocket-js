@@ -9,6 +9,7 @@ import {
   RequestFnfFrame,
   RequestNFrame,
 } from "./Frames";
+import { LeaseManager } from "./Lease";
 import * as Reassembler from "./Reassembler";
 import { Cancellable, OnTerminalSubscriber, Payload } from "./RSocket";
 import {
@@ -19,6 +20,8 @@ import {
 
 export class RequestFnFRequesterHandler
   implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
+  readonly streamType = FrameTypes.REQUEST_FNF;
+
   private done: boolean;
 
   streamId: number;
@@ -26,7 +29,8 @@ export class RequestFnFRequesterHandler
   constructor(
     private readonly payload: Payload,
     private readonly receiver: OnTerminalSubscriber,
-    private readonly fragmentSize: number
+    private readonly fragmentSize: number,
+    private readonly leaseManager?: LeaseManager
   ) {}
 
   handleReady(streamId: number, stream: Stream) {
@@ -81,7 +85,7 @@ export class RequestFnFRequesterHandler
 
     this.done = true;
 
-    // this.streamRegistry.remove(this);
+    this.leaseManager?.remove(this);
   }
 
   handle() {
@@ -111,6 +115,8 @@ export class RequestFnfResponderHandler
     OnTerminalSubscriber,
     StreamFrameHandler,
     Reassembler.FragmentsHolder {
+  readonly streamType = FrameTypes.REQUEST_FNF;
+
   private cancellable?: Cancellable;
   private done: boolean;
 
