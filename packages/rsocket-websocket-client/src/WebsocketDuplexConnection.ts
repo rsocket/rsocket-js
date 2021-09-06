@@ -6,7 +6,6 @@ import {
   serializeFrame,
   StreamIdGenerator,
 } from "@rsocket/rsocket-core";
-import WebSocket, { CloseEvent, ErrorEvent } from "ws";
 
 export class WebsocketDuplexConnection
   extends ClientServerInputMultiplexerDemultiplexer
