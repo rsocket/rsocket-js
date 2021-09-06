@@ -1,4 +1,3 @@
-import WebSocket from "ws";
 import { mock } from "jest-mock-extended";
 import {
   Deserializer,
