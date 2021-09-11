@@ -15,8 +15,8 @@ describe("isFragmentable", () => {
   it("returns false when frame size is smaller than fragmentSize", () => {
     const actual = isFragmentable(
       {
-        data: Buffer.from([]),
-        metadata: Buffer.from([]),
+        data: Buffer.allocUnsafe(0),
+        metadata: Buffer.allocUnsafe(0),
       },
       1000,
       FrameTypes.REQUEST_FNF
@@ -308,7 +308,7 @@ describe("fragment", () => {
           Buffer.from("hello world"),
           Buffer.from("hello world"),
         ]), // 22 bytes
-        metadata: Buffer.from([]),
+        metadata: Buffer.allocUnsafe(0),
       };
 
       const generator = fragment(
@@ -325,7 +325,7 @@ describe("fragment", () => {
             type: FrameTypes.REQUEST_RESPONSE,
             flags: Flags.FOLLOWS | Flags.METADATA,
             data: Buffer.from("hello wo"),
-            metadata: Buffer.from([]),
+            metadata: Buffer.allocUnsafe(0),
             streamId: 0,
           },
         ],
@@ -475,7 +475,7 @@ describe("fragment", () => {
           Buffer.from("hello world"),
           Buffer.from("hello world"),
         ]), // 22 bytes
-        metadata: Buffer.from([]),
+        metadata: Buffer.allocUnsafe(0),
       };
 
       const generator = fragmentWithRequestN(
@@ -493,7 +493,7 @@ describe("fragment", () => {
             type: FrameTypes.REQUEST_STREAM,
             flags: Flags.FOLLOWS | Flags.METADATA,
             data: Buffer.from("hello"),
-            metadata: Buffer.from([]),
+            metadata: Buffer.allocUnsafe(0),
             requestN: 1,
             streamId: 0,
           },
@@ -528,7 +528,7 @@ describe("fragment", () => {
           Buffer.from("hello world"),
           Buffer.from("hello world"),
         ]), // 22 bytes
-        metadata: Buffer.from([]),
+        metadata: Buffer.allocUnsafe(0),
       };
 
       const generator = fragmentWithRequestN(
@@ -546,7 +546,7 @@ describe("fragment", () => {
             type: FrameTypes.REQUEST_CHANNEL,
             flags: Flags.FOLLOWS | Flags.METADATA,
             data: Buffer.from("hello"),
-            metadata: Buffer.from([]),
+            metadata: Buffer.allocUnsafe(0),
             requestN: 1,
             streamId: 0,
           },
@@ -581,7 +581,7 @@ describe("fragment", () => {
           Buffer.from("hello world"),
           Buffer.from("hello world"),
         ]), // 22 bytes
-        data: Buffer.from([]),
+        data: Buffer.allocUnsafe(0),
       };
 
       const generator = fragmentWithRequestN(

@@ -298,7 +298,7 @@ describe("WebsocketDuplexConnection", function () {
           throw new Error("Mock error");
         });
         const onCloseCallback = jest.fn();
-        const data = Buffer.from([]).toString();
+        const data = Buffer.allocUnsafe(0).toString();
 
         // act
         connection.onClose(onCloseCallback);

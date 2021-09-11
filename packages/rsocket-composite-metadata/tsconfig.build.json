@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.build.json",
+
+  "compilerOptions": {
+    "outDir": "./dist",
+    "downlevelIteration": true
+  },
+
+  "include": [
+    "src/**/*"
+  ]
+}

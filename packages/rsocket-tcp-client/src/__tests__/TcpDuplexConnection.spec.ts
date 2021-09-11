@@ -330,7 +330,7 @@ describe("TcpDuplexConnection", function () {
           throw new Error("Mock error");
         });
         const onCloseCallback = jest.fn();
-        const data = Buffer.from([]);
+        const data = Buffer.allocUnsafe(0);
 
         // act
         connection.onClose(onCloseCallback);
