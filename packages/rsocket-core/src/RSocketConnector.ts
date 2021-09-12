@@ -1,14 +1,22 @@
+import { Closeable, DuplexConnection, Outbound } from ".";
+import {
+  ClientServerInputMultiplexerDemultiplexer,
+  ResumableClientServerInputMultiplexerDemultiplexer,
+  ResumeOkAwaitingResumableClientServerInputMultiplexerDemultiplexer,
+  StreamIdGenerator,
+} from "./ClientServerMultiplexerDemultiplexer";
 import { Flags, FrameTypes, SetupFrame } from "./Frames";
 import { Payload, RSocket } from "./RSocket";
 import {
-  ConnectionFrameHandler,
+  DefaultConnectionFrameHandler,
+  DefaultStreamRequestHandler,
   KeepAliveHandler,
   KeepAliveSender,
   LeaseHandler,
   RSocketRequester,
-  StreamHandler,
 } from "./RSocketSupport";
 import { ClientTransport } from "./Transport";
+import { FrameStore } from "./Resume";
 
 export type ConnectorConfig = {
   setup?: {
@@ -27,23 +35,22 @@ export type ConnectorConfig = {
     maxPendingRequests?: number;
   };
   resume?: {
-    casheSize: number;
+    cacheSize?: number;
+    tokenGenerator: () => Buffer;
+    reconnectFunction: (attempt: number) => Promise<void>;
   };
 };
 
 export class RSocketConnector {
-  private setupFrame: SetupFrame;
-  private transport: ClientTransport;
-  private responder: Partial<RSocket>;
-  private lease?: {
-    maxPendingRequests?: number;
-  };
-  private fragmentation?: {
-    maxOutboundFragmentSize?: number;
-  };
+  private readonly config: ConnectorConfig;
 
   constructor(config: ConnectorConfig) {
-    this.setupFrame = {
+    this.config = config;
+  }
+
+  async connect(): Promise<RSocket> {
+    const config = this.config;
+    const setupFrame: SetupFrame = {
       type: FrameTypes.SETUP,
       dataMimeType: config.setup?.dataMimeType ?? "application/octet-stream",
       metadataMimeType:
@@ -52,56 +59,104 @@ export class RSocketConnector {
       lifetime: config.setup?.lifetime ?? 300000,
       metadata: config.setup?.payload?.metadata,
       data: config.setup?.payload?.data,
-      resumeToken: null,
+      resumeToken: config.resume?.tokenGenerator() ?? null,
       streamId: 0,
       majorVersion: 1,
       minorVersion: 0,
       flags:
         (config.setup?.payload?.metadata ? Flags.METADATA : Flags.NONE) |
-        (config.lease ? Flags.LEASE : Flags.NONE),
+        (config.lease ? Flags.LEASE : Flags.NONE) |
+        (config.resume ? Flags.RESUME_ENABLE : Flags.NONE),
     };
-    this.responder = config.responder ?? {};
-    this.transport = config.transport;
-    this.lease = config.lease;
-  }
+    const connection = await config.transport.connect((outbound) => {
+      return config.resume
+        ? new ResumableClientServerInputMultiplexerDemultiplexer(
+            StreamIdGenerator.create(-1),
+            outbound,
+            outbound,
+            new FrameStore(), // TODO: add size control
+            setupFrame.resumeToken.toString(),
+            async (self, frameStore) => {
+              const multiplexerDemultiplexerProvider = (
+                outbound: Outbound & Closeable
+              ) => {
+                outbound.send({
+                  type: FrameTypes.RESUME,
+                  streamId: 0,
+                  flags: Flags.NONE,
+                  clientPosition: frameStore.firstAvailableFramePosition,
+                  serverPosition: frameStore.lastReceivedFramePosition,
+                  majorVersion: setupFrame.minorVersion,
+                  minorVersion: setupFrame.majorVersion,
+                  resumeToken: setupFrame.resumeToken,
+                });
+                return new ResumeOkAwaitingResumableClientServerInputMultiplexerDemultiplexer(
+                  outbound,
+                  outbound,
+                  self
+                );
+              };
+              let reconnectionAttempts = -1;
+              const reconnector: () => Promise<DuplexConnection> = () => {
+                reconnectionAttempts++;
+                return config.resume
+                  .reconnectFunction(reconnectionAttempts)
+                  .then(() =>
+                    config.transport
+                      .connect(multiplexerDemultiplexerProvider)
+                      .catch(reconnector)
+                  );
+              };
 
-  async connect(): Promise<RSocket> {
-    const connection = await this.transport.connect();
+              await reconnector();
+            }
+          )
+        : new ClientServerInputMultiplexerDemultiplexer(
+            StreamIdGenerator.create(-1),
+            outbound,
+            outbound
+          );
+    });
     const keepAliveSender = new KeepAliveSender(
-      connection.connectionOutbound,
-      this.setupFrame.keepAlive
+      connection.multiplexerDemultiplexer.connectionOutbound,
+      setupFrame.keepAlive
     );
     const keepAliveHandler = new KeepAliveHandler(
       connection,
-      this.setupFrame.lifetime
+      setupFrame.lifetime
     );
-    const leaseHandler: LeaseHandler = this.lease
-      ? new LeaseHandler(this.lease.maxPendingRequests ?? 256, connection)
+    const leaseHandler: LeaseHandler = config.lease
+      ? new LeaseHandler(
+          config.lease.maxPendingRequests ?? 256,
+          connection.multiplexerDemultiplexer
+        )
       : undefined;
-    const connectionFrameHandler = new ConnectionFrameHandler(
+    const responder = config.responder ?? {};
+    const connectionFrameHandler = new DefaultConnectionFrameHandler(
       connection,
       keepAliveHandler,
+      keepAliveSender,
       leaseHandler,
-      this.responder
+      responder
     );
-    const streamsHandler = new StreamHandler(this.responder, 0);
+    const streamsHandler = new DefaultStreamRequestHandler(responder, 0);
 
     connection.onClose((e) => {
       keepAliveSender.close();
       keepAliveHandler.close();
       connectionFrameHandler.close(e);
     });
-    connection.connectionInbound(
-      connectionFrameHandler.handle.bind(connectionFrameHandler)
+    connection.multiplexerDemultiplexer.connectionInbound(
+      connectionFrameHandler
     );
-    connection.handleRequestStream(streamsHandler.handle.bind(streamsHandler));
-    connection.connectionOutbound.send(this.setupFrame);
+    connection.multiplexerDemultiplexer.handleRequestStream(streamsHandler);
+    connection.multiplexerDemultiplexer.connectionOutbound.send(setupFrame);
     keepAliveHandler.start();
     keepAliveSender.start();
 
     return new RSocketRequester(
       connection,
-      this.fragmentation?.maxOutboundFragmentSize ?? 0,
+      config.fragmentation?.maxOutboundFragmentSize ?? 0,
       leaseHandler
     );
   }

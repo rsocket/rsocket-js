@@ -267,7 +267,7 @@ export class RequestChannelRequesterStream
     }
 
     if (!this.streamId) {
-      this.leaseManager?.remove(this);
+      this.leaseManager?.cancelRequest(this);
       return;
     }
 
@@ -496,11 +496,12 @@ export class RequestChannelResponderStream
           return;
         }
 
-        const payload = Reassembler.reassemble(
-          this,
-          frame.data,
-          frame.metadata
-        );
+        const payload = this.hasFragments
+          ? Reassembler.reassemble(this, frame.data, frame.metadata)
+          : {
+              data: frame.data,
+              metadata: frame.metadata,
+            };
 
         const hasComplete = Flags.hasComplete(frame.flags);
 

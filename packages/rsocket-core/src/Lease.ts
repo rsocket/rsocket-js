@@ -1,6 +1,6 @@
 import { StreamFrameHandler, StreamLifecycleHandler } from "./Transport";
 
 export interface LeaseManager {
-  add(handler: StreamFrameHandler & StreamLifecycleHandler): void;
-  remove(handler: StreamFrameHandler & StreamLifecycleHandler): void;
+  requestLease(handler: StreamFrameHandler & StreamLifecycleHandler): void;
+  cancelRequest(handler: StreamFrameHandler & StreamLifecycleHandler): void;
 }

@@ -1,42 +1,53 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   Deserializer,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrameWithLength,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import net from "net";
 
 export class TcpDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
   private error: Error;
   private remainingBuffer: Buffer = Buffer.from([]);
+
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
 
   constructor(
     private socket: net.Socket,
     // dependency injected to facilitate testing
-    private deserializer: Deserializer
+    private readonly deserializer: Deserializer,
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
   ) {
-    super(StreamIdGenerator.create(-1));
+    super();
 
     /**
      * Emitted when an error occurs. The 'close' event will be called directly following this event.
      */
-    socket.on("error", this.handleError.bind(this));
+    socket.on("error", this.handleError);
 
     /**
      * Emitted once the socket is fully closed. The argument hadError is a boolean which says
      * if the socket was closed due to a transmission error.
      */
-    socket.on("close", this.handleClosed.bind(this));
+    socket.on("close", this.handleClosed);
 
     /**
      * Emitted when data is received. The argument data will be a Buffer or String. Encoding of data is set by
      * socket.setEncoding(). The data will be lost if there is no listener when a Socket emits a 'data' event.
      */
-    socket.on("data", this.handleData.bind(this));
+    socket.on("data", this.handleData);
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(this);
   }
 
   get availability(): number {
@@ -48,11 +59,11 @@ export class TcpDuplexConnection
       return;
     }
 
-    this.socket.removeListener("error", this.handleError.bind(this));
-    this.socket.removeListener("close", this.handleClosed.bind(this));
-    this.socket.removeListener("data", this.handleData.bind(this));
+    this.socket.off("error", this.handleError);
+    this.socket.off("close", this.handleClosed);
+    this.socket.off("data", this.handleData);
 
-    this.socket.destroy(error);
+    this.socket.end();
 
     delete this.socket;
 
@@ -74,12 +85,12 @@ export class TcpDuplexConnection
    * @param hadError
    * @private
    */
-  private handleClosed(hadError: boolean): void {
+  private handleClosed = (hadError: boolean): void => {
     const message = hadError
       ? `TcpDuplexConnection: ${this.error.message}`
       : "TcpDuplexConnection: Socket closed unexpectedly.";
     this.close(new Error(message));
-  }
+  };
 
   /**
    * Handles error events from the underlying socket. `handleClosed` is expected to be called
@@ -87,11 +98,11 @@ export class TcpDuplexConnection
    * @param error
    * @private
    */
-  private handleError(error: Error): void {
+  private handleError = (error: Error): void => {
     this.error = error;
-  }
+  };
 
-  private handleData(chunks: Buffer) {
+  private handleData = (chunks: Buffer): void => {
     try {
       // Combine partial frame data from previous chunks with the next chunk,
       // then extract any complete frames plus any remaining data.
@@ -100,11 +111,11 @@ export class TcpDuplexConnection
       const frames = this.deserializer.deserializeFrames(buffer);
       for (const [frame, offset] of frames) {
         lastOffset = offset;
-        this.handle(frame);
+        this.multiplexerDemultiplexer.handle(frame);
       }
       this.remainingBuffer = buffer.slice(lastOffset, buffer.length);
     } catch (error) {
       this.close(error);
     }
-  }
+  };
 }

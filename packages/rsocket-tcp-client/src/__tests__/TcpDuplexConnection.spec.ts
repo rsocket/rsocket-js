@@ -3,13 +3,14 @@ import sinon from "sinon";
 import { mock } from "jest-mock-extended";
 import EventEmitter from "events";
 import {
+  Demultiplexer,
   Deserializer,
   Flags,
   FrameHandler,
   FrameTypes,
+  Multiplexer,
   serializeFrameWithLength,
   SetupFrame,
-  StreamFrameHandler,
 } from "@rsocket/rsocket-core";
 import { MockSocket } from "../__mocks__/net";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
@@ -19,50 +20,66 @@ describe("TcpDuplexConnection", function () {
     it("removes listeners from the underlying socket event emitter", async () => {
       // arrange
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
 
       connection.close();
 
-      expect(socketStub.removeListener.calledWith("close")).toBe(true);
-      expect(socketStub.removeListener.calledWith("error")).toBe(true);
-      expect(socketStub.removeListener.calledWith("data")).toBe(true);
+      expect(socketStub.off.calledWith("close")).toBe(true);
+      expect(socketStub.off.calledWith("error")).toBe(true);
+      expect(socketStub.off.calledWith("data")).toBe(true);
     });
 
     it("cleans up the socket resource when closed without an error", async () => {
       // arrange
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
 
       connection.close();
 
-      expect(socketStub.destroy.calledWith(undefined)).toBe(true);
+      expect(socketStub.end.calledWith()).toBe(true);
     });
 
     it("cleans up the socket resource when closed with an error", async () => {
       // arrange
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
 
       const error = new Error();
       connection.close(error);
 
-      expect(socketStub.destroy.calledWith(error)).toBe(true);
+      expect(socketStub.end.calledWith()).toBe(true);
     });
 
     it("calls onClose", async () => {
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
       const onCloseCallback = jest.fn();
 
@@ -75,9 +92,13 @@ describe("TcpDuplexConnection", function () {
 
     it("calls onClose when closed with an error", async () => {
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
       const onCloseCallback = jest.fn();
       const error = new Error();
@@ -91,9 +112,13 @@ describe("TcpDuplexConnection", function () {
 
     it("subsequent calls to close do not invoke onClose", async () => {
       const socketStub = sinon.createStubInstance(net.Socket);
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
       const onCloseCallback = jest.fn();
       const error = new Error();
@@ -107,7 +132,14 @@ describe("TcpDuplexConnection", function () {
 
     it("the onClose callback is called with an error when the socket is closed unexpectedly", async () => {
       const socket = new net.Socket();
-      const connection = new TcpDuplexConnection(socket, new Deserializer());
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const connection = new TcpDuplexConnection(
+        socket,
+        new Deserializer(),
+        () => multiplexerDemultiplexer
+      );
       const onCloseCallback = jest.fn();
 
       connection.onClose(onCloseCallback);
@@ -121,7 +153,14 @@ describe("TcpDuplexConnection", function () {
 
     it("the onClose callback is called with an error when the socket is closed with an error", async () => {
       const socket = new net.Socket();
-      const connection = new TcpDuplexConnection(socket, new Deserializer());
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const connection = new TcpDuplexConnection(
+        socket,
+        new Deserializer(),
+        () => multiplexerDemultiplexer
+      );
       const onCloseCallback = jest.fn();
       const error = new Error("Test error 1");
       const expectedError = new Error("TcpDuplexConnection: Test error 1");
@@ -132,44 +171,6 @@ describe("TcpDuplexConnection", function () {
 
       expect(onCloseCallback).toBeCalledTimes(1);
       expect(onCloseCallback).toHaveBeenCalledWith(expectedError);
-    });
-  });
-
-  describe("handle()", () => {
-    it("throws if called twice", async () => {
-      // arrange
-      const socketStub = sinon.createStubInstance(net.Socket);
-      const frameHandlerStub = mock<FrameHandler>();
-      const connection = new TcpDuplexConnection(
-        socketStub,
-        new Deserializer()
-      );
-
-      // assert
-      expect(
-        connection.connectionInbound.bind(
-          connection,
-          frameHandlerStub.handle.bind(frameHandlerStub)
-        )
-      ).not.toThrow();
-      expect(
-        connection.connectionInbound.bind(
-          connection,
-          frameHandlerStub.handle.bind(frameHandlerStub)
-        )
-      ).toThrow("Connection frame handler has already been installed");
-      expect(
-        connection.handleRequestStream.bind(
-          connection,
-          frameHandlerStub.handle.bind(frameHandlerStub)
-        )
-      ).not.toThrow();
-      expect(
-        connection.handleRequestStream.bind(
-          connection,
-          frameHandlerStub.handle.bind(frameHandlerStub)
-        )
-      ).toThrow("Stream handler has already been installed");
     });
   });
 
@@ -188,13 +189,17 @@ describe("TcpDuplexConnection", function () {
       minorVersion: 0,
       flags: Flags.METADATA,
     } as SetupFrame;
+    const multiplexerDemultiplexer = mock<
+      Multiplexer & Demultiplexer & FrameHandler
+    >();
 
     it("serializes and writes the given frame to the underlying socket", async () => {
       // arrange
       const socketStub = mock<net.Socket>();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
 
       // act
@@ -207,9 +212,13 @@ describe("TcpDuplexConnection", function () {
     it("does not write the given frame to the underlying socket when close was previously called", async () => {
       // arrange
       const socketStub = mock<net.Socket>();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
       const connection = new TcpDuplexConnection(
         socketStub,
-        new Deserializer()
+        new Deserializer(),
+        () => multiplexerDemultiplexer
       );
 
       // act
@@ -240,15 +249,15 @@ describe("TcpDuplexConnection", function () {
     describe("when buffer contains a single frame", () => {
       it("deserializes received frames and calls the configured handler", () => {
         // arrange
-        const handler = mock<FrameHandler>();
+        const handler = mock<Multiplexer & Demultiplexer & FrameHandler>();
         const socketStub = new EventEmitter() as net.Socket;
         const connection = new TcpDuplexConnection(
           socketStub,
-          new Deserializer()
+          new Deserializer(),
+          () => handler
         );
 
         // act
-        connection.connectionInbound(handler.handle.bind(handler));
         socketStub.emit("data", serializeFrameWithLength(setupFrame));
 
         // assert
@@ -263,19 +272,17 @@ describe("TcpDuplexConnection", function () {
     describe("when buffer contains multiple frames", () => {
       it("deserializes received frames and calls the configured handler for each frame", () => {
         // arrange
-        const mockHandle = jest.fn();
-        const streamHandler = mock<StreamFrameHandler>({
-          streamId: 1,
-          handle: mockHandle,
-        });
+        const multiplexerDemultiplexer = mock<
+          Multiplexer & Demultiplexer & FrameHandler
+        >();
         const socketStub = new EventEmitter() as net.Socket;
         const connection = new TcpDuplexConnection(
           socketStub,
-          new Deserializer()
+          new Deserializer(),
+          () => multiplexerDemultiplexer
         );
 
         // act
-        connection.add(streamHandler);
         socketStub.emit(
           "data",
           Buffer.concat([
@@ -297,9 +304,9 @@ describe("TcpDuplexConnection", function () {
         );
 
         // assert
-        expect(mockHandle).toBeCalledTimes(2);
+        expect(multiplexerDemultiplexer.handle).toBeCalledTimes(2);
 
-        const [call0, call1] = mockHandle.mock.calls;
+        const [call0, call1] = multiplexerDemultiplexer.handle.mock.calls;
 
         expect(call0).toMatchSnapshot();
         expect(call1).toMatchSnapshot();
@@ -310,10 +317,14 @@ describe("TcpDuplexConnection", function () {
       it("the connection is closed", () => {
         // arrange
         const socketStub = new MockSocket();
+        const multiplexerDemultiplexer = mock<
+          Multiplexer & Demultiplexer & FrameHandler
+        >();
         const deserializerStub = mock<Deserializer>();
         const connection = new TcpDuplexConnection(
           (socketStub as unknown) as net.Socket,
-          deserializerStub
+          deserializerStub,
+          () => multiplexerDemultiplexer
         );
         deserializerStub.deserializeFrames.mockImplementation(() => {
           throw new Error("Mock error");

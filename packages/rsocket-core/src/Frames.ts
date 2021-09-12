@@ -57,6 +57,10 @@ export namespace Flags {
   export function hasLease(flags: number): boolean {
     return (flags & Flags.LEASE) === Flags.LEASE;
   }
+
+  export function hasResume(flags: number): boolean {
+    return (flags & Flags.RESUME_ENABLE) === Flags.RESUME_ENABLE;
+  }
 }
 
 export enum Lengths {
@@ -76,7 +80,8 @@ export namespace Frame {
     | LeaseFrame
     | KeepAliveFrame
     | ErrorFrame
-    | MetadataPushFrame {
+    | MetadataPushFrame
+    | UnsupportedFrame {
     return frame.streamId === 0;
   }
 

@@ -47,6 +47,34 @@ export interface Stream extends Outbound {
 
 export interface FrameHandler {
   handle(frame: Frame): void;
+  close(error?: Error): void;
+}
+
+export interface ConnectionFrameHandler extends FrameHandler {
+  handle(
+    frame:
+      | SetupFrame
+      | ResumeFrame
+      | ResumeOkFrame
+      | LeaseFrame
+      | KeepAliveFrame
+      | ErrorFrame
+      | MetadataPushFrame
+  ): void;
+
+  pause(): void;
+  resume(): void;
+}
+
+export interface StreamRequestHandler extends FrameHandler {
+  handle(
+    frame:
+      | RequestFnfFrame
+      | RequestResponseFrame
+      | RequestStreamFrame
+      | RequestChannelFrame,
+    stream?: Stream
+  ): void;
 }
 
 export interface StreamLifecycleHandler {
@@ -66,8 +94,6 @@ export interface StreamFrameHandler extends FrameHandler {
   handle(
     frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
   ): void;
-
-  close(error?: Error): void;
 }
 
 export interface Multiplexer {
@@ -79,43 +105,25 @@ export interface Multiplexer {
 }
 
 export interface Demultiplexer {
-  connectionInbound(
-    handler: (
-      frame:
-        | SetupFrame
-        | ResumeFrame
-        | ResumeOkFrame
-        | LeaseFrame
-        | KeepAliveFrame
-        | ErrorFrame
-        | MetadataPushFrame
-    ) => void
-  );
+  connectionInbound(handler: ConnectionFrameHandler): void;
 
-  handleRequestStream(
-    handler: (
-      frame:
-        | RequestFnfFrame
-        | RequestResponseFrame
-        | RequestStreamFrame
-        | RequestChannelFrame,
-      stream: Stream
-    ) => boolean
-  ): void;
+  handleRequestStream(handler: StreamRequestHandler): void;
 }
 
 /**
  * Represents a network connection with input/output used by a ReactiveSocket to
  * send/receive data.
  */
-export interface DuplexConnection
-  extends Multiplexer,
-    Demultiplexer,
-    Closeable,
-    Availability {}
+export interface DuplexConnection extends Closeable, Availability {
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer;
+}
 
 export interface ClientTransport {
-  connect(): Promise<DuplexConnection>;
+  connect(
+    multiplexerDemultiplexerFactory: (
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
+  ): Promise<DuplexConnection>;
 }
 
 export interface ServerTransport {
@@ -123,6 +131,10 @@ export interface ServerTransport {
     connectionAcceptor: (
       frame: Frame,
       connection: DuplexConnection
-    ) => Promise<void>
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      frame: Frame,
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
   ): Promise<Closeable>;
 }

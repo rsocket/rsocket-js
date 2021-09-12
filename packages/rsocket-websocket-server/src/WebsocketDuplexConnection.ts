@@ -1,28 +1,40 @@
 import {
-  ClientServerInputMultiplexerDemultiplexer,
+  Closeable,
+  Deferred,
+  Demultiplexer,
   deserializeFrame,
   DuplexConnection,
   Frame,
+  FrameHandler,
+  Multiplexer,
+  Outbound,
   serializeFrame,
-  StreamIdGenerator,
 } from "@rsocket/rsocket-core";
 import { Duplex } from "stream";
 
 export class WebsocketDuplexConnection
-  extends ClientServerInputMultiplexerDemultiplexer
-  implements DuplexConnection {
+  extends Deferred
+  implements DuplexConnection, Outbound {
+  readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
+
   constructor(
     private websocketDuplex: Duplex,
-    private connectionAcceptor: (
+    frame: Frame,
+    multiplexerDemultiplexerFactory: (
       frame: Frame,
-      connection: DuplexConnection
-    ) => Promise<void>
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
   ) {
-    super(StreamIdGenerator.create(0));
+    super();
 
-    websocketDuplex.on("close", this.handleClosed.bind(this));
-    websocketDuplex.on("error", this.handleError.bind(this));
-    websocketDuplex.once("data", this.handleFirst.bind(this));
+    websocketDuplex.on("close", this.handleClosed);
+    websocketDuplex.on("error", this.handleError);
+    websocketDuplex.on("data", this.handleMessage);
+
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(
+      frame,
+      this
+    );
   }
 
   get availability(): number {
@@ -66,35 +78,19 @@ export class WebsocketDuplexConnection
     this.websocketDuplex.write(buffer);
   }
 
-  private handleClosed(e: CloseEvent): void {
+  private handleClosed = (e: CloseEvent): void => {
     this.close(
       new Error(
         e.reason || "WebsocketDuplexConnection: Socket closed unexpectedly."
       )
     );
-  }
+  };
 
-  private handleError(e: ErrorEvent): void {
+  private handleError = (e: ErrorEvent): void => {
     this.close(e.error);
-  }
+  };
 
-  private async handleFirst(buffer: Buffer): Promise<void> {
-    try {
-      this.websocketDuplex.pause();
-      this.websocketDuplex.on("data", this.handleMessage.bind(this));
-      const frame = /* this._options.lengthPrefixedFrames
-          ? deserializeFrameWithLength(buffer, this._encoders)
-          :  */ deserializeFrame(
-        buffer
-      );
-      await this.connectionAcceptor(frame, this);
-      this.websocketDuplex.resume();
-    } catch (error) {
-      this.close(error);
-    }
-  }
-
-  private handleMessage(buffer: Buffer): void {
+  private handleMessage = (buffer: Buffer): void => {
     try {
       const frame = /* this._options.lengthPrefixedFrames
           ? deserializeFrameWithLength(buffer, this._encoders)
@@ -106,9 +102,41 @@ export class WebsocketDuplexConnection
       //     console.log(printFrame(frame));
       //   }
       // }
-      this.handle(frame);
+      this.multiplexerDemultiplexer.handle(frame);
     } catch (error) {
       this.close(error);
     }
+  };
+
+  static create(
+    socket: Duplex,
+    connectionAcceptor: (
+      frame: Frame,
+      connection: DuplexConnection
+    ) => Promise<void>,
+    multiplexerDemultiplexerFactory: (
+      frame: Frame,
+      outbound: Outbound & Closeable
+    ) => Multiplexer & Demultiplexer & FrameHandler
+  ): void {
+    // TODO: timeout on no data?
+    socket.once("data", async (buffer) => {
+      const frame = deserializeFrame(buffer);
+      const connection = new WebsocketDuplexConnection(
+        socket,
+        frame,
+        multiplexerDemultiplexerFactory
+      );
+      if (connection.done) {
+        return;
+      }
+      try {
+        socket.pause();
+        await connectionAcceptor(frame, connection);
+        socket.resume();
+      } catch (error) {
+        connection.close(error);
+      }
+    });
   }
 }
