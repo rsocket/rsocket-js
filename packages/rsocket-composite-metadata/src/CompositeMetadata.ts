@@ -12,7 +12,6 @@ export class CompositeMetadata implements Iterable<Entry> {
     return decodeCompositeMetadata(this._buffer);
   }
 
-  // $FlowFixMe
   [Symbol.iterator](): Iterator<Entry> {
     return decodeCompositeMetadata(this._buffer);
   }

@@ -9,7 +9,6 @@ export class RoutingMetadata implements Iterable<string> {
     return decodeRoutes(this._buffer);
   }
 
-  // $FlowFixMe
   [Symbol.iterator](): Iterator<string> {
     return decodeRoutes(this._buffer);
   }
