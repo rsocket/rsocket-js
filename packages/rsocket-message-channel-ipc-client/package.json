@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/rsocket-electron-ipc-client",
+  "name": "@rsocket/rsocket-message-channel-ipc-client",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
