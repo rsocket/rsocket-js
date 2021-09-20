@@ -27,9 +27,6 @@ export class MessageChannelClientTransport implements ClientTransport {
     ) => Multiplexer & Demultiplexer & FrameHandler
   ): Promise<DuplexConnection> {
     const port = await this.messagePortProvider();
-
-    console.log("[renderer] MessageChannelClientTransport port:", port);
-
     return new MessageChannelDuplexConnection(
       port,
       new Deserializer(),
