@@ -57,7 +57,7 @@ export function* fragment(
 
     if (metadataLength === 0) {
       remaining -= Lengths.METADATA;
-      metadata = Buffer.from([]);
+      metadata = Buffer.allocUnsafe(0);
     } else {
       let metadataPosition = 0;
       if (firstFrame) {
@@ -194,7 +194,7 @@ export function* fragmentWithRequestN(
 
     if (metadataLength === 0) {
       remaining -= Lengths.METADATA;
-      metadata = Buffer.from([]);
+      metadata = Buffer.allocUnsafe(0);
     } else {
       let metadataPosition = 0;
       if (firstFrame) {

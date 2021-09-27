@@ -16,7 +16,7 @@ export class TcpDuplexConnection
   extends Deferred
   implements DuplexConnection, Outbound {
   private error: Error;
-  private remainingBuffer: Buffer = Buffer.from([]);
+  private remainingBuffer: Buffer = Buffer.allocUnsafe(0);
 
   readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
 
