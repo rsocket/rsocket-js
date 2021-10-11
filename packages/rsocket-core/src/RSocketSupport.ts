@@ -442,9 +442,15 @@ export class KeepAliveHandler implements FrameHandler {
   }
 }
 
+enum KeepAliveSenderStates {
+  Paused,
+  Running,
+  Closed,
+}
+
 export class KeepAliveSender {
   private activeInterval: any;
-  private state: number;
+  private state: KeepAliveSenderStates = KeepAliveSenderStates.Paused;
 
   constructor(
     private readonly outbound: Outbound,
@@ -462,11 +468,11 @@ export class KeepAliveSender {
   }
 
   start() {
-    if (this.state !== 0) {
+    if (this.state !== KeepAliveSenderStates.Paused) {
       return;
     }
 
-    this.state = 1;
+    this.state = KeepAliveSenderStates.Running;
     this.activeInterval = setInterval(
       this.sendKeepAlive.bind(this),
       this.keepAlivePeriodDuration
@@ -474,15 +480,15 @@ export class KeepAliveSender {
   }
 
   pause() {
-    if (this.state !== 1) {
+    if (this.state !== KeepAliveSenderStates.Running) {
       return;
     }
-    this.state = 0;
+    this.state = KeepAliveSenderStates.Paused;
     clearInterval(this.activeInterval);
   }
 
   close(): void {
-    this.state = 2;
+    this.state = KeepAliveSenderStates.Closed;
     clearInterval(this.activeInterval);
   }
 }
