@@ -439,7 +439,6 @@ export class KeepAliveHandler implements FrameHandler {
           `No keep-alive acks for ${this.keepAliveTimeoutDuration} millis`
         )
       );
-      this.close();
     } else {
       this.activeTimeout = setTimeout(
         this.timeoutCheck.bind(this),
