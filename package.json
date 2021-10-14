@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "build": "lerna run build",
-    "clean": "lerna run clean",
+    "clean": "lerna run clean && rimraf -rf ./coverage",
     "pub": "lerna publish",
     "pretest": "yarn clean",
     "test": "lerna run test",
