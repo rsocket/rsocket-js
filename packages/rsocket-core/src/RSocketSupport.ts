@@ -371,11 +371,17 @@ export class DefaultConnectionFrameHandler implements ConnectionFrameHandler {
   }
 }
 
+enum KeepAliveHandlerStates {
+  Paused,
+  Running,
+  Closed,
+}
+
 export class KeepAliveHandler implements FrameHandler {
   private readonly outbound: Outbound;
   private keepAliveLastReceivedMillis: number;
   private activeTimeout: any;
-  private state: number;
+  private state: number = KeepAliveHandlerStates.Paused;
 
   constructor(
     private readonly connection: DuplexConnection,
@@ -398,12 +404,12 @@ export class KeepAliveHandler implements FrameHandler {
   }
 
   start() {
-    if (this.state !== 0) {
+    if (this.state !== KeepAliveHandlerStates.Paused) {
       return;
     }
 
     this.keepAliveLastReceivedMillis = Date.now();
-    this.state = 1;
+    this.state = KeepAliveHandlerStates.Running;
     this.activeTimeout = setTimeout(
       this.timeoutCheck.bind(this),
       this.keepAliveTimeoutDuration
@@ -411,16 +417,16 @@ export class KeepAliveHandler implements FrameHandler {
   }
 
   pause() {
-    if (this.state !== 1) {
+    if (this.state !== KeepAliveHandlerStates.Running) {
       return;
     }
 
-    this.state = 0;
+    this.state = KeepAliveHandlerStates.Paused;
     clearTimeout(this.activeTimeout);
   }
 
   close() {
-    this.state = 2;
+    this.state = KeepAliveHandlerStates.Closed;
     clearTimeout(this.activeTimeout);
   }
 
@@ -442,9 +448,15 @@ export class KeepAliveHandler implements FrameHandler {
   }
 }
 
+enum KeepAliveSenderStates {
+  Paused,
+  Running,
+  Closed,
+}
+
 export class KeepAliveSender {
   private activeInterval: any;
-  private state: number;
+  private state: KeepAliveSenderStates = KeepAliveSenderStates.Paused;
 
   constructor(
     private readonly outbound: Outbound,
@@ -462,11 +474,11 @@ export class KeepAliveSender {
   }
 
   start() {
-    if (this.state !== 0) {
+    if (this.state !== KeepAliveSenderStates.Paused) {
       return;
     }
 
-    this.state = 1;
+    this.state = KeepAliveSenderStates.Running;
     this.activeInterval = setInterval(
       this.sendKeepAlive.bind(this),
       this.keepAlivePeriodDuration
@@ -474,15 +486,15 @@ export class KeepAliveSender {
   }
 
   pause() {
-    if (this.state !== 1) {
+    if (this.state !== KeepAliveSenderStates.Running) {
       return;
     }
-    this.state = 0;
+    this.state = KeepAliveSenderStates.Paused;
     clearInterval(this.activeInterval);
   }
 
   close(): void {
-    this.state = 2;
+    this.state = KeepAliveSenderStates.Closed;
     clearInterval(this.activeInterval);
   }
 }
