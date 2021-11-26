@@ -178,9 +178,14 @@ export default class RSocketServer<D, M> {
                 responderLeaseHandler,
               );
               try {
+                const setupPayload = deserializePayload(serializers, frame);
+                setupPayload.keepAlive = frame.keepAlive;
+                setupPayload.lifetime = frame.lifetime;
+                setupPayload.metadataMimeType = frame.metadataMimeType;
+                setupPayload.dataMimeType = frame.dataMimeType;
                 const requestHandler = this._config.getRequestHandler(
                   serverMachine,
-                  deserializePayload(serializers, frame),
+                  setupPayload,
                 );
                 serverMachine.setRequestHandler(requestHandler);
                 this._connections.add(serverMachine);
