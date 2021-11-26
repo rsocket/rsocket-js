@@ -56,7 +56,7 @@ export interface TransportServer {
 export type ServerConfig<D, M> = {|
   getRequestHandler: (
     socket: ReactiveSocket<D, M>,
-    payload: Payload<D, M>,
+    payload: SetupPayload<D, M>,
   ) => PartialResponder<D, M>,
   serializers?: PayloadSerializers<D, M>,
   transport: TransportServer,
