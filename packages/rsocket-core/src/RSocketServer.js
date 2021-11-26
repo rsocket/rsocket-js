@@ -22,6 +22,7 @@ import type {
   Frame,
   FrameWithData,
   Payload,
+  SetupPayload,
   ReactiveSocket,
   PartialResponder,
 } from 'rsocket-types';
@@ -178,7 +179,7 @@ export default class RSocketServer<D, M> {
                 responderLeaseHandler,
               );
               try {
-                const setupPayload = deserializePayload(serializers, frame);
+                const setupPayload: SetupPayload = deserializePayload(serializers, frame);
                 setupPayload.keepAlive = frame.keepAlive;
                 setupPayload.lifetime = frame.lifetime;
                 setupPayload.metadataMimeType = frame.metadataMimeType;
