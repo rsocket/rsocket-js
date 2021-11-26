@@ -174,6 +174,19 @@ export type Payload<D, M> = {|
   metadata: ?M,
 |};
 
+
+/**
+ * A single unit of data for connection from the peers of a `ReactiveSocket`.
+ */
+export type SetupPayload<D, M> = {|
+  data: ?D,
+  metadata: ?M,
+  keepAlive: number,
+  lifetime: number,
+  metadataMimeType: ?string,
+  dataMimeType: ?string
+|};
+
 export type Frame =
   | CancelFrame
   | ErrorFrame
