@@ -6,7 +6,7 @@ import ExistingBufferModule from 'buffer';
 
 const hasGlobalBuffer =
   typeof global !== 'undefined' && global.hasOwnProperty('Buffer');
-const hasBufferModule = ExistingBufferModule.hasOwnProperty('Buffer');
+
 
 function notImplemented(msg?: string): void {
   const message = msg ? `Not implemented: ${msg}` : 'Not implemented';
@@ -605,10 +605,7 @@ export class Buffer extends Uint8Array {
    * Returns true if obj is a Buffer, false otherwise.
    */
   static isBuffer(obj: any): boolean {
-    return (
-      isInstance(obj, Buffer) ||
-      (!hasGlobalBuffer && hasBufferModule && isInstance(obj, Uint8Array))
-    );
+    return isInstance(obj, Buffer);
   }
 
   static isEncoding(encoding: any): boolean {
@@ -996,17 +993,6 @@ export class Buffer extends Uint8Array {
 }
 
 if (!hasGlobalBuffer) {
-  if (hasBufferModule) {
-    // ExistingBuffer is likely to be a polyfill, hence we can override it
-    // eslint-disable-next-line no-undef
-    // $FlowFixMe
-    Object.defineProperty(ExistingBufferModule, 'Buffer', {
-      configurable: true,
-      enumerable: false,
-      value: Buffer,
-      writable: true,
-    });
-  }
   // eslint-disable-next-line no-undef
   Object.defineProperty(window, 'Buffer', {
     configurable: true,
