@@ -9,7 +9,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrameWithLength,
-} from "@rsocket/rsocket-core";
+} from "@rsocket/core";
 import net from "net";
 
 export class TcpDuplexConnection

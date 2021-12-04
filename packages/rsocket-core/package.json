@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/rsocket-core",
+  "name": "@rsocket/core",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -16,6 +16,6 @@
   "dependencies": {},
   "devDependencies": {
     "rimraf": "~3.0.2",
-    "typescript": "~4.3.0"
+    "typescript": "~4.5.2"
   }
 }

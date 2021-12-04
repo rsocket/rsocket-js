@@ -8,7 +8,7 @@ import {
   Multiplexer,
   Outbound,
   ServerTransport,
-} from "@rsocket/rsocket-core";
+} from "@rsocket/core";
 import net from "net";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 

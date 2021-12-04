@@ -1,5 +1,5 @@
-import { RSocketConnector } from "@rsocket/rsocket-core";
-import { WebsocketClientTransport } from "@rsocket/rsocket-websocket-client";
+import { RSocketConnector } from "@rsocket/core";
+import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
 import { exit } from "process";
 import WebSocket from "ws";
 

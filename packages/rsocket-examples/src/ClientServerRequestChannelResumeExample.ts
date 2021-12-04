@@ -8,10 +8,10 @@ import {
   RSocket,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/rsocket-core";
+} from "@rsocket/core";
 import { exit } from "process";
-import { TcpClientTransport } from "@rsocket/rsocket-tcp-client";
-import { TcpServerTransport } from "@rsocket/rsocket-tcp-server";
+import { TcpClientTransport } from "@rsocket/transport-tcp-client";
+import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 
 async function main() {
   const server = new RSocketServer({

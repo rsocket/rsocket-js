@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/rsocket-websocket-server",
+  "name": "@rsocket/transport-websocket-server",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -14,12 +14,12 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "@rsocket/rsocket-core": "^1.0.0",
-    "ws": "~8.0.0"
+    "@rsocket/core": "^1.0.0",
+    "ws": "~8.2.3"
   },
   "devDependencies": {
-    "@types/ws": "^7.4.7",
+    "@types/ws": "^8.2.0",
     "rimraf": "~3.0.2",
-    "typescript": "~4.3.0"
+    "typescript": "~4.5.2"
   }
 }
