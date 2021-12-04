@@ -9,7 +9,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrame,
-} from "@rsocket/rsocket-core";
+} from "@rsocket/core";
 import { Duplex } from "stream";
 
 export class WebsocketDuplexConnection

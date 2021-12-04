@@ -10,21 +10,25 @@ export function add(
   holder: FragmentsHolder,
   dataFragment: Buffer,
   metadataFragment?: Buffer | undefined | null
-): void {
+): boolean {
   if (!holder.hasFragments) {
     holder.hasFragments = true;
     holder.data = dataFragment;
     if (metadataFragment) {
       holder.metadata = metadataFragment;
     }
-    return;
+    return true;
   }
 
   // TODO: add validation
-  holder.data = Buffer.concat([holder.data, dataFragment]);
+  holder.data = holder.data
+    ? Buffer.concat([holder.data, dataFragment])
+    : dataFragment;
   if (holder.metadata && metadataFragment) {
     holder.metadata = Buffer.concat([holder.metadata, metadataFragment]);
   }
+
+  return true;
 }
 
 export function reassemble(
@@ -35,7 +39,9 @@ export function reassemble(
   // TODO: add validation
   holder.hasFragments = false;
 
-  const data = Buffer.concat([holder.data, dataFragment]);
+  const data = holder.data
+    ? Buffer.concat([holder.data, dataFragment])
+    : dataFragment;
 
   holder.data = undefined;
 

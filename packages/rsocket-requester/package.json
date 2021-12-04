@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/transport-tcp-client",
+  "name": "@rsocket/requester",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -14,7 +14,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@rsocket/core": "^1.0.0"
+    "@rsocket/core": "^1.0.0",
+    "rxjs": "^7.4.0"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",

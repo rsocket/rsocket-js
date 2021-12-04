@@ -42,7 +42,8 @@ export namespace StreamIdGenerator {
 
 export class ClientServerInputMultiplexerDemultiplexer
   extends Deferred
-  implements Closeable, Multiplexer, Demultiplexer, Stream, FrameHandler {
+  implements Closeable, Multiplexer, Demultiplexer, Stream, FrameHandler
+{
   private readonly registry: { [id: number]: StreamFrameHandler } = {};
 
   protected connectionFramesHandler: ConnectionFrameHandler;
@@ -119,18 +120,17 @@ export class ClientServerInputMultiplexerDemultiplexer
     }
 
     const registry = this.registry;
-    this.streamIdSupplier.next((streamId) => {
-      registry[streamId] = streamHandler;
-
-      return streamHandler.handleReady(streamId, this);
-    }, (Object.keys(registry) as any) as Array<number>);
+    this.streamIdSupplier.next(
+      (streamId) => streamHandler.handleReady(streamId, this),
+      Object.keys(registry) as any as Array<number>
+    );
   }
 
-  add(handler: StreamFrameHandler): void {
+  connect(handler: StreamFrameHandler): void {
     this.registry[handler.streamId] = handler;
   }
 
-  remove(stream: StreamFrameHandler): void {
+  disconnect(stream: StreamFrameHandler): void {
     delete this.registry[stream.streamId];
   }
 
@@ -323,7 +323,8 @@ export class ResumableClientServerInputMultiplexerDemultiplexer extends ClientSe
 }
 
 export class ResumeOkAwaitingResumableClientServerInputMultiplexerDemultiplexer
-  implements Closeable, Multiplexer, Demultiplexer, FrameHandler {
+  implements Closeable, Multiplexer, Demultiplexer, FrameHandler
+{
   private resumed: boolean = false;
   constructor(
     private readonly outbound: Outbound,

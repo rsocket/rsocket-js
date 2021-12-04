@@ -5,9 +5,9 @@ import {
   Payload,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/rsocket-core";
-import { WebsocketClientTransport } from "@rsocket/rsocket-websocket-client";
-import { WebsocketServerTransport } from "@rsocket/rsocket-websocket-server";
+} from "@rsocket/core";
+import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
+import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
 import { exit } from "process";
 import WebSocket from "ws";
 

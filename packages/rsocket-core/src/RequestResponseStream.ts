@@ -31,7 +31,8 @@ export class RequestResponseRequesterStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_RESPONSE;
   private stream: Stream;
   private done: boolean;
@@ -63,6 +64,8 @@ export class RequestResponseRequesterStream
 
     this.streamId = streamId;
     this.stream = stream;
+
+    stream.connect(this);
 
     if (
       isFragmentable(
@@ -115,6 +118,7 @@ export class RequestResponseRequesterStream
   handle(
     frame: PayloadFrame | ErrorFrame | CancelFrame | RequestNFrame | ExtFrame
   ): void {
+    let errorMessage: string;
     switch (frame.type) {
       case FrameTypes.PAYLOAD: {
         const hasComplete = Flags.hasComplete(frame.flags);
@@ -123,7 +127,7 @@ export class RequestResponseRequesterStream
         if (hasComplete || !Flags.hasFollows(frame.flags)) {
           this.done = true;
 
-          this.stream.remove(this);
+          this.stream.disconnect(this);
 
           if (!hasPayload) {
             // TODO: add validation no frame in reassembly
@@ -142,14 +146,17 @@ export class RequestResponseRequesterStream
           return;
         }
 
-        Reassembler.add(this, frame.data, frame.metadata);
+        if (!Reassembler.add(this, frame.data, frame.metadata)) {
+          errorMessage = "Unexpected fragment size";
+          break;
+        }
         return;
       }
 
       case FrameTypes.ERROR: {
         this.done = true;
 
-        this.stream.remove(this);
+        this.stream.disconnect(this);
 
         Reassembler.cancel(this);
 
@@ -167,20 +174,18 @@ export class RequestResponseRequesterStream
       }
 
       default: {
-        this.stream.remove(this);
-
-        this.close(
-          new RSocketError(ErrorCodes.CANCELED, "Received unexpected frame")
-        );
-        this.stream.send({
-          type: FrameTypes.CANCEL,
-          streamId: this.streamId,
-          flags: Flags.NONE,
-        });
-        return;
-        // TODO: throw an exception if strict frame handling mode
+        errorMessage = `Unexpected frame type [${frame.type}]`;
       }
     }
+
+    this.close(new RSocketError(ErrorCodes.CANCELED, errorMessage));
+    this.stream.send({
+      type: FrameTypes.CANCEL,
+      streamId: this.streamId,
+      flags: Flags.NONE,
+    });
+    this.stream.disconnect(this);
+    // TODO: throw an exception if strict frame handling mode
   }
 
   cancel(): void {
@@ -195,12 +200,12 @@ export class RequestResponseRequesterStream
       return;
     }
 
-    this.stream.remove(this);
     this.stream.send({
       type: FrameTypes.CANCEL,
       flags: Flags.NONE,
       streamId: this.streamId,
     });
+    this.stream.disconnect(this);
 
     Reassembler.cancel(this);
   }
@@ -254,7 +259,8 @@ export class RequestResponseResponderStream
     OnNextSubscriber,
     OnExtensionSubscriber,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_RESPONSE;
 
   private receiver?: Cancellable & OnExtensionSubscriber;
@@ -276,7 +282,7 @@ export class RequestResponseResponderStream
     ) => Cancellable & OnExtensionSubscriber,
     frame: RequestResponseFrame
   ) {
-    stream.add(this);
+    stream.connect(this);
 
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
@@ -293,20 +299,25 @@ export class RequestResponseResponderStream
   handle(
     frame: CancelFrame | ErrorFrame | PayloadFrame | RequestNFrame | ExtFrame
   ): void {
+    let errorMessage: string;
     if (!this.receiver) {
       if (frame.type === FrameTypes.PAYLOAD) {
         if (Flags.hasFollows(frame.flags)) {
-          Reassembler.add(this, frame.data, frame.metadata);
+          if (Reassembler.add(this, frame.data, frame.metadata)) {
+            return;
+          }
+          errorMessage = "Unexpected fragment size";
+        } else {
+          const payload = Reassembler.reassemble(
+            this,
+            frame.data,
+            frame.metadata
+          );
+          this.receiver = this.handler(payload, this);
           return;
         }
-
-        const payload = Reassembler.reassemble(
-          this,
-          frame.data,
-          frame.metadata
-        );
-        this.receiver = this.handler(payload, this);
-        return;
+      } else {
+        errorMessage = `Unexpected frame type [${frame.type}]`;
       }
     } else if (frame.type === FrameTypes.EXT) {
       this.receiver.onExtension(
@@ -315,13 +326,11 @@ export class RequestResponseResponderStream
         Flags.hasIgnore(frame.flags)
       );
       return;
+    } else {
+      errorMessage = `Unexpected frame type [${frame.type}]`;
     }
 
     this.done = true;
-
-    this.stream.remove(this);
-
-    Reassembler.cancel(this);
 
     this.receiver?.cancel();
 
@@ -330,10 +339,14 @@ export class RequestResponseResponderStream
         type: FrameTypes.ERROR,
         flags: Flags.NONE,
         code: ErrorCodes.CANCELED,
-        message: `Received unexpected frame [${frame.type}]`,
+        message: errorMessage,
         streamId: this.streamId,
       });
     }
+
+    this.stream.disconnect(this);
+
+    Reassembler.cancel(this);
     // TODO: throws if strict
   }
 
@@ -349,8 +362,6 @@ export class RequestResponseResponderStream
 
     this.done = true;
 
-    this.stream.remove(this);
-
     this.stream.send({
       type: FrameTypes.ERROR,
       flags: Flags.NONE,
@@ -361,6 +372,8 @@ export class RequestResponseResponderStream
       message: error.message,
       streamId: this.streamId,
     });
+
+    this.stream.disconnect(this);
   }
 
   onNext(payload: Payload, isCompletion: boolean): void {
@@ -369,8 +382,6 @@ export class RequestResponseResponderStream
     }
 
     this.done = true;
-
-    this.stream.remove(this);
 
     // TODO: add payload size validation
 
@@ -394,6 +405,8 @@ export class RequestResponseResponderStream
         streamId: this.streamId,
       });
     }
+
+    this.stream.disconnect(this);
   }
 
   onComplete(): void {
@@ -403,8 +416,6 @@ export class RequestResponseResponderStream
 
     this.done = true;
 
-    this.stream.remove(this);
-
     this.stream.send({
       type: FrameTypes.PAYLOAD,
       flags: Flags.COMPLETE,
@@ -412,6 +423,8 @@ export class RequestResponseResponderStream
       data: null,
       metadata: null,
     });
+
+    this.stream.disconnect(this);
   }
 
   onExtension(

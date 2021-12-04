@@ -35,7 +35,8 @@ export class RequestChannelRequesterStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_CHANNEL;
 
   private stream: Stream;
@@ -75,6 +76,8 @@ export class RequestChannelRequesterStream
 
     this.streamId = streamId;
     this.stream = stream;
+
+    stream.connect(this);
 
     if (
       isFragmentable(
@@ -143,7 +146,7 @@ export class RequestChannelRequesterStream
             this.inboundDone = true;
 
             if (this.outboundDone) {
-              this.stream.remove(this);
+              this.stream.disconnect(this);
             }
 
             if (!hasNext) {
@@ -174,7 +177,7 @@ export class RequestChannelRequesterStream
         }
 
         if (this.inboundDone) {
-          this.stream.remove(this);
+          this.stream.disconnect(this);
         }
 
         this.receiver.cancel();
@@ -196,7 +199,7 @@ export class RequestChannelRequesterStream
         this.inboundDone = true;
         this.outboundDone = true;
 
-        this.stream.remove(this);
+        this.stream.disconnect(this);
 
         Reassembler.cancel(this);
 
@@ -217,7 +220,7 @@ export class RequestChannelRequesterStream
         return;
 
       default: {
-        this.stream.remove(this);
+        this.stream.disconnect(this);
 
         this.close(
           new RSocketError(ErrorCodes.CANCELED, "Received invalid frame")
@@ -253,11 +256,12 @@ export class RequestChannelRequesterStream
   }
 
   cancel(): void {
-    if (this.outboundDone) {
+    const inboundDone = this.inboundDone;
+    const outboundDone = this.outboundDone;
+
+    if (inboundDone && outboundDone) {
       return;
     }
-
-    const outboundDone = this.outboundDone;
 
     this.inboundDone = true;
     this.outboundDone = true;
@@ -271,12 +275,14 @@ export class RequestChannelRequesterStream
       return;
     }
 
-    this.stream.remove(this);
     this.stream.send({
-      type: FrameTypes.CANCEL,
+      type: this.inboundDone ? FrameTypes.ERROR : FrameTypes.CANCEL,
       flags: Flags.NONE,
       streamId: this.streamId,
+      code: ErrorCodes.CANCELED,
+      message: "Cancelled",
     });
+    this.stream.disconnect(this);
 
     Reassembler.cancel(this);
   }
@@ -290,7 +296,7 @@ export class RequestChannelRequesterStream
       this.outboundDone = true;
 
       if (this.inboundDone) {
-        this.stream.remove(this);
+        this.stream.disconnect(this);
       }
     }
 
@@ -326,7 +332,7 @@ export class RequestChannelRequesterStream
     this.outboundDone = true;
 
     if (this.inboundDone) {
-      this.stream.remove(this);
+      this.stream.disconnect(this);
     }
 
     this.stream.send({
@@ -348,7 +354,7 @@ export class RequestChannelRequesterStream
     this.outboundDone = true;
     this.inboundDone = true;
 
-    this.stream.remove(this);
+    this.stream.disconnect(this);
 
     this.stream.send({
       type: FrameTypes.ERROR,
@@ -428,7 +434,8 @@ export class RequestChannelResponderStream
     OnNextSubscriber,
     Cancellable,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_CHANNEL;
 
   private receiver?: Cancellable &
@@ -466,7 +473,7 @@ export class RequestChannelResponderStream
       OnNextSubscriber,
     frame: RequestChannelFrame
   ) {
-    stream.add(this);
+    stream.connect(this);
 
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
@@ -510,7 +517,7 @@ export class RequestChannelResponderStream
           if (inboundDone) {
             this.inboundDone = true;
             if (this.outboundDone) {
-              this.stream.remove(this);
+              this.stream.disconnect(this);
             }
           }
           this.receiver = this.handler(
@@ -523,7 +530,7 @@ export class RequestChannelResponderStream
           if (hasComplete) {
             this.inboundDone = true;
             if (this.outboundDone) {
-              this.stream.remove(this);
+              this.stream.disconnect(this);
             }
           }
           this.receiver.onNext(payload, hasComplete);
@@ -537,7 +544,7 @@ export class RequestChannelResponderStream
           this.inboundDone = true;
           this.outboundDone = true;
 
-          this.stream.remove(this);
+          this.stream.disconnect(this);
 
           this.stream.send({
             type: FrameTypes.ERROR,
@@ -559,7 +566,7 @@ export class RequestChannelResponderStream
         this.inboundDone = true;
         this.outboundDone = true;
 
-        this.stream.remove(this);
+        this.stream.disconnect(this);
 
         Reassembler.cancel(this);
 
@@ -586,7 +593,7 @@ export class RequestChannelResponderStream
           this.inboundDone = true;
           this.outboundDone = true;
 
-          this.stream.remove(this);
+          this.stream.disconnect(this);
 
           this.stream.send({
             type: FrameTypes.ERROR,
@@ -606,7 +613,7 @@ export class RequestChannelResponderStream
       }
 
       default: {
-        this.stream.remove(this);
+        this.stream.disconnect(this);
 
         this.close(
           new RSocketError(ErrorCodes.CANCELED, "Received unexpected frame")
@@ -639,7 +646,7 @@ export class RequestChannelResponderStream
     this.outboundDone = true;
     this.inboundDone = true;
 
-    this.stream.remove(this);
+    this.stream.disconnect(this);
 
     if (!inboundDone) {
       this.receiver.cancel();
@@ -666,7 +673,7 @@ export class RequestChannelResponderStream
       this.outboundDone = true;
 
       if (this.inboundDone) {
-        this.stream.remove(this);
+        this.stream.disconnect(this);
       }
     }
 
@@ -704,7 +711,7 @@ export class RequestChannelResponderStream
     this.outboundDone = true;
 
     if (this.inboundDone) {
-      this.stream.remove(this);
+      this.stream.disconnect(this);
     }
 
     this.stream.send({
@@ -755,7 +762,7 @@ export class RequestChannelResponderStream
     this.inboundDone = true;
 
     if (this.outboundDone) {
-      this.stream.remove(this);
+      this.stream.disconnect(this);
     }
 
     this.stream.send({

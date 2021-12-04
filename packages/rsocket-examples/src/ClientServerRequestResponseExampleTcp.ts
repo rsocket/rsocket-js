@@ -6,9 +6,9 @@ import {
   RSocket,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/rsocket-core";
-import { TcpClientTransport } from "@rsocket/rsocket-tcp-client";
-import { TcpServerTransport } from "@rsocket/rsocket-tcp-server";
+} from "@rsocket/core";
+import { TcpClientTransport } from "@rsocket/transport-tcp-client";
+import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
 
 let serverCloseable;

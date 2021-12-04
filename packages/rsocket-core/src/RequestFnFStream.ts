@@ -7,7 +7,6 @@ import {
   FrameTypes,
   PayloadFrame,
   RequestFnfFrame,
-  RequestNFrame,
 } from "./Frames";
 import { LeaseManager } from "./Lease";
 import * as Reassembler from "./Reassembler";
@@ -18,8 +17,9 @@ import {
   StreamLifecycleHandler,
 } from "./Transport";
 
-export class RequestFnFRequesterHandler
-  implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
+export class RequestFnFRequesterStream
+  implements Cancellable, StreamLifecycleHandler, StreamFrameHandler
+{
   readonly streamType = FrameTypes.REQUEST_FNF;
 
   private done: boolean;
@@ -88,7 +88,12 @@ export class RequestFnFRequesterHandler
     this.leaseManager?.cancelRequest(this);
   }
 
-  handle() {
+  handle(frame: ErrorFrame) {
+    if (frame.type == FrameTypes.ERROR) {
+      this.close(new RSocketError(frame.code, frame.message));
+      return;
+    }
+
     this.close(new RSocketError(ErrorCodes.CANCELED, "Received invalid frame"));
   }
 
@@ -110,11 +115,12 @@ export class RequestFnFRequesterHandler
   }
 }
 
-export class RequestFnfResponderHandler
+export class RequestFnfResponderStream
   implements
     OnTerminalSubscriber,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_FNF;
 
   private cancellable?: Cancellable;
@@ -135,7 +141,7 @@ export class RequestFnfResponderHandler
   ) {
     if (Flags.hasFollows(frame.flags)) {
       Reassembler.add(this, frame.data, frame.metadata);
-      stream.add(this);
+      stream.connect(this);
       return;
     }
 
@@ -146,23 +152,42 @@ export class RequestFnfResponderHandler
     this.cancellable = handler(payload, this);
   }
 
-  handle(frame: CancelFrame | ErrorFrame | PayloadFrame | RequestNFrame): void {
+  handle(frame: CancelFrame | ErrorFrame | PayloadFrame): void {
+    let errorMessage: string;
     if (frame.type == FrameTypes.PAYLOAD) {
       if (Flags.hasFollows(frame.flags)) {
-        Reassembler.add(this, frame.data, frame.metadata);
+        if (Reassembler.add(this, frame.data, frame.metadata)) {
+          return;
+        }
+        errorMessage = "Unexpected fragment size";
+      } else {
+        this.stream.disconnect(this);
+
+        const payload = Reassembler.reassemble(
+          this,
+          frame.data,
+          frame.metadata
+        );
+        this.cancellable = this.handler(payload, this);
         return;
       }
-
-      this.stream.remove(this);
-
-      const payload = Reassembler.reassemble(this, frame.data, frame.metadata);
-      this.cancellable = this.handler(payload, this);
-      return;
+    } else {
+      errorMessage = `Unexpected frame type [${frame.type}]`;
     }
 
     this.done = true;
 
-    this.stream.remove(this);
+    if (frame.type != FrameTypes.CANCEL && frame.type != FrameTypes.ERROR) {
+      this.stream.send({
+        type: FrameTypes.ERROR,
+        streamId: this.streamId,
+        flags: Flags.NONE,
+        code: ErrorCodes.CANCELED,
+        message: errorMessage,
+      });
+    }
+
+    this.stream.disconnect(this);
 
     Reassembler.cancel(this);
     // TODO: throws if strict

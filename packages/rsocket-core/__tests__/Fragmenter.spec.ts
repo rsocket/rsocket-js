@@ -1,4 +1,4 @@
-import { Flags, FrameTypes } from "@rsocket/rsocket-core";
+import { Flags, FrameTypes } from "../src/Frames";
 import {
   fragment,
   fragmentWithRequestN,
