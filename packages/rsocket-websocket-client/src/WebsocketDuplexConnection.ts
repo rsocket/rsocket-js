@@ -9,7 +9,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrame,
-} from "@rsocket/rsocket-core";
+} from "@rsocket/core";
 
 export class WebsocketDuplexConnection
   extends Deferred

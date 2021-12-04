@@ -5,11 +5,11 @@ import {
   Payload,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/rsocket-core";
-import { WebsocketClientTransport } from "@rsocket/rsocket-websocket-client";
+} from "@rsocket/core";
+import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
 import { exit } from "process";
 import WebSocket from "ws";
-import { WebsocketServerTransport } from "@rsocket/rsocket-websocket-server";
+import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
 import Logger from "./shared/logger";
 
 function makeServer() {
@@ -81,6 +81,7 @@ function makeConnector() {
       url: "ws://localhost:8080",
       wsCreator: (url) => new WebSocket(url) as any,
     }),
+    
   });
 }
 

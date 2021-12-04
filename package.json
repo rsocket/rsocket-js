@@ -15,17 +15,16 @@
     "lint:fix": "npm run lint -- --fix"
   },
   "devDependencies": {
-    "@nighttrax/eslint-config-tsx": "~8.0.0",
-    "@types/jest": "^26.0.24",
-    "@types/node": "^16.0.1",
-    "eslint": "~7.30.0",
-    "eslint-plugin-import": "~2.23.0",
-    "jest": "^27.0.6",
-    "jest-config": "^27.0.6",
-    "jest-mock-extended": "^2.0.2-beta2",
+    "@types/jest": "^27.0.3",
+    "@types/node": "^16.11.10",
+    "eslint": "~8.2.0",
+    "eslint-plugin-import": "~2.25.2",
+    "jest": "^27.3.1",
+    "jest-config": "^27.3.1",
+    "jest-mock-extended": "^2.0.4",
     "lerna": "^4.0.0",
-    "sinon": "^11.1.2",
-    "ts-jest": "^27.0.4",
-    "typescript": "~4.3.0"
+    "sinon": "^12.0.1",
+    "ts-jest": "^27.0.7",
+    "typescript": "~4.5.2"
   }
 }
