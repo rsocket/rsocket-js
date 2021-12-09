@@ -40,11 +40,12 @@ describe("RSocketServer", () => {
         const mockClosable = mock<Closeable>();
         const mockOutbound = mock<Outbound & Closeable>();
         const mockConnection = mock<DuplexConnection>({
-          multiplexerDemultiplexer: new ClientServerInputMultiplexerDemultiplexer(
-            StreamIdGenerator.create(-1),
-            mockOutbound,
-            mockOutbound
-          ),
+          multiplexerDemultiplexer:
+            new ClientServerInputMultiplexerDemultiplexer(
+              StreamIdGenerator.create(-1),
+              mockOutbound,
+              mockOutbound
+            ),
         });
         mockTransport.bind.mockImplementation(
           jest.fn(async (acceptor) => {

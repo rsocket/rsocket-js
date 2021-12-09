@@ -322,7 +322,7 @@ describe("TcpDuplexConnection", function () {
         >();
         const deserializerStub = mock<Deserializer>();
         const connection = new TcpDuplexConnection(
-          (socketStub as unknown) as net.Socket,
+          socketStub as unknown as net.Socket,
           deserializerStub,
           () => multiplexerDemultiplexer
         );

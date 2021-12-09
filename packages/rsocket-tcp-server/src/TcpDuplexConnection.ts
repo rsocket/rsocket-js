@@ -14,7 +14,8 @@ import net from "net";
 
 export class TcpDuplexConnection
   extends Deferred
-  implements DuplexConnection, Outbound {
+  implements DuplexConnection, Outbound
+{
   private error: Error;
   private remainingBuffer: Buffer = Buffer.allocUnsafe(0);
 
