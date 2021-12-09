@@ -12,12 +12,14 @@
     "start-client-server-request-stream-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestStreamExampleWebSocket.ts",
     "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleTcp.ts",
     "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts",
-    "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts"
+    "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts",
+    "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts"
   },
   "dependencies": {
     "ws": "~8.2.3",
     "@rsocket/core": "^1.0.0",
     "@rsocket/composite-metadata": "^1.0.0",
+    "@rsocket/rxjs": "^1.0.0",
     "@rsocket/transport-websocket-client": "^1.0.0",
     "@rsocket/transport-tcp-client": "^1.0.0",
     "@rsocket/transport-websocket-server": "^1.0.0",

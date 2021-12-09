@@ -17,218 +17,566 @@
 "use strict";
 
 import {
-  Cancellable,
-  OnNextSubscriber,
-  OnTerminalSubscriber,
-  Payload,
-  Requestable,
-  RSocket,
-} from "@rsocket/core";
-import { Observable, partition, interval, concatMap, map, Unsubscribable, Observer } from "rxjs";
+  encodeCompositeMetadata,
+  encodeRoutes,
+  WellKnownMimeType,
+} from "@rsocket/composite-metadata";
+import { RSocket } from "@rsocket/core";
+import { Cancellable, OnTerminalSubscriber, Payload } from "packages/rsocket-core/dist";
 
-interface Codec<D> {
+export interface Codec<D> {
   mimeType: string;
 
   encode(entity: D): Buffer;
   decode(buffer: Buffer): D;
 }
 
-interface Adapter<D, ST, MT> {
-  dataType: D;
-  singleSubscriber(
-    r: ST
-  ): OnNextSubscriber & OnTerminalSubscriber & Cancellable;
-  manySubscriber(
-    r: MT
-  ): OnNextSubscriber & OnTerminalSubscriber & Requestable & Cancellable;
-
-  singleProducer(r: RSocket): ST;
-  manyProducer(r: RSocket): ST;
-}
-
 class StringEncoder implements Codec<string> {
   mimeType: string;
   decode(buffer: Buffer): string {
-    throw new Error("Method not implemented.");
+    return buffer.toString();
   }
-  encode(p: String): Buffer {
-    throw new Error("Method not implemented.");
-  }
-}
-
-class IterableCodec implements Adapter<number, AsyncIterator<number>> {
-  _dataType: number;
-  transform(r: RSocket): AsyncIterator<number> {
-    throw new Error("Method not implemented.");
+  encode(entity: string): Buffer {
+    return Buffer.from(entity);
   }
 }
 
-class RSocketRequester {
-  constructor(rsocket: RSocket);
+// class AsyncFnfCallAdapter<InputDataType>
+//   implements
+//     CallAdapter<
+//       InputDataType,
+//       void,
+//       InputDataType,
+//       Promise<void> & Cancellable
+//     >
+// {
+//   _inputDataType: InputDataType;
+//   _outputDataType: void;
 
-  request<T, D>(config: {}): T {
-    return undefined;
+//   createCall(
+//     rsocket: RSocket,
+//     metadata: Buffer,
+//     input: InputDataType,
+//     inputCodec: Codec<InputDataType>,
+//     _outputCodec: Codec<void> = undefined
+//   ): Promise<void> & Cancellable {
+//     return new PromiseSubscriber((s) =>
+//       rsocket.fireAndForget(
+//         {
+//           data: inputCodec.encode(input),
+//           metadata,
+//         },
+//         s
+//       )
+//     );
+//   }
+// }
+
+// class PromiseSubscriber<T>
+//   extends Promise<T>
+//   implements OnTerminalSubscriber, OnNextSubscriber, Cancellable
+// {
+//   private resolve: (value: T | PromiseLike<T>) => void;
+//   private reject: (reason?: any) => void;
+//   private cancellable: Cancellable;
+
+//   constructor(
+//     call: (subscriber: OnNextSubscriber & OnTerminalSubscriber) => Cancellable,
+//     private readonly responseCodec?: Codec<T>
+//   ) {
+//     super((resolve, reject) => {
+//       this.resolve = resolve;
+//       this.reject = reject;
+
+//       call(this);
+//     });
+//   }
+
+//   cancel(): void {
+//     this.cancellable.cancel();
+//   }
+
+//   onNext(payload: Payload, _isComplete: boolean): void {
+//     this.resolve(this.responseCodec.decode(payload.data));
+//   }
+
+//   onError(error: Error): void {
+//     this.reject(error);
+//   }
+
+//   onComplete(): void {
+//     this.resolve(undefined);
+//   }
+// }
+
+export interface Mono<DataType> {
+  _type?: DataType;
+}
+export interface Flux<DataType> {
+  _type?: DataType | undefined;
+}
+
+export interface RequestSpec<
+  InputDataType,
+  FluxInput extends Flux<InputDataType>,
+  OutputDataType,
+  VoidOutput extends Mono<void>,
+  MonoOutput extends Mono<OutputDataType>,
+  FluxOutput extends Flux<OutputDataType>
+> {
+  metadata(key: string | WellKnownMimeType | number, content: Buffer): this;
+
+  fireAndForget(): VoidOutput;
+  fireAndForget(data: InputDataType): VoidOutput;
+
+  requestResponse(): MonoOutput;
+  requestResponse(data: InputDataType): MonoOutput;
+
+  stream(): FluxOutput;
+  stream(data: InputDataType): FluxOutput;
+
+  channel(datas: FluxInput): FluxOutput;
+}
+
+export interface RequestFactory<
+  InputDataType,
+  FluxInput extends Flux<InputDataType>,
+  OutputDataType,
+  VoidOutput extends Mono<void>,
+  MonoOutput extends Mono<OutputDataType>,
+  FluxOutput extends Flux<OutputDataType>
+> {
+  fireAndForget(): (
+    rsocket: RSocket,
+    metadata: Buffer,
+    input: InputDataType,
+    inputCodec: Codec<InputDataType>
+  ) => VoidOutput;
+
+  requestResponse(): (
+    rsocket: RSocket,
+    metadata: Buffer,
+    input: InputDataType,
+    inputCodec: Codec<InputDataType>,
+    outputCodec: Codec<OutputDataType>
+  ) => MonoOutput;
+
+  stream(): (
+    rsocket: RSocket,
+    metadata: Buffer,
+    input: InputDataType,
+    inputCodec: Codec<InputDataType>,
+    outputCodec: Codec<OutputDataType>,
+    initialRequestN: number
+  ) => FluxOutput;
+
+  channel(): (
+    rsocket: RSocket,
+    metadata: Buffer,
+    input: FluxInput,
+    inputCodec: Codec<InputDataType>,
+    outputCodec: Codec<OutputDataType>,
+    initialRequestN: number
+  ) => FluxOutput;
+}
+
+class DefaultRequestSpec<
+  InputDataType,
+  FluxInput extends Flux<InputDataType>,
+  OutputDataType,
+  VoidOutput extends Mono<void>,
+  MonoOutput extends Mono<OutputDataType>,
+  FluxOutput extends Flux<OutputDataType>
+> implements
+    RequestSpec<
+      InputDataType,
+      FluxInput,
+      OutputDataType,
+      VoidOutput,
+      MonoOutput,
+      FluxOutput
+    >
+{
+  private readonly metadatas: Map<string | number | WellKnownMimeType, Buffer> =
+    new Map();
+
+  constructor(
+    private readonly route: string,
+    private readonly requestFactory: RequestFactory<
+      InputDataType,
+      FluxInput,
+      OutputDataType,
+      VoidOutput,
+      MonoOutput,
+      FluxOutput
+    >,
+    private readonly inputCodec: Codec<InputDataType>,
+    private readonly outputCodec: Codec<OutputDataType>,
+    private readonly rsocket: RSocket
+  ) {}
+
+  fireAndForget(): VoidOutput;
+  fireAndForget(data: InputDataType): VoidOutput;
+  fireAndForget(data?: InputDataType): VoidOutput {
+    this.metadatas.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+      encodeRoutes(this.route)
+    );
+    return this.requestFactory.fireAndForget()(
+      this.rsocket,
+      encodeCompositeMetadata(this.metadatas),
+      data,
+      this.inputCodec
+    );
+  }
+  requestResponse(): MonoOutput;
+  requestResponse(data: InputDataType): MonoOutput;
+  requestResponse(data?: InputDataType): MonoOutput {
+    this.metadatas.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+      encodeRoutes(this.route)
+    );
+    return this.requestFactory.requestResponse()(
+      this.rsocket,
+      encodeCompositeMetadata(this.metadatas),
+      data,
+      this.inputCodec,
+      this.outputCodec
+    );
+  }
+  stream(): FluxOutput;
+  stream(data: InputDataType): FluxOutput;
+  stream(data?: InputDataType): FluxOutput {
+    this.metadatas.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+      encodeRoutes(this.route)
+    );
+    return this.requestFactory.stream()(
+      this.rsocket,
+      encodeCompositeMetadata(this.metadatas),
+      data,
+      this.inputCodec,
+      this.outputCodec,
+      256
+    );
+  }
+  channel(datas: FluxInput): FluxOutput {
+    this.metadatas.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+      encodeRoutes(this.route)
+    );
+    return this.requestFactory.channel()(
+      this.rsocket,
+      encodeCompositeMetadata(this.metadatas),
+      datas,
+      this.inputCodec,
+      this.outputCodec,
+      256
+    );
+  }
+
+  metadata(key: string | number | WellKnownMimeType, content: Buffer): this {
+    this.metadatas.set(key, content);
+    return this;
   }
 }
 
-interface Config<D, T> {
-  encoder: Codec<D>;
-  codec: Adapter<D, T>;
-}
+export class RSocketRequester<
+  InputDataType,
+  FluxInput extends Flux<InputDataType>,
+  OutputDataType,
+  VoidOutput extends Mono<void>,
+  MonoOutput extends Mono<OutputDataType>,
+  FluxOutput extends Flux<OutputDataType>
+> {
+  constructor(
+    private readonly rsocket: RSocket,
+    private readonly defaultCodecs: {
+      inputCodec: Codec<InputDataType>;
+      outputCodec: Codec<OutputDataType>;
+    },
+    private readonly requestFactory: RequestFactory<
+      InputDataType,
+      FluxInput,
+      OutputDataType,
+      VoidOutput,
+      MonoOutput,
+      FluxOutput
+    >
+  ) {}
 
-request(new StringEncoder(), new IterableCodec());
-
-function test123() {
-  const r = new RSocketRequester();
-
-  const i = r.request(new StringEncoder(), new IterableCodec());
-
-  i;
-}
-
-let rsocket: RSocket = undefined;
-
-const [first, tail] = partition(
-  interval(100).pipe(
-    map(
-      (i) =>
-        ({
-          data: Buffer.from(i + ""),
-        } as Payload)
-    )
-  ),
-  (_, i) => i == 0
-);
-
-first.pipe(
-  concatMap(
-    (payload) =>
-      new Observable<Payload>((observer) => {
-        observer["onNext"] = function (p: Payload, isDone: boolean) {
-          this.next(p);
-          if (isDone) {
-            this.complete();
-            return;
-          }
-        };
-        observer["onError"] = observer.error;
-        observer["onComplete"] = observer.complete;
-        observer["cancel"] = req.unsubscribe;
-        observer["request"] = function (n: number) {
-          const isInitiated = this.isInitiated;
-          if (!isInitiated) {
-            this.isInitiated = true;
-            tail.subscribe(requester as any);
-          }
-        };
-        const requester = rsocket.requestChannel(
-          payload,
-          256,
-          false,
-          observer as any
-        );
-
-        requester["values"] = [];
-        requester["unsubscribe"] = requester.cancel;
-        requester["drain"] = function() {
-          requester
-        };
-        requester["next"] = function(payload: Payload) {
-          this.values.push(payload);
-          this.drain();
-        } 
-        requester["error"] = requester.onError;
-        requester["complete"] = requester.onComplete;
-
-        return requester as any as Unsubscribable;
-      })
-  )
-);
-
-new Observable((observer) => {}).pipe();
-
-
-
-abstract class BufferingObserverToProducer extends Array implements Observer<Payload>, Unsubscribable, OnNextSubscriber, OnTerminalSubscriber, Requestable, Cancellable {
-
-  private requested: number = 0;
-  private wip: number = 0;
-  private done: boolean;
-  private cancelled: boolean;
-
-  next (value: Payload) {
-    this.push(value);
-
-  }
-  error: (err: any) => void;
-  complete: () => void;
-
-  unsubscribe(): void {
-      this.cancel()
-  }
-
-  addRequest(n: number) {
-    const requested = this.requested;
-    this.requested = requested + n;
-
-    if (this.wip == 0 && requested > 0) {
-      return;
-    }
-
-    this.drain();
-  }
-
-  abstract onNext(payload: Payload, isComplete: boolean): void;
-  abstract onError(error: Error): void;
-  abstract onComplete(): void;
-  abstract request(requestN: number): void;
-  abstract cancel(): void;
-
-
-  private drain() {
-    let m = this.wip;
-    this.wip = m + 1;
-    if (m) {
-      return;
-    }
-
-    m = 1;
-
-    for (;;) {
-      let requested = this.requested;
-      let delivered = 0;
-      while (delivered <= requested) {
-        const next = this.shift()
-
-        if (next == undefined) {
-          if (this.done) {
-            this.onComplete();
-            return
-          }
-
-          if (this.cancelled) {
-            return;
-          }
-        }
-
-        const isTerminated = this.length == 0 && this.done;
-        this.onNext(next, isTerminated);
-
-        if (isTerminated) {
-          return;
-        }
-
-        delivered++;
-      }
-
-      this.requested -= delivered;
-      if (m === this.wip) {
-        this.wip = 0;
-        return;
-      }
-
-      m = this.wip;
-    }
-
+  route(
+    route: string
+  ): RequestSpec<
+    InputDataType,
+    FluxInput,
+    OutputDataType,
+    VoidOutput,
+    MonoOutput,
+    FluxOutput
+  > {
+    return new DefaultRequestSpec(
+      route,
+      this.requestFactory,
+      this.defaultCodecs.inputCodec,
+      this.defaultCodecs.outputCodec,
+      this.rsocket
+    );
   }
 }
+
+
+class Router {
+  route<InputDataType, VoidOutput extends Mono<void>>(path: string, codecs: {
+    inputCodec: Codec<InputDataType>,
+    outputCodec:  Codec<InputDataType>
+  }, handler: (fn: (data: InputDataType) => VoidOutput) => ((payload: Payload,
+    responderStream: OnTerminalSubscriber
+  ) => Cancellable) ;
+) : this {
+
+
+    return this;
+  }
+}
+
+router.route("test.path", codecs, fireAndForgetRxHandler(request => Observable.just(request)))
+      .
+
+// async function test123() {
+//   const r = new RSocketRequester(null);
+
+//   r.request("hello.world", "hello", {
+//     inputCodec: StringEncoder,
+//     callFactory: new RxFnfCallAdapter(),
+//   })
+
+//   r.request("hello.world", "hello", {
+//     inputCodec: new StringEncoder(),
+//     callFactory: RxCallFactory.fnf,
+//   })
+
+// }
+
+// let rsocket: RSocket = undefined;
+
+// const [first, tail] = partition(
+//   interval(100).pipe(
+//     map(
+//       (i) =>
+//         ({
+//           data: Buffer.from(i + ""),
+//         } as Payload)
+//     )
+//   ),
+//   (_, i) => i == 0
+// );
+
+// first.pipe(
+//   concatMap(
+//     (payload) =>
+//       new Observable<Payload>((observer) => {
+//         observer["onNext"] = function (p: Payload, isDone: boolean) {
+//           this.next(p);
+//           if (isDone) {
+//             this.complete();
+//             return;
+//           }
+//         };
+//         observer["onError"] = observer.error;
+//         observer["onComplete"] = observer.complete;
+//         observer["cancel"] = req.unsubscribe;
+//         observer["request"] = function (n: number) {
+//           const isInitiated = this.isInitiated;
+//           if (!isInitiated) {
+//             this.isInitiated = true;
+//             tail.subscribe(requester as any);
+//           }
+//         };
+//         const requester = rsocket.requestChannel(
+//           payload,
+//           256,
+//           false,
+//           observer as any
+//         );
+
+//         return mix(requester, BufferingObserverToProducer);
+//       })
+//   )
+// );
+
+// new Observable((observer) => {}).pipe();
+
+// interface ObservableRequesFnfRequesterStream
+//   extends RequestFnFRequesterStream,
+//     Observable<void>,
+//     Unsubscribable,
+//     OnTerminalSubscriber {}
+// class ObservableRequesFnfRequesterStream
+//   extends RequestFnFRequesterStream
+//   implements Unsubscribable, OnTerminalSubscriber
+// {
+//   private sink: Subscriber<void>;
+
+//   constructor(
+//     payload: Payload,
+//     fragmentSize: number,
+//     leaseManager?: LeaseManager
+//   ) {
+//     super(payload, (() => this)(), fragmentSize, leaseManager);
+//   }
+
+//   protected _subscribe(sink: Subscriber<void>): TeardownLogic {
+//     if (this.streamId) {
+//       throw new Error("Multiple subscription for same request");
+//     }
+
+//     this.sink = sink;
+
+//     return this;
+//   }
+
+//   onError(error: Error): void {
+//     this.sink.error(error);
+//   }
+
+//   onComplete(): void {
+//     this.sink.complete();
+//   }
+
+//   unsubscribe(): void {
+//     this.cancel();
+//   }
+// }
+// applyMixins(ObservableRequesFnfRequesterStream, [Observable]);
+
+// interface ObservableRequesResponseRequesterStream
+//   extends RequestResponseRequesterStream,
+//     Observable<Payload>,
+//     Unsubscribable,
+//     OnTerminalSubscriber,
+//     OnNextSubscriber {}
+// class ObservableRequesResponseRequesterStream
+//   extends RequestResponseRequesterStream
+//   implements Unsubscribable, OnTerminalSubscriber, OnNextSubscriber
+// {
+//   private sink: Subscriber<Payload>;
+
+//   constructor(
+//     payload: Payload,
+//     fragmentSize: number,
+//     leaseManager?: LeaseManager
+//   ) {
+//     super(payload, (() => this)(), fragmentSize, leaseManager);
+//   }
+
+//   protected _subscribe(sink: Subscriber<Payload>): TeardownLogic {
+//     if (this.streamId) {
+//       throw new Error("Multiple subscription for same request");
+//     }
+
+//     this.sink = sink;
+
+//     return this;
+//   }
+
+//   onError(error: Error): void {
+//     this.sink.error(error);
+//   }
+
+//   onComplete(): void {
+//     this.sink.complete();
+//   }
+
+//   onNext(payload: Payload, isComplete: boolean): void {
+//     this.sink.next(payload);
+//     if (isComplete) {
+//       this.sink.complete();
+//     }
+//   }
+
+//   unsubscribe(): void {
+//     this.cancel();
+//   }
+// }
+
+// applyMixins(ObservableRequesResponseRequesterStream, [Observable]);
+
+// interface ObservableRequesStreamRequesterStream
+//   extends RequestStreamRequesterStream,
+//     Observable<Payload>,
+//     Unsubscribable,
+//     OnTerminalSubscriber,
+//     OnNextSubscriber {}
+// class ObservableRequesStreamRequesterStream
+//   extends RequestStreamRequesterStream
+//   implements Unsubscribable, OnTerminalSubscriber, OnNextSubscriber
+// {
+//   private readonly limit: number;
+
+//   private sink: Subscriber<Payload>;
+//   private received: number;
+
+//   constructor(
+//     payload: Payload,
+//     private readonly prefetch: number,
+//     fragmentSize: number,
+//     leaseManager?: LeaseManager,
+//     private readonly scheduler: SchedulerLike = asyncScheduler
+//   ) {
+//     super(payload, (() => this)(), fragmentSize, prefetch, leaseManager);
+//     this.limit = prefetch >= 0x7fffff ? Infinity : prefetch - (prefetch >> 2);
+//   }
+
+//   protected _subscribe(sink: Subscriber<Payload>): TeardownLogic {
+//     if (this.streamId) {
+//       throw new Error("Multiple subscription for same request");
+//     }
+
+//     this.sink = sink;
+
+//     return this;
+//   }
+
+//   onError(error: Error): void {
+//     this.sink.error(error);
+//   }
+
+//   onComplete(): void {
+//     this.sink.complete();
+//   }
+
+//   onNext(payload: Payload, isComplete: boolean): void {
+//     this.sink.next(payload);
+//     if (isComplete) {
+//       this.sink.complete();
+//       return;
+//     }
+
+//     this.received++;
+//     if (this.received == this.limit) {
+//       this.received = 0;
+//       this.scheduler.schedule(() => this.request(this.limit));
+//     }
+//   }
+
+//   unsubscribe(): void {
+//     this.cancel();
+//   }
+// }
+
+// applyMixins(ObservableRequesResponseRequesterStream, [Observable]);
+
+// // This can live anywhere in your codebase:
+// function applyMixins(derivedCtor: any, constructors: any[]) {
+//   constructors.forEach((baseCtor) => {
+//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+//       Object.defineProperty(
+//         derivedCtor.prototype,
+//         name,
+//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
+//           Object.create(null)
+//       );
+//     });
+//   });
+// }
