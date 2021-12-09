@@ -139,7 +139,7 @@ describe("WebsocketDuplexConnection", function () {
     });
 
     it("the onClose callback is called with an error when the socket is closed unexpectedly", () => {
-      const socket = (new MockSocket() as unknown) as WebSocket;
+      const socket = new MockSocket() as unknown as WebSocket;
       const multiplexerDemultiplexer = mock<
         Multiplexer & Demultiplexer & FrameHandler
       >();
@@ -151,7 +151,7 @@ describe("WebsocketDuplexConnection", function () {
       const onCloseCallback = jest.fn();
 
       connection.onClose(onCloseCallback);
-      ((socket as unknown) as MockSocket).mock.close({});
+      (socket as unknown as MockSocket).mock.close({});
 
       expect(onCloseCallback).toBeCalledTimes(1);
       expect(onCloseCallback).toHaveBeenCalledWith(
@@ -160,7 +160,7 @@ describe("WebsocketDuplexConnection", function () {
     });
 
     it("the onClose callback is called with an error when the socket is closed with an error", () => {
-      const socket = (new MockSocket() as unknown) as WebSocket;
+      const socket = new MockSocket() as unknown as WebSocket;
       const multiplexerDemultiplexer = mock<
         Multiplexer & Demultiplexer & FrameHandler
       >();
@@ -175,7 +175,7 @@ describe("WebsocketDuplexConnection", function () {
       );
 
       connection.onClose(onCloseCallback);
-      ((socket as unknown) as MockSocket).mock.error({ error: expectedError });
+      (socket as unknown as MockSocket).mock.error({ error: expectedError });
 
       expect(onCloseCallback).toBeCalledTimes(1);
       expect(onCloseCallback).toHaveBeenCalledWith(expectedError);
@@ -260,7 +260,7 @@ describe("WebsocketDuplexConnection", function () {
         const multiplexerDemultiplexer = mock<
           Multiplexer & Demultiplexer & FrameHandler
         >();
-        const socketStub = (new MockSocket() as unknown) as WebSocket;
+        const socketStub = new MockSocket() as unknown as WebSocket;
         const connection = new WebsocketDuplexConnection(
           socketStub,
           new Deserializer(),
@@ -268,7 +268,7 @@ describe("WebsocketDuplexConnection", function () {
         );
 
         // act
-        ((socketStub as unknown) as MockSocket).mock.message({
+        (socketStub as unknown as MockSocket).mock.message({
           data: serializeFrame(setupFrame),
         });
 
@@ -287,10 +287,10 @@ describe("WebsocketDuplexConnection", function () {
         const multiplexerDemultiplexer = mock<
           Multiplexer & Demultiplexer & FrameHandler
         >();
-        const socketStub = (new MockSocket() as unknown) as WebSocket;
+        const socketStub = new MockSocket() as unknown as WebSocket;
         const deserializerStub = mock<Deserializer>();
         const connection = new WebsocketDuplexConnection(
-          (socketStub as unknown) as WebSocket,
+          socketStub as unknown as WebSocket,
           deserializerStub,
           () => multiplexerDemultiplexer
         );
@@ -302,7 +302,7 @@ describe("WebsocketDuplexConnection", function () {
 
         // act
         connection.onClose(onCloseCallback);
-        ((socketStub as unknown) as MockSocket).mock.message({ data });
+        (socketStub as unknown as MockSocket).mock.message({ data });
 
         // assert
         expect(onCloseCallback).toBeCalledTimes(1);

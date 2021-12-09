@@ -13,7 +13,8 @@ import {
 
 export class WebsocketDuplexConnection
   extends Deferred
-  implements DuplexConnection, Outbound {
+  implements DuplexConnection, Outbound
+{
   readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
 
   constructor(

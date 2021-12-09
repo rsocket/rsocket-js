@@ -14,7 +14,8 @@ import { Duplex } from "stream";
 
 export class WebsocketDuplexConnection
   extends Deferred
-  implements DuplexConnection, Outbound {
+  implements DuplexConnection, Outbound
+{
   readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
 
   constructor(
@@ -65,11 +66,10 @@ export class WebsocketDuplexConnection
     //       console.log(printFrame(frame));
     //     }
     //   }
-    const buffer = /* this._options.lengthPrefixedFrames
+    const buffer =
+      /* this._options.lengthPrefixedFrames
           ? serializeFrameWithLength(frame, this._encoders)
-          :*/ serializeFrame(
-      frame
-    );
+          :*/ serializeFrame(frame);
     // if (!this._socket) {
     //   throw new Error(
     //     "RSocketWebSocketClient: Cannot send frame, not connected."
@@ -92,11 +92,10 @@ export class WebsocketDuplexConnection
 
   private handleMessage = (buffer: Buffer): void => {
     try {
-      const frame = /* this._options.lengthPrefixedFrames
+      const frame =
+        /* this._options.lengthPrefixedFrames
           ? deserializeFrameWithLength(buffer, this._encoders)
-          :  */ deserializeFrame(
-        buffer
-      );
+          :  */ deserializeFrame(buffer);
       // if (__DEV__) {
       //   if (this._options.debug) {
       //     console.log(printFrame(frame));

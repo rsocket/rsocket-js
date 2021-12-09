@@ -35,7 +35,8 @@ export class RequestChannelRequesterStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_CHANNEL;
 
   private stream: Stream;
@@ -428,7 +429,8 @@ export class RequestChannelResponderStream
     OnNextSubscriber,
     Cancellable,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_CHANNEL;
 
   private receiver?: Cancellable &

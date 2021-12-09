@@ -31,7 +31,8 @@ export class RequestResponseRequesterStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_RESPONSE;
   private stream: Stream;
   private done: boolean;
@@ -254,7 +255,8 @@ export class RequestResponseResponderStream
     OnNextSubscriber,
     OnExtensionSubscriber,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_RESPONSE;
 
   private receiver?: Cancellable & OnExtensionSubscriber;
@@ -287,6 +289,7 @@ export class RequestResponseResponderStream
       data: frame.data,
       metadata: frame.metadata,
     };
+
     this.receiver = handler(payload, this);
   }
 
