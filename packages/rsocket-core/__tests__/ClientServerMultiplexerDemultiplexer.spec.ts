@@ -20,11 +20,12 @@ describe("ClientServerMultiplexerDemultiplexer", function () {
       // arrange
       const frameHandlerStub = mock<FrameHandler>();
       const outbound = mock<Outbound & Closeable>();
-      const multiplexerDemultiplexer = new ClientServerInputMultiplexerDemultiplexer(
-        StreamIdGenerator.create(-1),
-        outbound,
-        outbound
-      );
+      const multiplexerDemultiplexer =
+        new ClientServerInputMultiplexerDemultiplexer(
+          StreamIdGenerator.create(-1),
+          outbound,
+          outbound
+        );
       // assert
       expect(
         multiplexerDemultiplexer.connectionInbound.bind(
@@ -74,11 +75,12 @@ describe("ClientServerMultiplexerDemultiplexer", function () {
         // arrange
         const handler = mock<ConnectionFrameHandler>();
         const outbound = mock<Outbound & Closeable>();
-        const multiplexerDemultiplexer = new ClientServerInputMultiplexerDemultiplexer(
-          StreamIdGenerator.create(-1),
-          outbound,
-          outbound
-        );
+        const multiplexerDemultiplexer =
+          new ClientServerInputMultiplexerDemultiplexer(
+            StreamIdGenerator.create(-1),
+            outbound,
+            outbound
+          );
 
         // act
         multiplexerDemultiplexer.connectionInbound(handler);
@@ -98,11 +100,12 @@ describe("ClientServerMultiplexerDemultiplexer", function () {
         // arrange
         const mockHandle = jest.fn();
         const outbound = mock<Outbound & Closeable>();
-        const multiplexerDemultiplexer = new ClientServerInputMultiplexerDemultiplexer(
-          StreamIdGenerator.create(-1),
-          outbound,
-          outbound
-        );
+        const multiplexerDemultiplexer =
+          new ClientServerInputMultiplexerDemultiplexer(
+            StreamIdGenerator.create(-1),
+            outbound,
+            outbound
+          );
         const streamHandler = mock<StreamFrameHandler>({
           streamId: 1,
           handle: mockHandle,

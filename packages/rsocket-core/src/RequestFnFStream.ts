@@ -19,7 +19,8 @@ import {
 } from "./Transport";
 
 export class RequestFnFRequesterHandler
-  implements Cancellable, StreamLifecycleHandler, StreamFrameHandler {
+  implements Cancellable, StreamLifecycleHandler, StreamFrameHandler
+{
   readonly streamType = FrameTypes.REQUEST_FNF;
 
   private done: boolean;
@@ -114,7 +115,8 @@ export class RequestFnfResponderHandler
   implements
     OnTerminalSubscriber,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_FNF;
 
   private cancellable?: Cancellable;

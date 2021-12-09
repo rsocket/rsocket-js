@@ -57,10 +57,8 @@ export namespace WellKnownMimeType {
     "UNPARSEABLE_MIME_TYPE_DO_NOT_USE",
     -2
   );
-  export const UNKNOWN_RESERVED_MIME_TYPE: WellKnownMimeType = new WellKnownMimeType(
-    "UNKNOWN_YET_RESERVED_DO_NOT_USE",
-    -1
-  );
+  export const UNKNOWN_RESERVED_MIME_TYPE: WellKnownMimeType =
+    new WellKnownMimeType("UNKNOWN_YET_RESERVED_DO_NOT_USE", -1);
 
   export const APPLICATION_AVRO: WellKnownMimeType = new WellKnownMimeType(
     "application/avro",
@@ -78,18 +76,14 @@ export namespace WellKnownMimeType {
     "application/gzip",
     0x03
   );
-  export const APPLICATION_JAVASCRIPT: WellKnownMimeType = new WellKnownMimeType(
-    "application/javascript",
-    0x04
-  );
+  export const APPLICATION_JAVASCRIPT: WellKnownMimeType =
+    new WellKnownMimeType("application/javascript", 0x04);
   export const APPLICATION_JSON: WellKnownMimeType = new WellKnownMimeType(
     "application/json",
     0x05
   );
-  export const APPLICATION_OCTET_STREAM: WellKnownMimeType = new WellKnownMimeType(
-    "application/octet-stream",
-    0x06
-  );
+  export const APPLICATION_OCTET_STREAM: WellKnownMimeType =
+    new WellKnownMimeType("application/octet-stream", 0x06);
   export const APPLICATION_PDF: WellKnownMimeType = new WellKnownMimeType(
     "application/pdf",
     0x07
@@ -218,40 +212,24 @@ export namespace WellKnownMimeType {
     "application/x-hessian",
     0x26
   );
-  export const APPLICATION_JAVA_OBJECT: WellKnownMimeType = new WellKnownMimeType(
-    "application/x-java-object",
-    0x27
-  );
-  export const APPLICATION_CLOUDEVENTS_JSON: WellKnownMimeType = new WellKnownMimeType(
-    "application/cloudevents+json",
-    0x28
-  );
+  export const APPLICATION_JAVA_OBJECT: WellKnownMimeType =
+    new WellKnownMimeType("application/x-java-object", 0x27);
+  export const APPLICATION_CLOUDEVENTS_JSON: WellKnownMimeType =
+    new WellKnownMimeType("application/cloudevents+json", 0x28);
 
   // ... reserved for future use ...
-  export const MESSAGE_RSOCKET_MIMETYPE: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.mime-type.v0",
-    0x7a
-  );
-  export const MESSAGE_RSOCKET_ACCEPT_MIMETYPES: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.accept-mime-types.v0",
-    0x7b
-  );
-  export const MESSAGE_RSOCKET_AUTHENTICATION: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.authentication.v0",
-    0x7c
-  );
-  export const MESSAGE_RSOCKET_TRACING_ZIPKIN: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.tracing-zipkin.v0",
-    0x7d
-  );
-  export const MESSAGE_RSOCKET_ROUTING: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.routing.v0",
-    0x7e
-  );
-  export const MESSAGE_RSOCKET_COMPOSITE_METADATA: WellKnownMimeType = new WellKnownMimeType(
-    "message/x.rsocket.composite-metadata.v0",
-    0x7f
-  );
+  export const MESSAGE_RSOCKET_MIMETYPE: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.mime-type.v0", 0x7a);
+  export const MESSAGE_RSOCKET_ACCEPT_MIMETYPES: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.accept-mime-types.v0", 0x7b);
+  export const MESSAGE_RSOCKET_AUTHENTICATION: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.authentication.v0", 0x7c);
+  export const MESSAGE_RSOCKET_TRACING_ZIPKIN: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.tracing-zipkin.v0", 0x7d);
+  export const MESSAGE_RSOCKET_ROUTING: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.routing.v0", 0x7e);
+  export const MESSAGE_RSOCKET_COMPOSITE_METADATA: WellKnownMimeType =
+    new WellKnownMimeType("message/x.rsocket.composite-metadata.v0", 0x7f);
 
   export const TYPES_BY_MIME_ID: WellKnownMimeType[] = new Array(128);
   export const TYPES_BY_MIME_STRING: Map<string, WellKnownMimeType> = new Map();

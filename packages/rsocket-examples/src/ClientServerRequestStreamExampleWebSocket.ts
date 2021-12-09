@@ -81,7 +81,6 @@ function makeConnector() {
       url: "ws://localhost:8080",
       wsCreator: (url) => new WebSocket(url) as any,
     }),
-    
   });
 }
 

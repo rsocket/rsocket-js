@@ -33,7 +33,8 @@ export class RequestStreamRequesterStream
     OnExtensionSubscriber,
     StreamFrameHandler,
     StreamLifecycleHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_STREAM;
 
   private done: boolean;
@@ -279,7 +280,8 @@ export class RequestStreamResponderStream
     OnNextSubscriber,
     OnExtensionSubscriber,
     StreamFrameHandler,
-    Reassembler.FragmentsHolder {
+    Reassembler.FragmentsHolder
+{
   readonly streamType = FrameTypes.REQUEST_STREAM;
 
   private readonly initialRequestN: number;

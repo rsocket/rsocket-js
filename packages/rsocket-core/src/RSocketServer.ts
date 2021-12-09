@@ -191,9 +191,8 @@ export class RSocketServer {
       (frame, outbound) => {
         if (frame.type === FrameTypes.RESUME) {
           if (this.sessionStore) {
-            const multiplexerDemultiplexer = this.sessionStore[
-              frame.resumeToken.toString()
-            ];
+            const multiplexerDemultiplexer =
+              this.sessionStore[frame.resumeToken.toString()];
 
             if (!multiplexerDemultiplexer) {
               outbound.send({
@@ -242,19 +241,19 @@ export class RSocketServer {
               outbound.close(error);
               return;
             }
-            const multiplexerDumiltiplexer = new ResumableClientServerInputMultiplexerDemultiplexer(
-              StreamIdGenerator.create(0),
-              outbound,
-              outbound,
-              new FrameStore(), // TODO: add size parameter
-              frame.resumeToken.toString(),
-              this.sessionStore,
-              this.sessionTimeout
-            );
+            const multiplexerDumiltiplexer =
+              new ResumableClientServerInputMultiplexerDemultiplexer(
+                StreamIdGenerator.create(0),
+                outbound,
+                outbound,
+                new FrameStore(), // TODO: add size parameter
+                frame.resumeToken.toString(),
+                this.sessionStore,
+                this.sessionTimeout
+              );
 
-            this.sessionStore[
-              frame.resumeToken.toString()
-            ] = multiplexerDumiltiplexer;
+            this.sessionStore[frame.resumeToken.toString()] =
+              multiplexerDumiltiplexer;
 
             return multiplexerDumiltiplexer;
           }
