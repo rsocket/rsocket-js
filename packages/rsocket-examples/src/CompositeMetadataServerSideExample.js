@@ -61,7 +61,7 @@ const server = new RSocketServer({
             usernameAndPassword.password.toString() === 'pass'
           ) {
             return {
-              requestStream: (payload: Payload<Buffer, Buffer>) => {
+              requestStream: (payload: Payload) => {
                 // eslint-disable-next-line no-console
                 console.log(
                   `Received Payload(data : ${
