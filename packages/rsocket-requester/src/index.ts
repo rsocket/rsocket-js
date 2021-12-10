@@ -17,12 +17,18 @@
 "use strict";
 
 import {
+  decodeCompositeMetadata,
+  decodeRoutes,
   encodeCompositeMetadata,
   encodeRoutes,
   WellKnownMimeType,
 } from "@rsocket/composite-metadata";
-import { RSocket } from "@rsocket/core";
-import { Cancellable, OnTerminalSubscriber, Payload } from "packages/rsocket-core/dist";
+import { ErrorCodes, FrameTypes, OnExtensionSubscriber, OnNextSubscriber, Requestable, RSocket, RSocketError } from "@rsocket/core";
+import {
+  Cancellable,
+  OnTerminalSubscriber,
+  Payload,
+} from "packages/rsocket-core/dist";
 
 export interface Codec<D> {
   mimeType: string;
@@ -325,23 +331,180 @@ export class RSocketRequester<
   }
 }
 
+export class DefaultRouter implements RSocket, Cancellable , Requestable , OnNextSubscriber , OnExtensionSubscriber , OnTerminalSubscriber {
 
-class Router {
-  route<InputDataType, VoidOutput extends Mono<void>>(path: string, codecs: {
-    inputCodec: Codec<InputDataType>,
-    outputCodec:  Codec<InputDataType>
-  }, handler: (fn: (data: InputDataType) => VoidOutput) => ((payload: Payload,
-    responderStream: OnTerminalSubscriber
-  ) => Cancellable) ;
-) : this {
+  private readonly routes: {
+    [routeKey: string]: {
+      [FrameTypes.METADATA_PUSH]: (
+        payload: Payload,
+        responderStream: OnTerminalSubscriber
+      ) => void;
+      [FrameTypes.REQUEST_FNF]: (
+        payload: Payload,
+        responderStream: OnTerminalSubscriber
+      ) => Cancellable;
+      [FrameTypes.REQUEST_RESPONSE]: (
+        payload: Payload,
+        responderStream: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
+      ) => Cancellable & OnExtensionSubscriber;
+      [FrameTypes.REQUEST_STREAM]: (
+        payload: Payload,
+        initialReuqestN: number,
+        responderStream: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
+      ) => Cancellable & OnExtensionSubscriber & Requestable;
+      [FrameTypes.REQUEST_CHANNEL]: (
+        payload: Payload,
+        initialReuqestN: number,
+        responderStream: Cancellable & Requestable & OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
+      ) => Cancellable & Requestable & OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber;
+    };
+  };
 
+  route(
+    path: string,
+    handler: ((
+      payload: Payload,
+      responderStream: OnTerminalSubscriber
+    ) => Cancellable) & { requestType: FrameTypes.REQUEST_FNF }
+  ): this {
+    this.routes[path] = Object.assign({}, this.routes[path],  {[handler.requestType] : handler});
+    return this;
+  }
+
+  build() : RSocket {
+    return this;
+  }
+
+  fireAndForget(payload: Payload, responderStream: OnTerminalSubscriber): Cancellable {
+    if (payload.metadata) {
+      for (let entry of decodeCompositeMetadata(payload.metadata)) {
+        if (entry.mimeType === WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.string) {
+          for (let route of decodeRoutes(entry.content)) {
+            const handlers = this.routes[route];
+
+            if (handlers) {
+              const handler = handlers[FrameTypes.REQUEST_FNF];
+
+              if (handler) {
+                return handler(payload, responderStream);
+              }
+            }
+          }
+        } 
+      }
+    }
+
+    responderStream.onError(new RSocketError(ErrorCodes.APPLICATION_ERROR, "Route not found"));
 
     return this;
   }
+
+  requestResponse(payload: Payload, responderStream: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber): Cancellable & OnExtensionSubscriber {
+    if (payload.metadata) {
+      for (let entry of decodeCompositeMetadata(payload.metadata)) {
+        if (entry.mimeType === WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.string) {
+          for (let route of decodeRoutes(entry.content)) {
+            const handlers = this.routes[route];
+
+            if (handlers) {
+              const handler = handlers[FrameTypes.REQUEST_RESPONSE];
+
+              if (handler) {
+                return handler(payload, responderStream);
+              }
+            }
+          }
+        } 
+      }
+    }
+
+    responderStream.onError(new RSocketError(ErrorCodes.APPLICATION_ERROR, "Route not found"));
+
+    return this;
+  }
+
+  requestStream(payload: Payload, initialRequestN: number, responderStream: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber): Requestable & Cancellable & OnExtensionSubscriber {
+    if (payload.metadata) {
+      for (let entry of decodeCompositeMetadata(payload.metadata)) {
+        if (entry.mimeType === WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.string) {
+          for (let route of decodeRoutes(entry.content)) {
+            const handlers = this.routes[route];
+
+            if (handlers) {
+              const handler = handlers[FrameTypes.REQUEST_STREAM];
+
+              if (handler) {
+                return handler(payload, initialRequestN, responderStream);
+              }
+            }
+          }
+        } 
+      }
+    }
+
+    responderStream.onError(new RSocketError(ErrorCodes.APPLICATION_ERROR, "Route not found"));
+
+    return this;
+  }
+  requestChannel(payload: Payload, initialRequestN: number, isCompleted: boolean, responderStream: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber & Requestable & Cancellable): OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber & Requestable & Cancellable {
+    if (payload.metadata) {
+      for (let entry of decodeCompositeMetadata(payload.metadata)) {
+        if (entry.mimeType === WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.string) {
+          for (let route of decodeRoutes(entry.content)) {
+            const handlers = this.routes[route];
+
+            if (handlers) {
+              const handler = handlers[FrameTypes.REQUEST_CHANNEL];
+
+              if (handler) {
+                return handler(payload, initialRequestN, responderStream);
+              }
+            }
+          }
+        } 
+      }
+    }
+
+    responderStream.onError(new RSocketError(ErrorCodes.APPLICATION_ERROR, "Route not found"));
+
+    return this;
+  }
+
+  metadataPush(metadata: Buffer, responderStream: OnTerminalSubscriber): void {
+    throw new Error("Method not implemented.");
+  }
+  close(error?: Error): void {
+    throw new Error("Method not implemented.");
+  }
+  onClose(callback: (error?: Error) => void): void {
+    throw new Error("Method not implemented.");
+  }
+
+  cancel(): void {
+    // noops
+  }
+  request(requestN: number): void {
+    // noops
+  }
+  onNext(payload: Payload, isComplete: boolean): void {
+    // noops
+  }
+  onExtension(extendedType: number, content: Buffer, canBeIgnored: boolean): void {
+    // noops
+  }
+  onError(error: Error): void {
+    // noops
+  }
+  onComplete(): void {
+    // noops
+  }
 }
 
-router.route("test.path", codecs, fireAndForgetRxHandler(request => Observable.just(request)))
-      .
+router.route(
+  "test.path",
+  codecs,
+  fireAndForgetRxHandler((request) => Observable.just(request))
+);
 
 // async function test123() {
 //   const r = new RSocketRequester(null);

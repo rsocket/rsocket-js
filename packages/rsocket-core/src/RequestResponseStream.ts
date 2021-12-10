@@ -293,7 +293,12 @@ export class RequestResponseResponderStream
       data: frame.data,
       metadata: frame.metadata,
     };
-    this.receiver = handler(payload, this);
+
+    try {
+      this.receiver = handler(payload, this);
+    } catch {
+      stream.disconnect(this);
+    }
   }
 
   handle(
