@@ -888,7 +888,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       flags |= FLAGS.COMPLETE;
       this._subscriptions.delete(streamId);
     }
-    if (metadata !== undefined) {
+    if (payload.metadata !== undefined) {
       // eslint-disable-next-line no-bitwise
       flags |= FLAGS.METADATA;
     }
