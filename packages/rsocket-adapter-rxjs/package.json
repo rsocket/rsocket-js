@@ -14,7 +14,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@rsocket/requester": "^1.0.0",
+    "@rsocket/messaging": "^1.0.0",
     "@rsocket/core": "^1.0.0",
     "rxjs": "^7.4.0"
   },

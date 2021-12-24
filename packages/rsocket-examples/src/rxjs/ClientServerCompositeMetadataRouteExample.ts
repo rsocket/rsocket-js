@@ -1,29 +1,17 @@
 import {
-  ErrorCodes,
-  OnExtensionSubscriber,
-  OnNextSubscriber,
-  OnTerminalSubscriber,
-  Payload,
-  RSocket,
-  RSocketConnector,
-  RSocketError,
-  RSocketServer,
-} from "@rsocket/core";
-import { TcpClientTransport } from "@rsocket/transport-tcp-client";
-import { TcpServerTransport } from "@rsocket/transport-tcp-server";
-import { Codec, Flux, Mono, RSocketRequester } from "@rsocket/rsocket-requester";
-import { Observable, firstValueFrom } from "rxjs";
-import {
   decodeCompositeMetadata,
   decodeRoutes,
-  encodeCompositeMetadata,
-  encodeRoute,
   WellKnownMimeType,
 } from "@rsocket/composite-metadata";
+import { Payload, RSocketConnector, RSocketServer } from "@rsocket/core";
+import { Codec, RSocketRequester, RSocketResponder } from "@rsocket/messaging";
+import { RxRequestersFactory, RxRespondersFactory } from "@rsocket/rxjs";
+import { TcpClientTransport } from "@rsocket/transport-tcp-client";
+import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
+import { firstValueFrom, map, Observable, tap, timer } from "rxjs";
 import Logger from "../shared/logger";
 import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
-import { RxRequestFactory } from "packages/rsocket-adapter-rxjs/dist";
 
 let serverCloseable;
 
@@ -49,35 +37,13 @@ function mapMetaData(payload: Payload) {
 }
 
 class EchoService {
-  handleEchoRequestResponse(
-    responderStream: OnTerminalSubscriber &
-      OnNextSubscriber &
-      OnExtensionSubscriber,
-    payload: Payload
-  ) {
-    const timeout = setTimeout(
-      () =>
-        responderStream.onNext(
-          {
-            data: Buffer.concat([Buffer.from("Echo: "), payload.data]),
-          },
-          true
-        ),
-      1000
-    );
-    return {
-      cancel: () => {
-        clearTimeout(timeout);
-        console.log("cancelled");
-      },
-      onExtension: () => {
-        console.log("Received Extension request");
-      },
-    };
+  handleEchoRequestResponse(data: string): Observable<string> {
+    return timer(1000).pipe(map(() => `Echo: ${data}`));
   }
 }
 
 function makeServer() {
+  const stringCodec = new StringCodec();
   return new RSocketServer({
     transport: new TcpServerTransport({
       listenOptions: {
@@ -86,54 +52,18 @@ function makeServer() {
       },
     }),
     acceptor: {
-      accept: async () => ({
-        requestResponse: (
-          payload: Payload,
-          responderStream: OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber
-        ) => {
-          const echoService = new EchoService();
-          const mappedMetaData = mapMetaData(payload);
-
-          const defaultSusbcriber = {
-            cancel() {
-              console.log("cancelled");
-            },
-            onExtension() {},
-          };
-
-          const route = mappedMetaData.get(MESSAGE_RSOCKET_ROUTING.toString());
-          if (!route) {
-            responderStream.onError(
-              new RSocketError(
-                ErrorCodes.REJECTED,
-                "Composite metadata did not include routing information."
-              )
-            );
-            return defaultSusbcriber;
-          }
-
-          switch (route) {
-            case "EchoService.echo": {
-              return echoService.handleEchoRequestResponse(
-                responderStream,
-                payload
-              );
-            }
-
-            default: {
-              responderStream.onError(
-                new RSocketError(
-                  ErrorCodes.REJECTED,
-                  "The encoded route was unknown by the server."
-                )
-              );
-              return defaultSusbcriber;
-            }
-          }
-        },
-      }),
+      accept: async () => {
+        const echoService = new EchoService();
+        return RSocketResponder.builder()
+          .route(
+            "EchoService.echo",
+            RxRespondersFactory.requestResponse(
+              echoService.handleEchoRequestResponse,
+              { inputCodec: stringCodec, outputCodec: stringCodec }
+            )
+          )
+          .build();
+      },
     },
   });
 }
@@ -149,25 +79,24 @@ function makeConnector() {
   });
 }
 
-async function requestResponse(
-  rsocket: RSocketRequester<
-    String,
-    Observable<String> & Flux<String>,
-    String,
-    Observable<void> & Mono<void>,
-    Observable<String> & Flux<String>,
-    Observable<String> & Flux<String>
-  >,
-  route: string = ""
-) {
-  
-  return firstValueFrom(rsocket.route(route).requestResponse("Hello World"));
+async function requestResponse(rsocket: RSocketRequester, route: string = "") {
+  return firstValueFrom(
+    rsocket
+      .route(route)
+      .request(
+        RxRequestersFactory.requestResponse(
+          "Hello World",
+          stringCodec,
+          stringCodec
+        )
+      )
+      .pipe(tap((data) => Logger.info(`payload[data: ${data};]`)))
+  );
 }
-
 
 class StringCodec implements Codec<string> {
   readonly mimeType: string = "text/plain";
-  
+
   decode(buffer: Buffer): string {
     return buffer.toString();
   }
@@ -176,7 +105,7 @@ class StringCodec implements Codec<string> {
   }
 }
 
-const stringCodec = new StringCodec()
+const stringCodec = new StringCodec();
 
 async function main() {
   const server = makeServer();
@@ -184,10 +113,7 @@ async function main() {
 
   serverCloseable = await server.bind();
   const rsocket = await connector.connect();
-  const requester = new RSocketRequester(rsocket,  {
-    inputCodec : stringCodec,
-    outputCodec : stringCodec,
-  }, RxRequestFactory.instance());
+  const requester = RSocketRequester.wrap(rsocket);
 
   // this request will pass
   await requestResponse(requester, "EchoService.echo");
@@ -213,4 +139,3 @@ main()
     console.error(error);
     exit(1);
   });
-
