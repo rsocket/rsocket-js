@@ -22,7 +22,7 @@ type MockHandler = OnTerminalSubscriber &
   Requestable &
   Cancellable;
 
-describe("RequestStreamStream Test", () => {
+describe("RequestChannelStream Test", () => {
   describe("Requester", () => {
     describe("Non-Fragmentable", () => {
       [true, false].forEach((isComplete) => {
