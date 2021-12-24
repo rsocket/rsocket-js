@@ -42,14 +42,12 @@ describe("RequestStreamStream Test", () => {
 
           request.handleReady(1, mockStream);
 
-          const expectedFlags = Flags.METADATA | (isComplete ? Flags.COMPLETE : Flags.NONE);
-
           expect(mockStream.frames).toMatchObject([
             {
               type: FrameTypes.REQUEST_CHANNEL,
               data: Buffer.from("Hello"),
               metadata: Buffer.from(" World"),
-              flags: expectedFlags,
+              flags: Flags.METADATA | (isComplete ? Flags.COMPLETE : Flags.NONE),
               streamId: 1
             }
           ]);
