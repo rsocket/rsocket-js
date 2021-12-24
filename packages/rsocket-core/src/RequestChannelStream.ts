@@ -4,7 +4,8 @@ import {
   CancelFrame,
   ErrorFrame,
   ExtFrame,
-  Flags, Frame,
+  Flags,
+  Frame,
   FrameTypes,
   PayloadFrame,
   RequestChannelFrame,
@@ -18,12 +19,12 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
-  Requestable,
+  Requestable
 } from "./RSocket";
 import {
   Stream,
   StreamFrameHandler,
-  StreamLifecycleHandler,
+  StreamLifecycleHandler
 } from "./Transport";
 
 export class RequestChannelRequesterStream
