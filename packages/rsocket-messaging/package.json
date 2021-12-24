@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/requester",
+  "name": "@rsocket/messaging",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",

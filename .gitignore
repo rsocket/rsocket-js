@@ -1,5 +1,8 @@
 node_modules
 **/dist
+**/build
+
+.gitpod.yml
 results
 .nyc_output
 *.tsbuildinfo
