@@ -2,19 +2,22 @@ import { mock } from "jest-mock-extended";
 import { ErrorCodes, Flags, FrameTypes } from "../src";
 import { RSocketError } from "../src/Errors";
 import { LeaseManager } from "../src/Lease";
-import {
-  RequestChannelRequesterStream,
-  RequestChannelResponderStream,
-} from "../src/RequestChannelStream";
+import { RequestChannelRequesterStream, RequestChannelResponderStream } from "../src/RequestChannelStream";
 import {
   Cancellable,
   OnExtensionSubscriber,
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
-  Requestable,
+  Requestable
 } from "../src/RSocket";
 import { MockStream } from "./test-utils/MockStream";
+
+type MockHandler = OnTerminalSubscriber &
+  OnNextSubscriber &
+  OnExtensionSubscriber &
+  Requestable &
+  Cancellable;
 
 describe("RequestStreamStream Test", () => {
   describe("Requester", () => {
@@ -51,7 +54,7 @@ describe("RequestStreamStream Test", () => {
               type: FrameTypes.REQUEST_CHANNEL,
               data: Buffer.from("Hello"),
               metadata: Buffer.from(" World"),
-              flags: Flags.METADATA,
+              flags: Flags.METADATA | (state ? Flags.COMPLETE : Flags.NONE),
               streamId: 1,
             },
           ]);
@@ -72,29 +75,19 @@ describe("RequestStreamStream Test", () => {
           expect(mockHandler.onError).toBeCalledWith(
             new RSocketError(
               ErrorCodes.CANCELED,
-              `Unexpected frame type [${FrameTypes.REQUEST_N}]`
+              `Unexpected frame type [${FrameTypes.REQUEST_RESPONSE}]`
             )
           );
-          expect(mockHandler.cancel).toBeCalledTimes(state ? 1 : 0);
+          expect(mockHandler.cancel).toBeCalledTimes(1);
           expect(mockHandler.onNext).not.toBeCalled();
           expect(mockHandler.onComplete).not.toBeCalled();
           expect(mockStream.handler).toBeUndefined();
         })
       );
 
-      it("Sends RequestChannelFrame(complet=true) on onReady event and handle complete", () => {
+      it("Sends RequestChannelFrame(complete=true) on onReady event and handle complete", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -114,7 +107,7 @@ describe("RequestStreamStream Test", () => {
             type: FrameTypes.REQUEST_CHANNEL,
             data: Buffer.from("Hello"),
             metadata: Buffer.from(" World"),
-            flags: Flags.METADATA,
+            flags: Flags.METADATA | Flags.COMPLETE,
             requestN: 1,
             streamId: 1,
           },
@@ -134,22 +127,13 @@ describe("RequestStreamStream Test", () => {
         expect(mockHandler.onComplete).toBeCalled();
         expect(mockHandler.onError).not.toBeCalled();
         expect(mockHandler.onNext).not.toBeCalled();
+        // TODO: why isn't `stream.disconnect()` called, thus removing the handler?
         expect(mockStream.handler).toBeUndefined();
       });
 
-      it("Sends RequestChannelFrame(complet=false) on onReady event and handle complete", () => {
+      it("Sends RequestChannelFrame(complete=false) on onReady event and handle complete", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -193,8 +177,8 @@ describe("RequestStreamStream Test", () => {
         request.onComplete();
         expect(mockStream.frames.pop()).toMatchObject({
           type: FrameTypes.PAYLOAD,
-          data: undefined,
-          metadata: undefined,
+          data: null,
+          metadata: null,
           flags: Flags.COMPLETE,
           streamId: 1,
         });
@@ -202,17 +186,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Sends RequestChannelFrame on onReady event and handle next", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -276,8 +250,8 @@ describe("RequestStreamStream Test", () => {
             type: FrameTypes.PAYLOAD,
             flags: Flags.COMPLETE,
             streamId: 1,
-            data: undefined,
-            metadata: undefined,
+            data: null,
+            metadata: null,
           },
         ]);
 
@@ -296,17 +270,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Sends RequestChannelFrame on onReady event and handle error", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -356,17 +320,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Sends RequestChannelFrame on onReady event and send error", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -414,17 +368,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Sends RequestChannelFrame on onReady event and handle remote requestN", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -464,22 +408,13 @@ describe("RequestStreamStream Test", () => {
         expect(mockHandler.onError).not.toBeCalledWith();
         expect(mockHandler.onNext).not.toBeCalled();
         expect(mockHandler.onComplete).not.toBeCalled();
+        // TODO: why isn't `stream.disconnect()` called, thus removing the handler?
         expect(mockStream.handler).toBeUndefined();
       });
 
       it("Sends RequestChannelFrame on onReady event and then cancel", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -527,17 +462,7 @@ describe("RequestStreamStream Test", () => {
     describe("Fragmentable", () => {
       it("Sends RequestChannelFrame on onReady event", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.concat([
@@ -644,17 +569,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Sends RequestChannelFrame on onReady event and fail on unexpected frame", () => {
         const mockStream = new MockStream();
-        const mockHandler: OnTerminalSubscriber &
-          OnNextSubscriber &
-          OnExtensionSubscriber &
-          Requestable &
-          Cancellable = mock<
-          OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable
-        >();
+const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.concat([
@@ -663,6 +578,7 @@ describe("RequestStreamStream Test", () => {
             ]), // 22 bytes
             metadata: Buffer.from("world hello"),
           },
+          true,
           mockHandler,
           11,
           1
@@ -748,16 +664,13 @@ describe("RequestStreamStream Test", () => {
 
     it("Doesn't sends RequestChannelFrame on onReady event if request was cancelled", () => {
       const mockStream = new MockStream();
-      const mockHandler: OnTerminalSubscriber &
-        OnNextSubscriber &
-        OnExtensionSubscriber = mock<
-        OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
-      >();
+      const mockHandler = mock<MockHandler>();
       const request = new RequestChannelRequesterStream(
         {
           data: Buffer.from("Hello"),
           metadata: Buffer.from(" World"),
         },
+        true,
         mockHandler,
         0,
         1
@@ -775,17 +688,14 @@ describe("RequestStreamStream Test", () => {
 
     it("Doesn't sends RequestChannelFrame on onReady event if request was cancelled and removed from lease manager", () => {
       const mockStream = new MockStream();
-      const mockHandler: OnTerminalSubscriber &
-        OnNextSubscriber &
-        OnExtensionSubscriber = mock<
-        OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
-      >();
+      const mockHandler = mock<MockHandler>();
       const mockLeasManager: LeaseManager = mock<LeaseManager>();
       const request = new RequestChannelRequesterStream(
         {
           data: Buffer.from("Hello"),
           metadata: Buffer.from(" World"),
         },
+        true,
         mockHandler,
         0,
         1,
@@ -803,16 +713,13 @@ describe("RequestStreamStream Test", () => {
     });
 
     it("Doesn't sends onError and any other frames on onReject event", () => {
-      const mockHandler: OnTerminalSubscriber &
-        OnNextSubscriber &
-        OnExtensionSubscriber = mock<
-        OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
-      >();
+      const mockHandler = mock<MockHandler>();
       const request = new RequestChannelRequesterStream(
         {
           data: Buffer.from("Hello"),
           metadata: Buffer.from(" World"),
         },
+        true,
         mockHandler,
         0,
         1
@@ -824,16 +731,13 @@ describe("RequestStreamStream Test", () => {
     });
 
     it("Doesn't sends onError on onReject event if cancelled", () => {
-      const mockHandler: OnTerminalSubscriber &
-        OnNextSubscriber &
-        OnExtensionSubscriber = mock<
-        OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
-      >();
+      const mockHandler = mock<MockHandler>();
       const request = new RequestChannelRequesterStream(
         {
           data: Buffer.from("Hello"),
           metadata: Buffer.from(" World"),
         },
+        true,
         mockHandler,
         0,
         1
@@ -852,9 +756,7 @@ describe("RequestStreamStream Test", () => {
     describe("Non-Fragmentable", () => {
       it("Handler Request and Send Complete", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let sink: OnNextSubscriber &
           OnTerminalSubscriber &
@@ -864,7 +766,7 @@ describe("RequestStreamStream Test", () => {
           1,
           mockStream,
           0,
-          (p, requestN, sender) => {
+          (p, requestN, isComplete, sender) => {
             payload = p;
             sink = sender;
             requested = requestN;
@@ -913,9 +815,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Handler Request and Send Next", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let sink: OnNextSubscriber &
           OnTerminalSubscriber &
@@ -925,7 +825,7 @@ describe("RequestStreamStream Test", () => {
           1,
           mockStream,
           0,
-          (p, requestN, sender) => {
+          (p, requestN, isComplete, sender) => {
             payload = p;
             sink = sender;
             requested = requestN;
@@ -985,9 +885,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Handler Request and Send Error", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let sink: OnNextSubscriber &
           OnTerminalSubscriber &
@@ -997,7 +895,7 @@ describe("RequestStreamStream Test", () => {
           1,
           mockStream,
           0,
-          (p, requestN, sender) => {
+          (p, requestN, isComplete, sender) => {
             payload = p;
             sink = sender;
             requested = requestN;
@@ -1038,9 +936,7 @@ describe("RequestStreamStream Test", () => {
 
       it("Cancel on close", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let sink: OnExtensionSubscriber &
           OnNextSubscriber &
@@ -1050,7 +946,7 @@ describe("RequestStreamStream Test", () => {
           1,
           mockStream,
           0,
-          (p, requestN, s) => {
+          (p, requestN, isComplete, s) => {
             sink = s;
             payload = p;
             requested = requestN;
@@ -1091,16 +987,14 @@ describe("RequestStreamStream Test", () => {
     describe("Fragmentable", () => {
       it("Handler Request and Send Complete", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let requested: number;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           0,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             requested = requestN;
             terminator.onComplete();
@@ -1167,16 +1061,14 @@ describe("RequestStreamStream Test", () => {
 
       it("Handler Request and Send Responses", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let requested: number;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           11,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             requested = requestN;
             terminator.onNext(
@@ -1302,16 +1194,14 @@ describe("RequestStreamStream Test", () => {
 
       it("Send error back on unexpected frame", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let requested: number;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           0,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             requested = requestN;
             terminator.onComplete();
@@ -1355,16 +1245,14 @@ describe("RequestStreamStream Test", () => {
 
       it("Cancel Reassembly on close", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let requested: number;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           0,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             requested = requestN;
             terminator.onComplete();
@@ -1392,16 +1280,14 @@ describe("RequestStreamStream Test", () => {
 
       it("Cancel Reassembly on Cancel Frame", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         let requested: number;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           0,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             requested = requestN;
             terminator.onComplete();
@@ -1434,15 +1320,13 @@ describe("RequestStreamStream Test", () => {
 
       it("Cancel Reassembly on Error Frame", () => {
         const mockStream = new MockStream();
-        const mockHandler = mock<
-          Cancellable & Requestable & OnExtensionSubscriber
-        >();
+        const mockHandler = mock<MockHandler>();
         let payload: Payload;
         const responder = new RequestChannelResponderStream(
           1,
           mockStream,
           0,
-          (p, requestN, terminator) => {
+          (p, requestN, isComplete, terminator) => {
             payload = p;
             terminator.onComplete();
             return mockHandler;

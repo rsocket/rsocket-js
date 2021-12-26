@@ -5,10 +5,11 @@ import {
   ErrorFrame,
   ExtFrame,
   Flags,
+  Frame,
   FrameTypes,
   PayloadFrame,
   RequestChannelFrame,
-  RequestNFrame,
+  RequestNFrame
 } from "./Frames";
 import { LeaseManager } from "./Lease";
 import * as Reassembler from "./Reassembler";
@@ -223,7 +224,7 @@ export class RequestChannelRequesterStream
         this.stream.disconnect(this);
 
         this.close(
-          new RSocketError(ErrorCodes.CANCELED, "Received invalid frame")
+          new RSocketError(ErrorCodes.CANCELED, `Unexpected frame type [${(frame as Frame).type}]`)
         );
 
         this.stream.send({
@@ -276,7 +277,7 @@ export class RequestChannelRequesterStream
     }
 
     this.stream.send({
-      type: this.inboundDone ? FrameTypes.ERROR : FrameTypes.CANCEL,
+      type: inboundDone ? FrameTypes.ERROR : FrameTypes.CANCEL,
       flags: Flags.NONE,
       streamId: this.streamId,
       code: ErrorCodes.CANCELED,
