@@ -186,7 +186,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and handle next", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -270,7 +270,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and handle error", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -320,7 +320,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and send error", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -368,7 +368,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and handle remote requestN", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -414,7 +414,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and then cancel", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.from("Hello"),
@@ -462,7 +462,7 @@ const mockHandler = mock<MockHandler>();
     describe("Fragmentable", () => {
       it("Sends RequestChannelFrame on onReady event", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.concat([
@@ -569,7 +569,7 @@ const mockHandler = mock<MockHandler>();
 
       it("Sends RequestChannelFrame on onReady event and fail on unexpected frame", () => {
         const mockStream = new MockStream();
-const mockHandler = mock<MockHandler>();
+        const mockHandler = mock<MockHandler>();
         const request = new RequestChannelRequesterStream(
           {
             data: Buffer.concat([
