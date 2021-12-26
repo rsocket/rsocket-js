@@ -2712,7 +2712,7 @@ esbuild-linux-32@0.14.2:
 
 esbuild-linux-64@0.14.2:
   version "0.14.2"
-  resolved "https://registry.npmjs.org/esbuild-linux-64/-/esbuild-linux-64-0.14.2.tgz"
+  resolved "https://registry.yarnpkg.com/esbuild-linux-64/-/esbuild-linux-64-0.14.2.tgz#c790f739aa75b15c153609ea3457153fbe4db93d"
   integrity sha512-4bzMS2dNxOJoFIiHId4w+tqQzdnsch71JJV1qZnbnErSFWcR9lRgpSqWnTTFtv6XM+MvltRzSXC5wQ7AEBY6Hg==
 
 esbuild-linux-arm64@0.14.2:
@@ -2757,7 +2757,7 @@ esbuild-windows-32@0.14.2:
 
 esbuild-windows-64@0.14.2:
   version "0.14.2"
-  resolved "https://registry.yarnpkg.com/esbuild-windows-64/-/esbuild-windows-64-0.14.2.tgz#6ab59ef721ff75c682a1c8ae0570dabb637abddb"
+  resolved "https://registry.npmjs.org/esbuild-windows-64/-/esbuild-windows-64-0.14.2.tgz"
   integrity sha512-Rym6ViMNmi1E2QuQMWy0AFAfdY0wGwZD73BnzlsQBX5hZBuy/L+Speh7ucUZ16gwsrMM9v86icZUDrSN/lNBKg==
 
 esbuild-windows-arm64@0.14.2:
@@ -6559,14 +6559,9 @@ typedarray@^0.0.6:
   resolved "https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@~4.5.2:
-  version "4.5.2"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-4.5.2.tgz"
-  integrity sha512-5BlMof9H1yGt0P8/WF+wPNw6GfctgGjXp5hkblpyT+8rkASSmkUKMXrxR0Xg8ThVCi/JnHQiKXeBaEwCeQwMFw==
-
-typescript@~4.5.4:
+typescript@~4.5.2, typescript@~4.5.4:
   version "4.5.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.5.4.tgz#a17d3a0263bf5c8723b9c52f43c5084edf13c2e8"
+  resolved "https://registry.npmjs.org/typescript/-/typescript-4.5.4.tgz"
   integrity sha512-VgYs2A2QIRuGphtzFV7aQJduJ2gyfTljngLzjpfW9FoYZF6xuw1W0vW9ghCKLfcWrCFxK81CSGRAvS1pn4fIUg==
 
 uglify-js@^3.1.4:
