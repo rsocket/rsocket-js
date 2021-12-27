@@ -600,9 +600,10 @@ export class RequestChannelResponderStream
             type: FrameTypes.ERROR,
             streamId: this.streamId,
             code: ErrorCodes.INVALID,
-            message: "received unexpected frame during the request reassembly",
+            message: `Unexpected frame of type [${(frame as Frame).type}] received during the request reassembly`,
             flags: Flags.NONE,
           });
+          return;
         }
 
         this.receiver.onExtension(
@@ -792,6 +793,8 @@ export class RequestChannelResponderStream
     Reassembler.cancel(this);
 
     if (!outboundDone) {
+      // TODO: receiver is not set when in constructed with follows flag.
+      //  should receiver always be set or should this check for null?
       this.receiver.cancel();
     }
 
