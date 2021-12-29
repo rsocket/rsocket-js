@@ -35,6 +35,8 @@ import {
   RSocketError,
 } from "@rsocket/core";
 
+export * as DefaultRespondersFactory from "./DefaultResponders";
+
 export interface Codec<D> {
   mimeType: string;
 
