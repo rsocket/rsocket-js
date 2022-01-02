@@ -20,8 +20,8 @@ import {
   RequestChannelResponderStream,
 } from "./RequestChannelStream";
 import {
-  RequestFnFRequesterHandler,
-  RequestFnfResponderHandler,
+  RequestFnFRequesterStream,
+  RequestFnfResponderStream,
 } from "./RequestFnFStream";
 import {
   RequestResponseRequesterStream,
@@ -63,7 +63,7 @@ export class RSocketRequester implements RSocket {
     payload: Payload,
     responderStream: OnTerminalSubscriber
   ): Cancellable {
-    const handler = new RequestFnFRequesterHandler(
+    const handler = new RequestFnFRequesterStream(
       payload,
       responderStream,
       this.fragmentSize,
@@ -238,7 +238,7 @@ export class DefaultStreamRequestHandler implements StreamRequestHandler {
     switch (frame.type) {
       case FrameTypes.REQUEST_FNF:
         if (this.rsocket.fireAndForget) {
-          new RequestFnfResponderHandler(
+          new RequestFnfResponderStream(
             frame.streamId,
             stream,
             this.rsocket.fireAndForget.bind(this.rsocket),
@@ -351,6 +351,13 @@ export class DefaultConnectionFrameHandler implements ConnectionFrameHandler {
 
         return;
       default:
+        this.connection.multiplexerDemultiplexer.connectionOutbound.send({
+          type: FrameTypes.ERROR,
+          streamId: 0,
+          flags: Flags.NONE,
+          message: "Received unknown frame type",
+          code: ErrorCodes.CONNECTION_ERROR,
+        });
       // TODO: throw an exception and close connection
     }
   }

@@ -7,9 +7,9 @@ import {
   RSocketServer,
 } from "@rsocket/core";
 import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
+import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
 import { exit } from "process";
 import WebSocket from "ws";
-import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
 import Logger from "./shared/logger";
 
 function makeServer() {
