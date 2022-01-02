@@ -27,9 +27,9 @@ export interface Outbound {
 }
 
 export interface Stream extends Outbound {
-  add(handler: StreamFrameHandler): void;
+  connect(handler: StreamFrameHandler): void;
 
-  remove(handler: StreamFrameHandler): void;
+  disconnect(handler: StreamFrameHandler): void;
 
   send(
     frame:

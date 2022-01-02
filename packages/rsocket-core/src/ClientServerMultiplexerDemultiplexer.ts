@@ -120,18 +120,17 @@ export class ClientServerInputMultiplexerDemultiplexer
     }
 
     const registry = this.registry;
-    this.streamIdSupplier.next((streamId) => {
-      registry[streamId] = streamHandler;
-
-      return streamHandler.handleReady(streamId, this);
-    }, Object.keys(registry) as any as Array<number>);
+    this.streamIdSupplier.next(
+      (streamId) => streamHandler.handleReady(streamId, this),
+      Object.keys(registry) as any as Array<number>
+    );
   }
 
-  add(handler: StreamFrameHandler): void {
+  connect(handler: StreamFrameHandler): void {
     this.registry[handler.streamId] = handler;
   }
 
-  remove(stream: StreamFrameHandler): void {
+  disconnect(stream: StreamFrameHandler): void {
     delete this.registry[stream.streamId];
   }
 
