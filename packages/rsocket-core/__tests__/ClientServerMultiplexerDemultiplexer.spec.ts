@@ -112,7 +112,7 @@ describe("ClientServerMultiplexerDemultiplexer", function () {
         });
 
         // act
-        multiplexerDemultiplexer.add(streamHandler);
+        multiplexerDemultiplexer.connect(streamHandler);
         multiplexerDemultiplexer.handle({
           type: FrameTypes.PAYLOAD,
           flags: Flags.NEXT,
