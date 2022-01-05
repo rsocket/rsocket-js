@@ -888,6 +888,11 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       flags |= FLAGS.COMPLETE;
       this._subscriptions.delete(streamId);
     }
+    if (payload.metadata !== undefined &&
+        payload.metadata !== null) {
+      // eslint-disable-next-line no-bitwise
+      flags |= FLAGS.METADATA;
+    }
     const data = this._serializers.data.serialize(payload.data);
     const metadata = this._serializers.metadata.serialize(payload.metadata);
     this._connection.sendOne({
