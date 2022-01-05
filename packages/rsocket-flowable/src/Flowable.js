@@ -173,7 +173,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
     if (this._started && !this._active) {
       console.warn(
         'Flowable: Invalid call to onError(): %s.',
-        this._active
+        this._started
           ? 'onComplete/onError was already called'
           : 'onSubscribe has not been called',
       );
@@ -188,7 +188,7 @@ class FlowableSubscriber<T> implements ISubscriber<T> {
     if (!this._active) {
       console.warn(
         'Flowable: Invalid call to onNext(): %s.',
-        this._active
+        this._started
           ? 'onComplete/onError was already called'
           : 'onSubscribe has not been called',
       );
