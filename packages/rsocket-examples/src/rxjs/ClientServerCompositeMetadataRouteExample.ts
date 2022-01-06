@@ -9,7 +9,15 @@ import { RxRequestersFactory, RxRespondersFactory } from "@rsocket/rxjs";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
-import { firstValueFrom, map, Observable, tap, timer } from "rxjs";
+import {
+  firstValueFrom,
+  map,
+  Observable,
+  tap,
+  timer,
+  interval,
+  take,
+} from "rxjs";
 import Logger from "../shared/logger";
 import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
 
@@ -40,6 +48,17 @@ class EchoService {
   handleEchoRequestResponse(data: string): Observable<string> {
     return timer(1000).pipe(map(() => `Echo: ${data}`));
   }
+
+  // TODO: look into why only first value is ever emitted,
+  // suspect issue with `drain()` in rx adapter.
+  handleEchoRequestStream(data: string): Observable<string> {
+    return interval(1000).pipe(
+      map(() => `RxEchoService Echo: ${data}`),
+      tap((value) => {
+        Logger.info(`[server] sending: ${value}`);
+      })
+    );
+  }
 }
 
 function makeServer() {
@@ -59,6 +78,13 @@ function makeServer() {
             "EchoService.echo",
             RxRespondersFactory.requestResponse(
               echoService.handleEchoRequestResponse,
+              { inputCodec: stringCodec, outputCodec: stringCodec }
+            )
+          )
+          .route(
+            "EchoService.echoStream",
+            RxRespondersFactory.requestStream(
+              echoService.handleEchoRequestStream,
               { inputCodec: stringCodec, outputCodec: stringCodec }
             )
           )
@@ -92,6 +118,36 @@ async function requestResponse(rsocket: RSocketRequester, route: string = "") {
       )
       .pipe(tap((data) => Logger.info(`payload[data: ${data};]`)))
   );
+}
+
+async function requestStream(rsocket: RSocketRequester, route: string = "") {
+  let count = 10;
+  return new Promise((resolve, reject) => {
+    rsocket
+      .route(route)
+      .request(
+        RxRequestersFactory.requestStream(
+          "Hello World",
+          stringCodec,
+          stringCodec,
+          5
+        )
+      )
+      .pipe(
+        tap((data) => {
+          Logger.info(`[client] received[data: ${data}]`);
+        }),
+        take(5)
+      )
+      .subscribe({
+        complete: () => {
+          resolve(null);
+        },
+        error: (error) => {
+          reject(error);
+        },
+      });
+  });
 }
 
 class StringCodec implements Codec<string> {
@@ -131,6 +187,8 @@ async function main() {
   } catch (e) {
     Logger.error(e);
   }
+
+  await requestStream(requester, "EchoService.echoStream");
 }
 
 main()
