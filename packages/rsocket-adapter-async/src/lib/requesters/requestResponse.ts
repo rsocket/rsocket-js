@@ -25,8 +25,6 @@ export default function requestResponse<TData, RData>(
     return new Promise((resolve, reject) => {
       rsocket.requestResponse(payload, {
         onNext(payload: Payload): void {
-          // TODO: is there data loss by only resolving with `payload.data`?
-          //   should metadata be included in the resolved value?
           resolve(outputCodec.decode(payload.data));
         },
         onComplete(): void {

@@ -21,8 +21,6 @@ export default function requestStream<TData, RData>(
   ) {
     const exchangeFunction = (subscriber, initialRequestN) => {
       const payload = {
-        // TODO: should inputCodec be responsible for handling empty data?
-        // TODO: Buffer needs to be injectable to support browsers
         data: data ? inputCodec.encode(data) : Buffer.allocUnsafe(0),
         metadata: encodeCompositeMetadata(metadata),
       };
