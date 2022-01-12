@@ -9,7 +9,7 @@ import {
   Payload,
   Requestable,
 } from "@rsocket/core";
-import { RxRespondersFactory } from "@rsocket/rxjs";
+import { RxRespondersFactory } from "@rsocket/adapter-rxjs";
 import { eachValueFrom } from "rxjs-for-await";
 
 export default function requestChannel<IN, OUT>(

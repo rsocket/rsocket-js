@@ -3,6 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@rsocket/transport-*": [
+        "packages/rsocket-*/src"
+      ],
       "@rsocket/*": [
         "packages/rsocket-*/src"
       ]
