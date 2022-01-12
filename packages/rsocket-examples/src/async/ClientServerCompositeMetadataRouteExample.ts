@@ -6,7 +6,10 @@ import {
   RSocketResponder,
 } from "@rsocket/messaging";
 import { RxRespondersFactory } from "@rsocket/adapter-rxjs";
-import { AsyncRequestersFactory, AsyncRespondersFactory } from "@rsocket/adapter-async";
+import {
+  AsyncRequestersFactory,
+  AsyncRespondersFactory,
+} from "@rsocket/adapter-async";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
