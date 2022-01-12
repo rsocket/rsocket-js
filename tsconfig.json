@@ -3,21 +3,6 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@rsocket/async": [
-        "packages/rsocket-adapter-async/src"
-      ],
-      "@rsocket/composite-metadata": [
-        "packages/rsocket-composite-metadata/src"
-      ],
-      "@rsocket/core": [
-        "packages/rsocket-core/src"
-      ],
-      "@rsocket/messaging": [
-        "packages/rsocket-messaging/src"
-      ],
-      "@rsocket/rxjs": [
-        "packages/rsocket-adapter-rxjs/src"
-      ],
       "@rsocket/*": [
         "packages/rsocket-*/src"
       ]
