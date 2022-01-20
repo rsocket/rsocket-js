@@ -1,6 +1,7 @@
 {
   "name": "@rsocket/examples",
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.0",
+  "private": true,
   "files": [
     "dist"
   ],
@@ -17,13 +18,13 @@
   },
   "dependencies": {
     "ws": "~8.2.3",
-    "@rsocket/core": "^1.0.0",
-    "@rsocket/composite-metadata": "^1.0.0",
-    "@rsocket/adapter-rxjs": "^1.0.0",
-    "@rsocket/transport-websocket-client": "^1.0.0",
-    "@rsocket/transport-tcp-client": "^1.0.0",
-    "@rsocket/transport-websocket-server": "^1.0.0",
-    "@rsocket/transport-tcp-server": "^1.0.0"
+    "@rsocket/core": "^1.0.0-alpha.0",
+    "@rsocket/composite-metadata": "^1.0.0-alpha.0",
+    "@rsocket/adapter-rxjs": "^1.0.0-alpha.0",
+    "@rsocket/transport-websocket-client": "^1.0.0-alpha.0",
+    "@rsocket/transport-tcp-client": "^1.0.0-alpha.0",
+    "@rsocket/transport-websocket-server": "^1.0.0-alpha.0",
+    "@rsocket/transport-tcp-server": "^1.0.0-alpha.0"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
