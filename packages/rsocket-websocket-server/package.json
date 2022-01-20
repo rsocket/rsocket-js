@@ -1,6 +1,6 @@
 {
   "name": "@rsocket/transport-websocket-server",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -14,7 +14,7 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "@rsocket/core": "^1.0.0-alpha.0",
+    "@rsocket/core": "^1.0.0-alpha.1",
     "ws": "~8.2.3"
   },
   "devDependencies": {

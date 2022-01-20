@@ -1,6 +1,6 @@
 {
   "name": "@rsocket/core",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -13,7 +13,6 @@
     "prepublishOnly": "yarn run build",
     "test": "yarn jest"
   },
-  "dependencies": {},
   "devDependencies": {
     "rimraf": "~3.0.2",
     "typescript": "~4.5.2"

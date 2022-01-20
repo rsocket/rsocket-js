@@ -1,6 +1,6 @@
 {
   "name": "@rsocket/examples",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "private": true,
   "files": [
     "dist"
@@ -17,19 +17,19 @@
     "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts"
   },
   "dependencies": {
-    "ws": "~8.2.3",
-    "@rsocket/core": "^1.0.0-alpha.0",
-    "@rsocket/composite-metadata": "^1.0.0-alpha.0",
-    "@rsocket/adapter-rxjs": "^1.0.0-alpha.0",
-    "@rsocket/transport-websocket-client": "^1.0.0-alpha.0",
-    "@rsocket/transport-tcp-client": "^1.0.0-alpha.0",
-    "@rsocket/transport-websocket-server": "^1.0.0-alpha.0",
-    "@rsocket/transport-tcp-server": "^1.0.0-alpha.0"
+    "@rsocket/adapter-rxjs": "^1.0.0-alpha.1",
+    "@rsocket/composite-metadata": "^1.0.0-alpha.1",
+    "@rsocket/core": "^1.0.0-alpha.1",
+    "@rsocket/transport-tcp-client": "^1.0.0-alpha.1",
+    "@rsocket/transport-tcp-server": "^1.0.0-alpha.1",
+    "@rsocket/transport-websocket-client": "^1.0.0-alpha.1",
+    "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
+    "ws": "~8.2.3"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
-    "typescript": "~4.5.2",
     "ts-node": "~10.4.0",
-    "tsconfig-paths": "~3.11.0"
+    "tsconfig-paths": "~3.11.0",
+    "typescript": "~4.5.2"
   }
 }
