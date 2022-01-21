@@ -2,9 +2,21 @@
   "name": "rsocket-js",
   "description": "A JavaScript implementation of the RSocket protocol (https://github.com/rsocket/rsocket).",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/karma-*",
+      "**/karma-*/**",
+      "**/expect.js",
+      "**/expect.js/**",
+      "**/@types/jest",
+      "**/@types/jest/**",
+      "**/@types/mocha",
+      "**/@types/mocha/**"
+    ]
+  },
   "scripts": {
     "build": "lerna run build",
     "clean": "lerna run clean && rimraf -rf ./coverage",
@@ -15,7 +27,6 @@
     "lint:fix": "npm run lint -- --fix"
   },
   "devDependencies": {
-    "@types/jest": "^27.0.3",
     "@types/node": "^17.0.5",
     "eslint": "~8.5.0",
     "eslint-plugin-import": "~2.25.3",

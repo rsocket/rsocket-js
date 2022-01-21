@@ -1,7 +1,4 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "downlevelIteration": true,
-    "types": ["node", "jest"]
-  }
+  "typeRoots": ["node_modules/@types"]
 }
