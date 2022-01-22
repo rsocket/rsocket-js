@@ -94,8 +94,14 @@ jobs:
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
+      - name: Bootstrap
+        run: yarn bootstrap
+
+      - name: Build packages
+        run: yarn build -- --ignore=@rsocket/browser-tck
+
       - name: Test
-        run: yarn test-rsocket-browser-tck
+        run: yarn ci-test-rsocket-browser-tck
 
   compile:
     runs-on: ubuntu-latest

@@ -18,6 +18,7 @@
     ]
   },
   "scripts": {
+    "bootstrap": "lerna bootstrap",
     "build": "lerna run build",
     "clean": "lerna run clean && rimraf -rf ./coverage",
     "pub": "lerna publish",
@@ -25,6 +26,7 @@
     "test": "lerna run test --ignore=@rsocket/browser-tck",
     "pretest-rsocket-browser-tck": "lerna bootstrap && lerna run build --ignore=@rsocket/browser-tck",
     "test-rsocket-browser-tck": "lerna run test --scope=@rsocket/browser-tck",
+    "ci-test-rsocket-browser-tck": "lerna run test --scope=@rsocket/browser-tck",
     "lint": "eslint --ext js,ts .",
     "lint:fix": "npm run lint -- --fix"
   },
