@@ -6,7 +6,7 @@
     "noEmitOnError": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "types": ["node", "jest", "mocha"],
+    "types": ["node", "jest"],
     "declaration": true,
     "resolveJsonModule": true,
     "downlevelIteration": true

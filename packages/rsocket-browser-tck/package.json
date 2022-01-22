@@ -23,6 +23,7 @@
     "karma-mocha-reporter": "^2.0.0",
     "karma-typescript": "5.5.3",
     "mocha": "^6.2.0",
+    "puppeteer": "^13.1.1",
     "typescript": "~4.5.4"
   }
 }
