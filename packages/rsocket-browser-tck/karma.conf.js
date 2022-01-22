@@ -15,6 +15,12 @@ module.exports = function (config) {
 
     browsers: ["ChromeHeadless"],
 
-    singleRun: true,
+    singleRun: process.env.WATCH !== true,
+
+    karmaTypescriptConfig: {
+      bundlerOptions: {
+        addNodeGlobals: false,
+      },
+    },
   });
 };

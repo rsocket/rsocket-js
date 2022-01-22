@@ -3,7 +3,8 @@
   "version": "1.0.0-alpha.1",
   "private": "true",
   "scripts": {
-    "test": "karma start"
+    "test": "karma start",
+    "test-watch": "cross-env WATCH=true karma start"
   },
   "dependencies": {
     "@rsocket/composite-metadata": "^1.0.0-alpha.1",
@@ -12,6 +13,8 @@
     "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
     "@types/expect.js": "^0.3.29",
     "@types/mocha": "^5.2.5",
+    "buffer": "^6.0.3",
+    "cross-env": "^7.0.3",
     "expect.js": "^0.3.1",
     "karma": "^6.1.0",
     "karma-chrome-launcher": "^3.1.0",
