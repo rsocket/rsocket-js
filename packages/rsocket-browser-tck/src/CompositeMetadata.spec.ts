@@ -1,14 +1,9 @@
 import {
-  decodeCompositeMetadata,
-  decodeRoutes,
   encodeCompositeMetadata,
   encodeRoute,
-  WellKnownMimeType,
 } from "@rsocket/composite-metadata";
 
 const Buffer = require("buffer/").Buffer;
-
-// window.Buffer = Buffer;
 
 describe("CompositeMetadata", () => {
   it("encodeRoute", () => {

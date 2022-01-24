@@ -1,10 +1,6 @@
 import { RSocketConnector } from "@rsocket/core";
 import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
 
-// const Buffer = require("buffer/").Buffer;
-
-// window.Buffer = Buffer;
-
 describe("WebsocketClientTransport", () => {
   describe("connector", function () {
     it("connect", async () => {
