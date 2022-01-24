@@ -66,6 +66,43 @@ jobs:
       - name: Test
         run: yarn test
 
+  browser-tck:
+    runs-on: ubuntu-latest
+    container: lironavon/docker-puppeteer-container:14.16.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.yarn
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Bootstrap
+        run: yarn bootstrap
+
+      - name: Build packages
+        run: yarn build -- --ignore=@rsocket/browser-tck
+
+      - name: Test
+        run: yarn ci-test-rsocket-browser-tck
+
   compile:
     runs-on: ubuntu-latest
 
