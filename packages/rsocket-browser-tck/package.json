@@ -3,8 +3,7 @@
   "version": "1.0.0-alpha.1",
   "private": "true",
   "scripts": {
-    "test": "karma start",
-    "test-watch": "cross-env WATCH=true karma start"
+    "test": "node browser-tck.js"
   },
   "dependencies": {
     "@rsocket/composite-metadata": "^1.0.0-alpha.1",
