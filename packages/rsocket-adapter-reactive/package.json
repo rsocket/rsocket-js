@@ -1,0 +1,25 @@
+{
+  "name": "@rsocket/adapter-reactive",
+  "version": "1.0.0-alpha.1",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "yarn run clean && yarn run compile",
+    "clean": "rimraf -rf ./dist",
+    "compile": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "yarn run build",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "dependencies": {
+    "@rsocket/core": "^1.0.0-alpha.1",
+    "@rsocket/messaging": "^1.0.0-alpha.1",
+    "rxjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "rimraf": "~3.0.2",
+    "typescript": "~4.5.2"
+  }
+}
