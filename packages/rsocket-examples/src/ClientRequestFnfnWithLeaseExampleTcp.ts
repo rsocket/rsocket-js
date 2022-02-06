@@ -32,7 +32,7 @@ function makeConnector() {
   });
 }
 
-async function fnf(rsocket: RSocket) {
+async function fnf(rsocket: RSocket): Promise<void> {
   return new Promise((resolve, reject) => {
     return rsocket.fireAndForget(
       {
@@ -43,7 +43,7 @@ async function fnf(rsocket: RSocket) {
           reject(e);
         },
         onComplete: () => {
-          resolve(null);
+          resolve();
         },
       }
     );

@@ -19,6 +19,7 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
+  RequestStream,
   RSocketConnector,
   RSocketServer,
 } from "@rsocket/core";
@@ -39,52 +40,52 @@ function makeServer() {
     }),
     acceptor: {
       accept: async () => {
-        return {
-          requestStream: (
-            payload: Payload,
-            initialRequestN,
-            responderStream: OnTerminalSubscriber &
-              OnNextSubscriber &
-              OnExtensionSubscriber
-          ) => {
-            Logger.info(
-              `[server] requestStream payload[data: ${payload.data}; metadata: ${payload.metadata}]|initialRequestN: ${initialRequestN}`
+        const requestStreamHandler: RequestStream = (
+          payload,
+          initialRequestN,
+          responderStream
+        ) => {
+          Logger.info(
+            `[server] requestStream payload[data: ${payload.data}; metadata: ${payload.metadata}]|initialRequestN: ${initialRequestN}`
+          );
+
+          let interval = null;
+          let requestedResponses = initialRequestN;
+          let sentResponses = 0;
+
+          // simulate async data with interval
+          interval = setInterval(() => {
+            sentResponses++;
+            let isComplete = sentResponses >= requestedResponses;
+            responderStream.onNext(
+              {
+                data: Buffer.from(new Date()),
+                metadata: undefined,
+              },
+              isComplete
             );
+            if (isComplete) {
+              clearInterval(interval);
+            }
+          }, 750);
 
-            let interval = null;
-            let requestedResponses = initialRequestN;
-            let sentResponses = 0;
-
-            // simulate async data with interval
-            interval = setInterval(() => {
-              sentResponses++;
-              let isComplete = sentResponses >= requestedResponses;
-              responderStream.onNext(
-                {
-                  data: Buffer.from(new Date()),
-                  metadata: undefined,
-                },
-                isComplete
+          return {
+            cancel() {
+              Logger.info("[server] stream cancelled by client");
+              clearInterval(interval);
+            },
+            request(n) {
+              requestedResponses += n;
+              Logger.info(
+                `[server] request n: ${n}, requestedResponses: ${requestedResponses}, sentResponses: ${sentResponses}`
               );
-              if (isComplete) {
-                clearInterval(interval);
-              }
-            }, 750);
+            },
+            onExtension: () => {},
+          };
+        };
 
-            return {
-              cancel() {
-                Logger.info("[server] stream cancelled by client");
-                clearInterval(interval);
-              },
-              request(n) {
-                requestedResponses += n;
-                Logger.info(
-                  `[server] request n: ${n}, requestedResponses: ${requestedResponses}, sentResponses: ${sentResponses}`
-                );
-              },
-              onExtension: () => {},
-            };
-          },
+        return {
+          requestStream: requestStreamHandler,
         };
       },
     },

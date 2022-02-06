@@ -15,12 +15,8 @@
  */
 
 import {
-  Cancellable,
-  OnExtensionSubscriber,
-  OnNextSubscriber,
-  OnTerminalSubscriber,
   Payload,
-  Requestable,
+  RequestChannel,
   RSocket,
   RSocketConnector,
   RSocketServer,
@@ -38,46 +34,37 @@ async function main() {
     }),
     acceptor: {
       accept: async (): Promise<Partial<RSocket>> => {
-        return {
-          requestChannel: (
-            payload: Payload,
-            initialRequestN: number,
-            isCompleted: boolean,
-            responderStream: OnTerminalSubscriber &
-              OnNextSubscriber &
-              OnExtensionSubscriber &
-              Requestable &
-              Cancellable
-          ): OnTerminalSubscriber &
-            OnNextSubscriber &
-            OnExtensionSubscriber &
-            Requestable &
-            Cancellable => {
-            responderStream.onNext(payload, isCompleted);
-            responderStream.request(initialRequestN);
+        const requestChannelHandler: RequestChannel = (
+          payload,
+          initialRequestN,
+          isCompleted,
+          responderStream
+        ) => {
+          responderStream.onNext(payload, isCompleted);
+          responderStream.request(initialRequestN);
 
-            return {
-              cancel(): void {
-                responderStream.cancel();
-              },
-              onComplete(): void {
-                responderStream.onComplete();
-              },
-              onError(error: Error): void {
-                responderStream.onError(error);
-              },
-              onExtension(): void {},
-              onNext(payload: Payload, isComplete: boolean): void {
-                setTimeout(
-                  () => responderStream.onNext(payload, isComplete),
-                  10
-                );
-              },
-              request(requestN: number): void {
-                setTimeout(() => responderStream.request(requestN), 1);
-              },
-            };
-          },
+          return {
+            cancel(): void {
+              responderStream.cancel();
+            },
+            onComplete(): void {
+              responderStream.onComplete();
+            },
+            onError(error: Error): void {
+              responderStream.onError(error);
+            },
+            onExtension(): void {},
+            onNext(payload: Payload, isComplete: boolean): void {
+              setTimeout(() => responderStream.onNext(payload, isComplete), 10);
+            },
+            request(requestN: number): void {
+              setTimeout(() => responderStream.request(requestN), 1);
+            },
+          };
+        };
+
+        return {
+          requestChannel: requestChannelHandler,
         };
       },
     },
