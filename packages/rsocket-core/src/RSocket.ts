@@ -64,6 +64,14 @@ export interface SocketAcceptor {
   accept(payload: SetupPayload, remotePeer: RSocket): Promise<Partial<RSocket>>;
 }
 
+export type FireAndForget = RSocket["fireAndForget"];
+
+export type RequestResponse = RSocket["requestResponse"];
+
+export type RequestStream = RSocket["requestStream"];
+
+export type RequestChannel = RSocket["requestChannel"];
+
 /**
  * A contract providing different interaction models per the [ReactiveSocket protocol]
  (https://github.com/ReactiveSocket/reactivesocket/blob/master/Protocol.md).
