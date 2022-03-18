@@ -6,7 +6,11 @@ import ExistingBufferModule from 'buffer';
 
 const hasGlobalBuffer =
   typeof global !== 'undefined' && global.hasOwnProperty('Buffer');
-const hasBufferModule = ExistingBufferModule.hasOwnProperty('Buffer');
+let hasBufferModule = false;
+try {
+  hasBufferModule = ExistingBufferModule.hasOwnProperty('Buffer');
+} catch (e) {
+}
 
 function notImplemented(msg?: string): void {
   const message = msg ? `Not implemented: ${msg}` : 'Not implemented';
