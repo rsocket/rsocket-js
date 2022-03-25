@@ -31,15 +31,16 @@ const typeDefs = gql`
   }
 
   type Query {
-    echo: Echo
+    echo(message: String): Echo
   }
 `;
 
 const resolvers = {
   Query: {
-    echo: () => {
+    echo: (parent, args, context, info) => {
+      const { message } = args;
       return {
-        message: "[PH] hello world",
+        message,
       };
     },
   },
@@ -99,9 +100,12 @@ async function main() {
   });
 
   const result = await client.query({
+    variables: {
+      message: "Hello World",
+    },
     query: gql`
-      query MyEchoQuery {
-        echo {
+      query MyEchoQuery($message: String) {
+        echo(message: $message) {
           message
         }
       }
