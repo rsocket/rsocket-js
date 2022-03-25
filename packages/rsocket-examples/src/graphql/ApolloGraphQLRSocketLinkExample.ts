@@ -18,10 +18,8 @@ import { RSocket, RSocketConnector, RSocketServer } from "@rsocket/core";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
-import {
-  ApolloGraphQLRSocketLink,
-  ApolloServer,
-} from "@rsocket/graphql-apollo-link";
+import { ApolloGraphQLRSocketLink } from "@rsocket/graphql-apollo-link";
+import { ApolloServer } from "@rsocket/graphql-apollo-server";
 import { ApolloClient, InMemoryCache } from "@apollo/client/core";
 import gql from "graphql-tag";
 
@@ -96,41 +94,38 @@ async function requestResponse(rsocket: RSocket) {
 }
 
 async function main() {
-
-  new ApolloServer({});
-
   // server setup
-  // const apolloServer = new ApolloServer({
-  //   typeDefs,
-  //   resolvers,
-  // });
-  // await apolloServer.start();
-  //
-  // const server = makeServer({
-  //   handler: apolloServer.getHandler(),
-  // });
-  // serverCloseable = await server.bind();
-  //
-  // // client setup
-  // const connector = makeConnector();
-  // const rsocket = await connector.connect();
-  //
-  // const client = new ApolloClient({
-  //   cache: new InMemoryCache(),
-  //   link: new ApolloGraphQLRSocketLink(rsocket),
-  // });
-  //
-  // const result = await client.query({
-  //   query: gql`
-  //     query Echo {
-  //       message
-  //     }
-  //   `,
-  // });
-  //
-  // console.log(result);
+  const apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+  });
+  await apolloServer.start();
 
-  // await requestResponse(rsocket);
+  const server = makeServer({
+    handler: apolloServer.getHandler(),
+  });
+  serverCloseable = await server.bind();
+
+  // client setup
+  const connector = makeConnector();
+  const rsocket = await connector.connect();
+
+  const client = new ApolloClient({
+    cache: new InMemoryCache(),
+    link: new ApolloGraphQLRSocketLink(rsocket),
+  });
+
+  const result = await client.query({
+    query: gql`
+      query Echo {
+        message
+      }
+    `,
+  });
+
+  console.log(result);
+
+  await requestResponse(rsocket);
 }
 
 main()
