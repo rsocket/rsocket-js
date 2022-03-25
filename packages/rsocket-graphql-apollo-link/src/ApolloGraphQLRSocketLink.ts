@@ -23,6 +23,7 @@ import {
   Operation,
 } from "@apollo/client/core";
 import { Payload, RSocket } from "@rsocket/core";
+import { print } from "graphql";
 
 export class ApolloGraphQLRSocketLink extends ApolloLink {
   constructor(public readonly client: RSocket) {
@@ -41,7 +42,12 @@ export class ApolloGraphQLRSocketLink extends ApolloLink {
       this.client.requestResponse(
         {
           // https://github.com/apollographql/apollo-client/blob/main/src/link/http/serializeFetchParameter.ts#L10
-          data: Buffer.from(JSON.stringify(operation)),
+          data: Buffer.from(
+            JSON.stringify({
+              ...operation,
+              query: print(operation.query),
+            })
+          ),
         },
         {
           onComplete(): void {},
@@ -51,9 +57,9 @@ export class ApolloGraphQLRSocketLink extends ApolloLink {
           onExtension(): void {},
           onNext(payload: Payload, isComplete: boolean): void {
             const { data } = payload;
-            const stringData = data.toString();
-            const deserializedData = JSON.parse(stringData);
-            observer.next(deserializedData);
+            const decoded = data.toString();
+            const deserialized = JSON.parse(decoded);
+            observer.next(deserialized);
             observer.complete();
           },
         }

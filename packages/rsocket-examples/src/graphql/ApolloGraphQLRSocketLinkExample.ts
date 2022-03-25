@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { RSocket, RSocketConnector, RSocketServer } from "@rsocket/core";
+import { RSocketConnector, RSocketServer } from "@rsocket/core";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
@@ -70,34 +70,14 @@ function makeConnector() {
   });
 }
 
-async function requestResponse(rsocket: RSocket) {
-  return new Promise((resolve, reject) => {
-    return rsocket.requestResponse(
-      {
-        data: Buffer.from("Hello World"),
-      },
-      {
-        onError: (e) => {
-          reject(e);
-        },
-        onNext: (payload, isComplete) => {
-          console.log(
-            `payload[data: ${payload.data}; metadata: ${payload.metadata}]|${isComplete}`
-          );
-          resolve(payload);
-        },
-        onComplete: () => {},
-        onExtension: () => {},
-      }
-    );
-  });
-}
-
 async function main() {
   // server setup
   const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
+    context: ({ payload }) => ({
+      test: 1,
+    }),
   });
   await apolloServer.start();
 
@@ -105,6 +85,9 @@ async function main() {
     handler: apolloServer.getHandler(),
   });
   serverCloseable = await server.bind();
+  serverCloseable.onClose(() => {
+    apolloServer.stop();
+  });
 
   // client setup
   const connector = makeConnector();
@@ -117,15 +100,15 @@ async function main() {
 
   const result = await client.query({
     query: gql`
-      query Echo {
-        message
+      query MyEchoQuery {
+        echo {
+          message
+        }
       }
     `,
   });
 
   console.log(result);
-
-  await requestResponse(rsocket);
 }
 
 main()

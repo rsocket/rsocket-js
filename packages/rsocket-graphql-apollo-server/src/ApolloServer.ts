@@ -1,4 +1,8 @@
-import { ApolloServerBase, GraphQLOptions } from "apollo-server-core";
+import {
+  ApolloServerBase,
+  GraphQLOptions,
+  runHttpQuery,
+} from "apollo-server-core";
 import {
   Cancellable,
   OnExtensionSubscriber,
@@ -7,6 +11,7 @@ import {
   Payload,
   RSocket,
 } from "@rsocket/core";
+import { Headers, Request } from "apollo-server-env";
 
 export interface RSocketContext {
   payload: Payload;
@@ -22,14 +27,43 @@ export class ApolloServer<
 
   public getHandler(): Partial<RSocket> {
     return {
-      requestResponse(
+      requestResponse: (
         payload: Payload,
         responderStream: OnTerminalSubscriber &
           OnNextSubscriber &
           OnExtensionSubscriber
-      ): Cancellable & OnExtensionSubscriber {
-        const { data } = payload;
-        console.log(data);
+      ): Cancellable & OnExtensionSubscriber => {
+        const handle = async () => {
+          try {
+            const { data } = payload;
+            const decoded = data.toString();
+            const deserialized = JSON.parse(decoded);
+
+            const { graphqlResponse } = await runHttpQuery([], {
+              method: "POST",
+              options: () => {
+                return this.createGraphQLServerOptions(payload);
+              },
+              query: deserialized,
+              request: new Request("/graphql", {
+                headers: new Headers(),
+                method: "POST",
+              }),
+            });
+
+            responderStream.onNext(
+              {
+                data: Buffer.from(graphqlResponse),
+              },
+              true
+            );
+          } catch (e) {
+            responderStream.onError(e);
+          }
+        };
+
+        handle();
+
         return {
           cancel(): void {},
           onExtension(): void {},
