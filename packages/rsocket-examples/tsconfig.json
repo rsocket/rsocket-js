@@ -3,5 +3,7 @@
 
   "compilerOptions": {
     "downlevelIteration": true,
+    "sourceMap": true,
+    "target": "ESNext"
   }
 }
