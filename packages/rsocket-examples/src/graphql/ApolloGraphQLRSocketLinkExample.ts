@@ -76,9 +76,6 @@ async function main() {
   const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ payload }) => ({
-      test: 1,
-    }),
   });
   await apolloServer.start();
 
