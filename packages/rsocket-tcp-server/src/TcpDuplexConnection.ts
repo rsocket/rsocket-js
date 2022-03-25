@@ -71,6 +71,10 @@ export class TcpDuplexConnection
     this.socket.off("error", this.handleError);
     this.socket.off("data", this.handleData);
 
+    // TODO: should this be destroy instead of end()?
+    //   apparently client can still send data after calling end()
+    //   and socket will never fully close until peer closes their end.
+    //   ex: the above is a problem when connected to a .Net TCP socket
     this.socket.end();
 
     delete this.socket;

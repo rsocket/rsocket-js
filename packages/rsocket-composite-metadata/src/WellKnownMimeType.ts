@@ -145,7 +145,7 @@ export namespace WellKnownMimeType {
     0x11
   );
   export const AUDIO_OPUS: WellKnownMimeType = new WellKnownMimeType(
-    "audio/opus",
+    "audio/ogg",
     0x12
   );
   export const AUDIO_VORBIS: WellKnownMimeType = new WellKnownMimeType(

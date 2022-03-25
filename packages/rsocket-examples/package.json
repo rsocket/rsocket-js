@@ -14,9 +14,11 @@
     "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleTcp.ts",
     "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts",
     "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts",
-    "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts"
+    "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts",
+    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/ApolloGraphQLRSocketLinkExample.ts"
   },
   "dependencies": {
+    "@apollo/client": "^3.5.10",
     "@rsocket/adapter-rxjs": "^1.0.0-alpha.1",
     "@rsocket/composite-metadata": "^1.0.0-alpha.1",
     "@rsocket/core": "^1.0.0-alpha.1",
@@ -24,6 +26,7 @@
     "@rsocket/transport-tcp-server": "^1.0.0-alpha.1",
     "@rsocket/transport-websocket-client": "^1.0.0-alpha.1",
     "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
+    "graphql-tag": "^2.12.6",
     "ws": "~8.2.3"
   },
   "devDependencies": {
