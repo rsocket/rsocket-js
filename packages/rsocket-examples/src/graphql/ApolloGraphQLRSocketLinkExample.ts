@@ -61,21 +61,20 @@ const resolvers = {
   },
   Subscription: {
     echo: {
-      // TODO: why is message undefined here?
+      // subscribe must return an AsyncIterator
+      // https://www.apollographql.com/docs/apollo-server/data/subscriptions/#resolving-a-subscription
       subscribe: async function* (parent, args, context, info) {
+        // TODO: why is message argument undefined here?
         const { message } = args;
         for await (const _ of [0, 0, 0]) {
-          yield { message };
+          yield {
+            echo: {
+              message,
+            },
+          };
         }
       },
     },
-    // hello: {
-    //   subscribe: async function* () {
-    //     for await (const word of ["Hello", "Bonjour", "Ciao"]) {
-    //       yield { hello: word };
-    //     }
-    //   },
-    // },
   },
 };
 
