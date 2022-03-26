@@ -14,16 +14,27 @@
  * limitations under the License.
  */
 
-import { RSocketConnector, RSocketServer } from "@rsocket/core";
+import { RSocket, RSocketConnector, RSocketServer } from "@rsocket/core";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
-import { ApolloGraphQLRSocketLink } from "@rsocket/graphql-apollo-link";
+import {
+  ApolloGraphQLRSocketLink,
+  SubscriptionLink,
+} from "@rsocket/graphql-apollo-link";
 import { ApolloServer } from "@rsocket/graphql-apollo-server";
-import { ApolloClient, InMemoryCache } from "@apollo/client/core";
+import {
+  ApolloClient,
+  InMemoryCache,
+  NormalizedCacheObject,
+  Observable,
+  split,
+} from "@apollo/client/core";
 import gql from "graphql-tag";
+import { getMainDefinition } from "@apollo/client/utilities";
 
-let serverCloseable;
+let apolloServer: ApolloServer;
+let rsocketClient: RSocket;
 
 const typeDefs = gql`
   type Echo {
@@ -31,6 +42,10 @@ const typeDefs = gql`
   }
 
   type Query {
+    echo(message: String): Echo
+  }
+
+  type Subscription {
     echo(message: String): Echo
   }
 `;
@@ -44,9 +59,27 @@ const resolvers = {
       };
     },
   },
+  Subscription: {
+    echo: {
+      // TODO: why is message undefined here?
+      subscribe: async function* (parent, args, context, info) {
+        const { message } = args;
+        for await (const _ of [0, 0, 0]) {
+          yield { message };
+        }
+      },
+    },
+    // hello: {
+    //   subscribe: async function* () {
+    //     for await (const word of ["Hello", "Bonjour", "Ciao"]) {
+    //       yield { hello: word };
+    //     }
+    //   },
+    // },
+  },
 };
 
-function makeServer({ handler }) {
+function makeRSocketServer({ handler }) {
   return new RSocketServer({
     transport: new TcpServerTransport({
       listenOptions: {
@@ -71,32 +104,8 @@ function makeConnector() {
   });
 }
 
-async function main() {
-  // server setup
-  const apolloServer = new ApolloServer({
-    typeDefs,
-    resolvers,
-  });
-  await apolloServer.start();
-
-  const server = makeServer({
-    handler: apolloServer.getHandler(),
-  });
-  serverCloseable = await server.bind();
-  serverCloseable.onClose(() => {
-    apolloServer.stop();
-  });
-
-  // client setup
-  const connector = makeConnector();
-  const rsocket = await connector.connect();
-
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-    link: new ApolloGraphQLRSocketLink(rsocket),
-  });
-
-  const result = await client.query({
+async function runQuery(client: ApolloClient<NormalizedCacheObject>) {
+  const queryResult = await client.query({
     variables: {
       message: "Hello World",
     },
@@ -109,15 +118,96 @@ async function main() {
     `,
   });
 
-  console.log(result);
+  console.log(queryResult);
+}
+
+async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
+  let observable = client.subscribe({
+    variables: {
+      message: "Hello World",
+    },
+    query: gql`
+      subscription EchoSubscription {
+        echo(message: $message) {
+          message
+        }
+      }
+    `,
+  });
+
+  return new Promise((resolve, reject) => {
+    observable.subscribe({
+      next(x) {
+        console.log(x);
+      },
+      error(err) {
+        console.log(`Finished with error: ${err}`);
+      },
+      complete() {
+        console.log("Finished");
+        resolve(null);
+      },
+    });
+  });
+}
+
+async function main() {
+  // server setup
+  apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+    plugins: [
+      {
+        async serverWillStart() {
+          let rSocketServer = makeRSocketServer({
+            handler: apolloServer.getHandler(),
+          });
+          let closeable = await rSocketServer.bind();
+          return {
+            async drainServer() {
+              closeable.close();
+            },
+          };
+        },
+      },
+    ],
+  });
+  await apolloServer.start();
+
+  // client setup
+  const connector = makeConnector();
+  rsocketClient = await connector.connect();
+
+  const queryLink = new ApolloGraphQLRSocketLink(rsocketClient);
+  const subscriptionLink = new SubscriptionLink(rsocketClient);
+
+  const splitLink = split(
+    ({ query }) => {
+      const definition = getMainDefinition(query);
+      return (
+        definition.kind === "OperationDefinition" &&
+        definition.operation === "subscription"
+      );
+    },
+    subscriptionLink,
+    queryLink
+  );
+
+  const client = new ApolloClient({
+    cache: new InMemoryCache(),
+    link: splitLink,
+  });
+
+  await runQuery(client);
+  await runSubscription(client);
 }
 
 main()
-  .then(() => exit())
   .catch((error: Error) => {
     console.error(error);
     exit(1);
   })
-  .finally(() => {
-    serverCloseable.close();
+  .finally(async () => {
+    await apolloServer.stop();
+    rsocketClient.close();
   });
