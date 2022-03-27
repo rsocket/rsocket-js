@@ -27,7 +27,6 @@ import {
   ApolloClient,
   InMemoryCache,
   NormalizedCacheObject,
-  Observable,
   split,
 } from "@apollo/client/core";
 import gql from "graphql-tag";
@@ -64,12 +63,11 @@ const resolvers = {
       // subscribe must return an AsyncIterator
       // https://www.apollographql.com/docs/apollo-server/data/subscriptions/#resolving-a-subscription
       subscribe: async function* (parent, args, context, info) {
-        // TODO: why is message argument undefined here?
         const { message } = args;
-        for await (const _ of [0, 0, 0]) {
+        for await (const num of [1, 2, 3]) {
           yield {
             echo: {
-              message,
+              message: `${message} ${num}`,
             },
           };
         }
@@ -143,7 +141,6 @@ async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
         console.log(`Finished with error: ${err}`);
       },
       complete() {
-        console.log("Finished");
         resolve(null);
       },
     });
@@ -171,6 +168,7 @@ async function main() {
       },
     ],
   });
+
   await apolloServer.start();
 
   // client setup
@@ -197,7 +195,10 @@ async function main() {
     link: splitLink,
   });
 
+  console.log("\nQuery Results:");
   await runQuery(client);
+
+  console.log("\nSubscription Results:");
   await runSubscription(client);
 }
 
