@@ -126,7 +126,7 @@ async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
       message: "Hello World",
     },
     query: gql`
-      subscription EchoSubscription {
+      subscription EchoSubscription($message: String) {
         echo(message: $message) {
           message
         }
