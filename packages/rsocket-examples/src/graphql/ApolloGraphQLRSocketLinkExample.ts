@@ -18,19 +18,10 @@ import { RSocket, RSocketConnector, RSocketServer } from "@rsocket/core";
 import { TcpClientTransport } from "@rsocket/transport-tcp-client";
 import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
-import {
-  ApolloGraphQLRSocketLink,
-  SubscriptionLink,
-} from "@rsocket/graphql-apollo-link";
+import { makeRSocketLink } from "@rsocket/graphql-apollo-link";
 import { ApolloServer } from "@rsocket/graphql-apollo-server";
-import {
-  ApolloClient,
-  InMemoryCache,
-  NormalizedCacheObject,
-  split,
-} from "@apollo/client/core";
+import { ApolloClient, InMemoryCache, NormalizedCacheObject } from "@apollo/client/core";
 import gql from "graphql-tag";
-import { getMainDefinition } from "@apollo/client/utilities";
 
 let apolloServer: ApolloServer;
 let rsocketClient: RSocket;
@@ -147,16 +138,15 @@ async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
   });
 }
 
-async function main() {
-  // server setup
-  apolloServer = new ApolloServer({
+function makeApolloServer() {
+  const server = new ApolloServer({
     typeDefs,
     resolvers,
     plugins: [
       {
         async serverWillStart() {
           let rSocketServer = makeRSocketServer({
-            handler: apolloServer.getHandler(),
+            handler: server.getHandler(),
           });
           let closeable = await rSocketServer.bind();
           return {
@@ -168,38 +158,34 @@ async function main() {
       },
     ],
   });
+  return server;
+}
 
+function makeApolloClient({ rsocketClient }) {
+  return new ApolloClient({
+    cache: new InMemoryCache(),
+    link: makeRSocketLink({
+      rsocket: rsocketClient,
+    }),
+  });
+}
+
+async function main() {
+  // server setup
+  apolloServer = makeApolloServer();
   await apolloServer.start();
 
   // client setup
   const connector = makeConnector();
   rsocketClient = await connector.connect();
 
-  const queryLink = new ApolloGraphQLRSocketLink(rsocketClient);
-  const subscriptionLink = new SubscriptionLink(rsocketClient);
-
-  const splitLink = split(
-    ({ query }) => {
-      const definition = getMainDefinition(query);
-      return (
-        definition.kind === "OperationDefinition" &&
-        definition.operation === "subscription"
-      );
-    },
-    subscriptionLink,
-    queryLink
-  );
-
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-    link: splitLink,
-  });
+  const apolloClient = makeApolloClient({ rsocketClient });
 
   console.log("\nQuery Results:");
-  await runQuery(client);
+  await runQuery(apolloClient);
 
   console.log("\nSubscription Results:");
-  await runSubscription(client);
+  await runSubscription(apolloClient);
 }
 
 main()
