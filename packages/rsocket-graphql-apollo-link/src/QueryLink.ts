@@ -25,7 +25,7 @@ import {
 import { Payload, RSocket } from "@rsocket/core";
 import { print } from "graphql";
 
-export class ApolloGraphQLRSocketLink extends ApolloLink {
+export class QueryLink extends ApolloLink {
   constructor(public readonly client: RSocket) {
     super();
   }

@@ -34,14 +34,7 @@ export type SubscribeOperation = {
   extensions: Record<string, any>;
 };
 
-export interface SubscriptionClient {
-  subscribe<Data = Record<string, unknown>, Extensions = unknown>(
-    operation: SubscribeOperation,
-    observer: Observer<ExecutionResult<Data, Extensions>>
-  ): () => void;
-}
-
-export class SubscriptionClientImpl implements SubscriptionClient {
+export class SubscriptionClient {
   constructor(public readonly client: RSocket) {}
 
   subscribe<Data = Record<string, unknown>, Extensions = unknown>(
@@ -73,7 +66,7 @@ export class SubscriptionClientImpl implements SubscriptionClient {
       }
     );
 
-    return function () {};
+    return () => {};
   }
 }
 
@@ -81,7 +74,7 @@ export class SubscriptionLink extends ApolloLink {
   private client: SubscriptionClient;
   constructor(client: RSocket) {
     super();
-    this.client = new SubscriptionClientImpl(client);
+    this.client = new SubscriptionClient(client);
   }
 
   public request(operation: Operation): Observable<FetchResult> | null {
