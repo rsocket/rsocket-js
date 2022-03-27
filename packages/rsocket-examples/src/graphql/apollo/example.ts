@@ -20,52 +20,17 @@ import { TcpServerTransport } from "@rsocket/transport-tcp-server";
 import { exit } from "process";
 import { makeRSocketLink } from "@rsocket/graphql-apollo-link";
 import { ApolloServer } from "@rsocket/graphql-apollo-server";
-import { ApolloClient, InMemoryCache, NormalizedCacheObject } from "@apollo/client/core";
+import {
+  ApolloClient,
+  InMemoryCache,
+  NormalizedCacheObject,
+} from "@apollo/client/core";
 import gql from "graphql-tag";
+import { resolvers } from "./resolvers";
+import { typeDefs } from "./typedefs";
 
 let apolloServer: ApolloServer;
 let rsocketClient: RSocket;
-
-const typeDefs = gql`
-  type Echo {
-    message: String
-  }
-
-  type Query {
-    echo(message: String): Echo
-  }
-
-  type Subscription {
-    echo(message: String): Echo
-  }
-`;
-
-const resolvers = {
-  Query: {
-    echo: (parent, args, context, info) => {
-      const { message } = args;
-      return {
-        message,
-      };
-    },
-  },
-  Subscription: {
-    echo: {
-      // subscribe must return an AsyncIterator
-      // https://www.apollographql.com/docs/apollo-server/data/subscriptions/#resolving-a-subscription
-      subscribe: async function* (parent, args, context, info) {
-        const { message } = args;
-        for await (const num of [1, 2, 3]) {
-          yield {
-            echo: {
-              message: `${message} ${num}`,
-            },
-          };
-        }
-      },
-    },
-  },
-};
 
 function makeRSocketServer({ handler }) {
   return new RSocketServer({
@@ -81,13 +46,45 @@ function makeRSocketServer({ handler }) {
   });
 }
 
-function makeConnector() {
+function makeRSocketConnector() {
   return new RSocketConnector({
     transport: new TcpClientTransport({
       connectionOptions: {
         host: "127.0.0.1",
         port: 9090,
       },
+    }),
+  });
+}
+
+function makeApolloServer({ typeDefs, resolvers }) {
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    plugins: [
+      {
+        async serverWillStart() {
+          let rSocketServer = makeRSocketServer({
+            handler: server.getHandler(),
+          });
+          let closeable = await rSocketServer.bind();
+          return {
+            async drainServer() {
+              closeable.close();
+            },
+          };
+        },
+      },
+    ],
+  });
+  return server;
+}
+
+function makeApolloClient({ rsocketClient }) {
+  return new ApolloClient({
+    cache: new InMemoryCache(),
+    link: makeRSocketLink({
+      rsocket: rsocketClient,
     }),
   });
 }
@@ -138,45 +135,13 @@ async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
   });
 }
 
-function makeApolloServer() {
-  const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    plugins: [
-      {
-        async serverWillStart() {
-          let rSocketServer = makeRSocketServer({
-            handler: server.getHandler(),
-          });
-          let closeable = await rSocketServer.bind();
-          return {
-            async drainServer() {
-              closeable.close();
-            },
-          };
-        },
-      },
-    ],
-  });
-  return server;
-}
-
-function makeApolloClient({ rsocketClient }) {
-  return new ApolloClient({
-    cache: new InMemoryCache(),
-    link: makeRSocketLink({
-      rsocket: rsocketClient,
-    }),
-  });
-}
-
 async function main() {
   // server setup
-  apolloServer = makeApolloServer();
+  apolloServer = makeApolloServer({ typeDefs, resolvers });
   await apolloServer.start();
 
   // client setup
-  const connector = makeConnector();
+  const connector = makeRSocketConnector();
   rsocketClient = await connector.connect();
 
   const apolloClient = makeApolloClient({ rsocketClient });
