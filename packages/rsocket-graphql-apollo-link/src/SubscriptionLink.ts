@@ -41,7 +41,7 @@ export class SubscriptionClient {
     operation: SubscribeOperation,
     observer: Observer<ExecutionResult<Data, Extensions>>
   ): () => void {
-    this.client.requestStream(
+    let requestStream = this.client.requestStream(
       {
         data: Buffer.from(JSON.stringify(operation)),
       },
@@ -66,7 +66,9 @@ export class SubscriptionClient {
       }
     );
 
-    return () => {};
+    return () => {
+      requestStream.cancel();
+    };
   }
 }
 
