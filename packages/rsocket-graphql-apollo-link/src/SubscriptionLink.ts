@@ -81,10 +81,11 @@ export class SubscriptionLink extends ApolloLink {
 
   public request(operation: Operation): Observable<FetchResult> | null {
     return new Observable<FetchResult>((observer) => {
+      const serializedQuery = print(operation.query);
       return this.client.subscribe(
         {
           ...operation,
-          query: print(operation.query),
+          query: serializedQuery,
         },
         {
           next(value: ExecutionResult) {
