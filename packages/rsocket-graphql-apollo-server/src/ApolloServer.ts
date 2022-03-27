@@ -21,10 +21,16 @@ export interface RSocketContext {
   payload: Payload;
 }
 
-export function isAsyncIterable<T = unknown>(
-  val: unknown
-): val is AsyncIterable<T> {
-  return typeof Object(val)[Symbol.asyncIterator] === "function";
+export function isObject(val: unknown): val is Record<PropertyKey, unknown> {
+  return typeof val === "object" && val !== null;
+}
+
+function isAsyncGenerator<T = unknown>(val: unknown): val is AsyncGenerator<T> {
+  return (
+    isObject(val) &&
+    typeof Object(val)[Symbol.asyncIterator] === "function" &&
+    typeof val.return === "function"
+  );
 }
 
 export class ApolloServer<
@@ -53,23 +59,15 @@ export class ApolloServer<
           OnNextSubscriber &
           OnExtensionSubscriber
       ): Cancellable & OnExtensionSubscriber => {
+        let cancelled = false;
+
         (async () => {
           try {
-            const { data } = payload;
-            const decoded = data.toString();
-            const deserialized = JSON.parse(decoded);
+            const graphqlResponse = await this.runQueryOperation(payload);
 
-            const { graphqlResponse } = await runHttpQuery([], {
-              method: "POST",
-              options: () => {
-                return this.createGraphQLServerOptions(payload);
-              },
-              query: deserialized,
-              request: new Request("/graphql", {
-                headers: new Headers(),
-                method: "POST",
-              }),
-            });
+            if (cancelled) {
+              return;
+            }
 
             responderStream.onNext(
               {
@@ -83,7 +81,9 @@ export class ApolloServer<
         })();
 
         return {
-          cancel(): void {},
+          cancel(): void {
+            cancelled = true;
+          },
           onExtension(): void {},
         };
       },
@@ -96,22 +96,11 @@ export class ApolloServer<
           OnNextSubscriber &
           OnExtensionSubscriber
       ): Requestable & Cancellable & OnExtensionSubscriber => {
+        let operationResult;
         (async () => {
           try {
-            const { data } = payload;
-            const decoded = data.toString();
-            const deserialized = JSON.parse(decoded);
-            const options = await this.createGraphQLServerOptions(payload);
-            const document = parse(deserialized.query, options.parseOptions);
-            const executionOptions = {
-              document,
-              operationName: deserialized.operationName,
-              schema: this.schema,
-              variableValues: deserialized.variables,
-              contextValue: options.context,
-            };
-            const operationResult = await subscribe(executionOptions);
-            if (isAsyncIterable(operationResult)) {
+            operationResult = await this.runSubscribeOperation(payload);
+            if (isAsyncGenerator(operationResult)) {
               for await (const result of operationResult) {
                 const serialized = JSON.stringify(result);
                 const encoded = Buffer.from(serialized);
@@ -123,22 +112,73 @@ export class ApolloServer<
                 );
               }
               responderStream.onComplete();
+            } else {
+              if (operationResult.errors) {
+                /*
+                 * TODO: What is needed for proper error handling?
+                 *   Sending Error frame may not be correct as error frame only
+                 *   includes message, not data, and thus `operationResult.errors`
+                 *   will be lost.
+                 */
+                // responderStream.onError(
+                //   new ApolloError({
+                //     graphQLErrors: operationResult.errors,
+                //   })
+                // );
+                responderStream.onError(
+                  new Error("Unhandled operation result errors.")
+                );
+              }
             }
           } catch (e) {
             responderStream.onError(e);
           }
-
-          // console.log(operationResult);
-          // if (!operationResult.errors) {
-          //
-          // }
         })();
+
         return {
-          cancel(): void {},
+          cancel(): void {
+            if (operationResult && isAsyncGenerator(operationResult)) {
+              operationResult.return(undefined);
+            }
+          },
           onExtension(): void {},
           request(requestN: number): void {},
         };
       },
     };
+  }
+
+  private async runQueryOperation(payload: Payload) {
+    const { data } = payload;
+    const decoded = data.toString();
+    const deserialized = JSON.parse(decoded);
+
+    const { graphqlResponse } = await runHttpQuery([], {
+      method: "POST",
+      options: () => {
+        return this.createGraphQLServerOptions(payload);
+      },
+      query: deserialized,
+      request: new Request("/graphql", {
+        headers: new Headers(),
+        method: "POST",
+      }),
+    });
+    return graphqlResponse;
+  }
+
+  private async runSubscribeOperation(payload: Payload) {
+    const { data } = payload;
+    const decoded = data.toString();
+    const deserialized = JSON.parse(decoded);
+    const options = await this.createGraphQLServerOptions(payload);
+    const document = parse(deserialized.query, options.parseOptions);
+    return await subscribe({
+      document,
+      operationName: deserialized.operationName,
+      schema: this.schema,
+      variableValues: deserialized.variables,
+      contextValue: options.context,
+    });
   }
 }
