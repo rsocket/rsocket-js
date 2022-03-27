@@ -155,25 +155,25 @@ async function main() {
     `,
     {
       next(data) {
-        console.log("Message created:", data);
+        console.log("subscription event:", data);
       },
       error(err) {
-        console.log(`Subscription error: ${err}`);
+        console.log(`subscription error: ${err}`);
       },
       complete() {},
     }
   );
 
   await sendMessage(apolloClient, {
-    message: "My first message",
+    message: "my first message",
   });
 
   await sendMessage(apolloClient, {
-    message: "My second message",
+    message: "my second message",
   });
 
   await sendMessage(apolloClient, {
-    message: "My third message",
+    message: "my third message",
   });
 
   subscription.unsubscribe();
