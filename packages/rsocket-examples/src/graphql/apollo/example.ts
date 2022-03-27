@@ -27,10 +27,18 @@ import {
 } from "@apollo/client/core";
 import gql from "graphql-tag";
 import { resolvers } from "./resolvers";
-import { typeDefs } from "./typedefs";
+import { DocumentNode } from "@apollo/client";
+import * as fs from "fs";
+import path from "path";
 
 let apolloServer: ApolloServer;
 let rsocketClient: RSocket;
+
+function readSchema() {
+  return fs.readFileSync(path.join(__dirname, "schema.graphql"), {
+    encoding: "utf8",
+  });
+}
 
 function makeRSocketServer({ handler }) {
   return new RSocketServer({
@@ -89,54 +97,43 @@ function makeApolloClient({ rsocketClient }) {
   });
 }
 
-async function runQuery(client: ApolloClient<NormalizedCacheObject>) {
-  const queryResult = await client.query({
+async function sendMessage(
+  client: ApolloClient<NormalizedCacheObject>,
+  { message }: { message: String }
+) {
+  console.log("Sending message", { message });
+  await client.mutate({
     variables: {
-      message: "Hello World",
+      message,
     },
-    query: gql`
-      query MyEchoQuery($message: String) {
-        echo(message: $message) {
+    mutation: gql`
+      mutation CreateMessage($message: String) {
+        createMessage(message: $message) {
           message
         }
       }
     `,
   });
-
-  console.log(queryResult);
 }
 
-async function runSubscription(client: ApolloClient<NormalizedCacheObject>) {
-  let observable = client.subscribe({
-    variables: {
-      message: "Hello World",
-    },
-    query: gql`
-      subscription EchoSubscription($message: String) {
-        echo(message: $message) {
-          message
-        }
-      }
-    `,
-  });
-
-  return new Promise((resolve, reject) => {
-    observable.subscribe({
-      next(x) {
-        console.log(x);
+function subcribe(
+  client: ApolloClient<NormalizedCacheObject>,
+  query: DocumentNode,
+  observer
+) {
+  return client
+    .subscribe({
+      variables: {
+        message: "Hello World",
       },
-      error(err) {
-        console.log(`Finished with error: ${err}`);
-      },
-      complete() {
-        resolve(null);
-      },
-    });
-  });
+      query,
+    })
+    .subscribe(observer);
 }
 
 async function main() {
   // server setup
+  const typeDefs = readSchema();
   apolloServer = makeApolloServer({ typeDefs, resolvers });
   await apolloServer.start();
 
@@ -146,11 +143,40 @@ async function main() {
 
   const apolloClient = makeApolloClient({ rsocketClient });
 
-  console.log("\nQuery Results:");
-  await runQuery(apolloClient);
+  console.log("\nSubscribing to messages.");
+  let subscription = subcribe(
+    apolloClient,
+    gql`
+      subscription ChannelMessages {
+        messageCreated {
+          message
+        }
+      }
+    `,
+    {
+      next(data) {
+        console.log("Message created:", data);
+      },
+      error(err) {
+        console.log(`Subscription error: ${err}`);
+      },
+      complete() {},
+    }
+  );
 
-  console.log("\nSubscription Results:");
-  await runSubscription(apolloClient);
+  await sendMessage(apolloClient, {
+    message: "My first message",
+  });
+
+  await sendMessage(apolloClient, {
+    message: "My second message",
+  });
+
+  await sendMessage(apolloClient, {
+    message: "My third message",
+  });
+
+  subscription.unsubscribe();
 }
 
 main()

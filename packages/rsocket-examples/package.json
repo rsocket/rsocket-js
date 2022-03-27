@@ -27,6 +27,7 @@
     "@rsocket/transport-websocket-client": "^1.0.0-alpha.1",
     "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
     "graphql-tag": "^2.12.6",
+    "graphql-subscriptions": "^2.0.0",
     "ws": "~8.2.3"
   },
   "devDependencies": {
