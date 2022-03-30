@@ -23,7 +23,12 @@ import {
   Operation,
 } from "@apollo/client/core";
 import { Payload, RSocket } from "@rsocket/core";
-import { print } from "graphql";
+import {
+  encodeCompositeMetadata,
+  WellKnownMimeType,
+} from "@rsocket/composite-metadata";
+
+const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
 
 export class QueryLink extends ApolloLink {
   constructor(public readonly client: RSocket) {
@@ -31,23 +36,25 @@ export class QueryLink extends ApolloLink {
   }
 
   public request(operation: Operation): Observable<FetchResult> | null {
-    const { operationName, extensions, variables, query } = operation;
-    const body = {
-      operationName,
-      variables,
-      extensions,
-      query,
-    };
+    const metadata = new Map<WellKnownMimeType, Buffer>();
+    metadata.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
+      Buffer.from(APPLICATION_GRAPHQL_JSON)
+    );
+    const encodedMetadata = encodeCompositeMetadata(metadata);
+
     return new Observable<FetchResult>((observer) => {
       this.client.requestResponse(
         {
           // https://github.com/apollographql/apollo-client/blob/main/src/link/http/serializeFetchParameter.ts#L10
           data: Buffer.from(
+            // TODO: should include metadata mimetype data
             JSON.stringify({
               ...operation,
-              query: print(operation.query),
+              query: operation.query,
             })
           ),
+          metadata: encodedMetadata,
         },
         {
           onComplete(): void {},
