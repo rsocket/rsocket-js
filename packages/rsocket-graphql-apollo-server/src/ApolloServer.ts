@@ -51,19 +51,9 @@ export class ApolloServer<
           OnNextSubscriber &
           OnExtensionSubscriber
       ): Cancellable & OnExtensionSubscriber => {
-        const subscription = this.runQueryOperation(payload).subscribe({
-          next({ graphqlResponse }) {
-            responderStream.onNext(
-              {
-                data: Buffer.from(graphqlResponse),
-              },
-              true
-            );
-          },
-          error(e) {
-            responderStream.onError(e);
-          },
-        });
+        const subscription = this.runQueryOperation(payload).subscribe(
+          this.queryOperationSubscriber(responderStream)
+        );
 
         return {
           cancel(): void {
@@ -96,21 +86,22 @@ export class ApolloServer<
     };
   }
 
-  private subscriptionOperationSubscriber(
-    subscriber: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
+  private queryOperationSubscriber(
+    responderStream: OnTerminalSubscriber &
+      OnNextSubscriber &
+      OnExtensionSubscriber
   ) {
     return {
-      next(graphqlResponse) {
-        subscriber.onNext(
+      next({ graphqlResponse }) {
+        responderStream.onNext(
           {
-            data: Buffer.from(JSON.stringify(graphqlResponse))
+            data: Buffer.from(graphqlResponse),
           },
-          false
+          true
         );
       },
-      error() {},
-      complete() {
-        return subscriber.onComplete();
+      error(e) {
+        responderStream.onError(e);
       },
     };
   }
@@ -133,6 +124,25 @@ export class ApolloServer<
         })
       )
     );
+  }
+
+  private subscriptionOperationSubscriber(
+    subscriber: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber
+  ) {
+    return {
+      next(graphqlResponse) {
+        subscriber.onNext(
+          {
+            data: Buffer.from(JSON.stringify(graphqlResponse)),
+          },
+          false
+        );
+      },
+      error() {},
+      complete() {
+        return subscriber.onComplete();
+      },
+    };
   }
 
   private runSubscriptionOperation(
