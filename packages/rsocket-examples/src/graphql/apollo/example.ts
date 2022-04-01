@@ -118,17 +118,13 @@ async function sendMessage(
 
 function subcribe(
   client: ApolloClient<NormalizedCacheObject>,
-  query: DocumentNode,
-  observer
+  variables: Record<any, any>,
+  query: DocumentNode
 ) {
-  return client
-    .subscribe({
-      variables: {
-        message: "Hello World",
-      },
-      query,
-    })
-    .subscribe(observer);
+  return client.subscribe({
+    variables,
+    query,
+  });
 }
 
 async function main() {
@@ -146,23 +142,23 @@ async function main() {
   console.log("\nSubscribing to messages.");
   let subscription = subcribe(
     apolloClient,
+    {},
     gql`
       subscription ChannelMessages {
         messageCreated {
           message
         }
       }
-    `,
-    {
-      next(data) {
-        console.log("subscription event:", data);
-      },
-      error(err) {
-        console.log(`subscription error: ${err}`);
-      },
-      complete() {},
-    }
-  );
+    `
+  ).subscribe({
+    next(data) {
+      console.log("subscription event:", data);
+    },
+    error(err) {
+      console.log(`subscription error: ${err}`);
+    },
+    complete() {},
+  });
 
   await sendMessage(apolloClient, {
     message: "my first message",
