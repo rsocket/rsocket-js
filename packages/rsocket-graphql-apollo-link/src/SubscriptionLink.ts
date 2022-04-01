@@ -42,6 +42,7 @@ export class SubscriptionClient {
     observer: Observer<ExecutionResult<Data, Extensions>>
   ): () => void {
     let requestStream = this.client.requestStream(
+      // TODO: should include metadata mimetype data
       {
         data: Buffer.from(JSON.stringify(operation)),
       },
