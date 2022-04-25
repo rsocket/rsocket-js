@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/examples",
+  "name": "rsocket-examples",
   "version": "1.0.0-alpha.1",
   "private": true,
   "files": [
@@ -17,13 +17,13 @@
     "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts"
   },
   "dependencies": {
-    "@rsocket/adapter-rxjs": "^1.0.0-alpha.1",
-    "@rsocket/composite-metadata": "^1.0.0-alpha.1",
-    "@rsocket/core": "^1.0.0-alpha.1",
-    "@rsocket/transport-tcp-client": "^1.0.0-alpha.1",
-    "@rsocket/transport-tcp-server": "^1.0.0-alpha.1",
-    "@rsocket/transport-websocket-client": "^1.0.0-alpha.1",
-    "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.1",
+    "rsocket-composite-metadata": "^1.0.0-alpha.1",
+    "rsocket-core": "^1.0.0-alpha.1",
+    "rsocket-transport-tcp-client": "^1.0.0-alpha.1",
+    "rsocket-transport-tcp-server": "^1.0.0-alpha.1",
+    "rsocket-transport-websocket-client": "^1.0.0-alpha.1",
+    "rsocket-transport-websocket-server": "^1.0.0-alpha.1",
     "ws": "~8.2.3"
   },
   "devDependencies": {

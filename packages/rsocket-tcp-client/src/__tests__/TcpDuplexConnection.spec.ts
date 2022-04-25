@@ -11,7 +11,7 @@ import {
   Multiplexer,
   serializeFrameWithLength,
   SetupFrame,
-} from "@rsocket/core";
+} from "rsocket-core";
 import { MockSocket } from "../__mocks__/net";
 import { TcpDuplexConnection } from "../TcpDuplexConnection";
 
