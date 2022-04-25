@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/transport-tcp-client",
+  "name": "rsocket-transport-tcp-client",
   "version": "1.0.0-alpha.1",
   "main": "dist/index",
   "types": "dist/index",
