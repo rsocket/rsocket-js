@@ -14,9 +14,9 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "@rsocket/core": "^1.0.0-alpha.1",
-    "@rsocket/messaging": "^1.0.0-alpha.1",
-    "rxjs": "^7.5"
+    "rsocket-core": "^1.0.0-alpha.1",
+    "rsocket-messaging": "^1.0.0-alpha.1",
+    "rxjs": "^7.4.0"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
