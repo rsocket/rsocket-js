@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/composite-metadata",
+  "name": "rsocket-composite-metadata",
   "version": "1.0.0-alpha.1",
   "main": "dist/index",
   "types": "dist/index",
