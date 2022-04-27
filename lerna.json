@@ -4,5 +4,14 @@
   ],
   "version": "independent",
   "useWorkspaces": true,
-  "npmClient": "yarn"
+  "npmClient": "yarn",
+  "command": {
+    "publish": {
+      "message": "chore(release): release"
+    },
+    "version": {
+      "push": false,
+      "allowBranch": ["main", "1.0.x-alpha"]
+    }
+  }
 }
