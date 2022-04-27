@@ -2,6 +2,7 @@
   "name": "rsocket-js",
   "description": "A JavaScript implementation of the RSocket protocol (https://github.com/rsocket/rsocket).",
   "private": true,
+  "license": "Apache-2.0",
   "workspaces": [
     "packages/*"
   ],
