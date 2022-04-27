@@ -15,8 +15,15 @@
  */
 
 import { RSocketConnector, RSocketServer } from "@viglucciio/rsocket-core";
-import { Codec, RSocketRequester, RSocketResponder } from "@viglucciio/rsocket-messaging";
-import { RxRequestersFactory, RxRespondersFactory } from "@viglucciio/rsocket-adapter-rxjs";
+import {
+  Codec,
+  RSocketRequester,
+  RSocketResponder,
+} from "@viglucciio/rsocket-messaging";
+import {
+  RxRequestersFactory,
+  RxRespondersFactory,
+} from "@viglucciio/rsocket-adapter-rxjs";
 import { TcpClientTransport } from "@viglucciio/rsocket-transport-tcp-client";
 import { TcpServerTransport } from "@viglucciio/rsocket-transport-tcp-server";
 import { exit } from "process";
