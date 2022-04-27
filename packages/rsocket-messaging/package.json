@@ -1,5 +1,5 @@
 {
-  "name": "rsocket-messaging",
+  "name": "@viglucciio/rsocket-messaging",
   "version": "1.0.0-alpha.1",
   "main": "dist/index",
   "types": "dist/index",
@@ -14,8 +14,8 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "rsocket-composite-metadata": "^1.0.0-alpha.1",
-    "rsocket-core": "^1.0.0-alpha.1"
+    "@viglucciio/rsocket-composite-metadata": "^1.0.0-alpha.1",
+    "@viglucciio/rsocket-core": "^1.0.0-alpha.1"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",

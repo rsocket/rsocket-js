@@ -1,5 +1,5 @@
 {
-  "name": "rsocket-js",
+  "name": "@viglucciio/rsocket-js",
   "description": "A JavaScript implementation of the RSocket protocol (https://github.com/rsocket/rsocket).",
   "private": true,
   "workspaces": [
