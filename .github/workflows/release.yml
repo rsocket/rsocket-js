@@ -2,6 +2,12 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      shouldPublish:
+        description: 'Publish'
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   lint:
@@ -95,6 +101,7 @@ jobs:
         run: yarn build
 
   publish:
+    if: ${{ github.event.inputs.shouldPublish == 'true' }}
     needs:
       - lint
       - test
