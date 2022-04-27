@@ -15,7 +15,7 @@
  */
 
 import { RSocket, RSocketConnector } from "rsocket-core";
-import { TcpClientTransport } from "rsocket-transport-tcp-client";
+import { TcpClientTransport } from "rsocket-tcp-client";
 import { exit } from "process";
 
 let serverCloseable;
