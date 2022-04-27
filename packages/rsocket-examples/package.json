@@ -22,10 +22,10 @@
     "rsocket-adapter-rxjs": "^1.0.0-alpha.1",
     "rsocket-composite-metadata": "^1.0.0-alpha.1",
     "rsocket-core": "^1.0.0-alpha.1",
-    "rsocket-transport-tcp-client": "^1.0.0-alpha.1",
-    "rsocket-transport-tcp-server": "^1.0.0-alpha.1",
-    "rsocket-transport-websocket-client": "^1.0.0-alpha.1",
-    "rsocket-transport-websocket-server": "^1.0.0-alpha.1",
+    "rsocket-tcp-client": "^1.0.0-alpha.1",
+    "rsocket-tcp-server": "^1.0.0-alpha.1",
+    "rsocket-websocket-client": "^1.0.0-alpha.1",
+    "rsocket-websocket-server": "^1.0.0-alpha.1",
     "ws": "~8.2.3"
   },
   "devDependencies": {
