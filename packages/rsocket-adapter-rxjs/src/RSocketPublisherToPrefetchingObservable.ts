@@ -21,8 +21,8 @@ import {
   OnTerminalSubscriber,
   Payload,
   Requestable,
-} from "@viglucciio/rsocket-core";
-import { Codec } from "@viglucciio/rsocket-messaging";
+} from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 import {
   asyncScheduler,
   Observable,

@@ -25,7 +25,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrameWithLength,
-} from "@viglucciio/rsocket-core";
+} from "rsocket-core";
 import net from "net";
 
 export class TcpDuplexConnection

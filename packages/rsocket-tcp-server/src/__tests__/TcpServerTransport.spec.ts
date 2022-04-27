@@ -1,7 +1,7 @@
 // import { TcpDuplexConnection } from "../TcpDuplexConnection";
 // import sinon from "sinon";
 // import EventEmitter from "events";
-// import { DuplexConnection } from "@viglucciio/rsocket-core/src";
+// import { DuplexConnection } from "rsocket-core/src";
 
 describe("TcpClientTransport", function () {
   describe("connect", () => {

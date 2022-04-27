@@ -7,7 +7,7 @@ import {
   Demultiplexer,
   FrameHandler,
   Multiplexer,
-} from "@viglucciio/rsocket-core/src";
+} from "rsocket-core/src";
 import { mock } from "jest-mock-extended";
 
 describe("TcpClientTransport", function () {

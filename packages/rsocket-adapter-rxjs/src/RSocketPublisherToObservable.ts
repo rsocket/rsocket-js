@@ -20,8 +20,8 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
-} from "@viglucciio/rsocket-core";
-import { Codec } from "@viglucciio/rsocket-messaging";
+} from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 import { Observable, Subscriber, TeardownLogic, Unsubscribable } from "rxjs";
 
 export default class RSocketPublisherToObservable<T>
