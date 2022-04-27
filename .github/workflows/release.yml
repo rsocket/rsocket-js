@@ -1,7 +1,13 @@
-name: Release
+name: Test, Build, Release
 
 on:
   workflow_dispatch:
+    inputs:
+      shouldPublish:
+        description: 'Publish'
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   lint:
@@ -64,7 +70,11 @@ jobs:
       - name: Test
         run: yarn test
 
-  compile:
+  compile_publish:
+    needs:
+      - lint
+      - test
+
     runs-on: ubuntu-latest
 
     steps:
@@ -94,20 +104,7 @@ jobs:
       - name: Compile
         run: yarn build
 
-  publish:
-    needs:
-      - lint
-      - test
-      - compile
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Git Identity
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/$GITHUB_REPOSITORY
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: fregante/setup-git-user@v1
 
       - name: Set NPM Token
         run: echo //registry.npmjs.org/:_authToken=${NPM_TOKEN} > .npmrc
@@ -115,4 +112,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish
-        run: yarn lerna publish from-package --yes
+        if: ${{ github.event.inputs.shouldPublish == 'true' }}
+        run: yarn lerna publish from-package --yes --no-verify-access
+
