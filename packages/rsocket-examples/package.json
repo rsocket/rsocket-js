@@ -1,9 +1,11 @@
 {
   "name": "rsocket-examples",
   "version": "1.0.0-alpha.1",
+  "license": "Apache-2.0",
   "private": true,
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "clean": "rimraf -rf ./dist",
