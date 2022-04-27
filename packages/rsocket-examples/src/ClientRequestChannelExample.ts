@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { RSocketConnector } from "rsocket-core";
-import { WebsocketClientTransport } from "rsocket-transport-websocket-client";
+import { RSocketConnector } from "@viglucciio/rsocket-core";
+import { WebsocketClientTransport } from "@viglucciio/rsocket-transport-websocket-client";
 import { exit } from "process";
 import WebSocket from "ws";
 

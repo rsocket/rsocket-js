@@ -21,7 +21,7 @@ import {
   decodeRoutes,
   encodeRoutes,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
+} from "@viglucciio/rsocket-composite-metadata";
 import {
   Cancellable,
   ErrorCodes,
@@ -33,7 +33,7 @@ import {
   Requestable,
   RSocket,
   RSocketError,
-} from "rsocket-core";
+} from "@viglucciio/rsocket-core";
 
 export interface Codec<D> {
   mimeType: string;

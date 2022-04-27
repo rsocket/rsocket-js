@@ -25,7 +25,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrame,
-} from "rsocket-core";
+} from "@viglucciio/rsocket-core";
 
 export class WebsocketDuplexConnection
   extends Deferred

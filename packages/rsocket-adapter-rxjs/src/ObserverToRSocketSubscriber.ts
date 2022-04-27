@@ -19,8 +19,8 @@ import {
   OnExtensionSubscriber,
   OnNextSubscriber,
   OnTerminalSubscriber,
-} from "rsocket-core";
-import { Codec } from "rsocket-messaging";
+} from "@viglucciio/rsocket-core";
+import { Codec } from "@viglucciio/rsocket-messaging";
 import { Observer, Subscription } from "rxjs";
 
 export default class ObserverToRSocketSubscriber<T>

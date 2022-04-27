@@ -8,7 +8,7 @@ import {
   Multiplexer,
   serializeFrame,
   SetupFrame,
-} from "rsocket-core";
+} from "@viglucciio/rsocket-core";
 import { WebsocketDuplexConnection } from "../WebsocketDuplexConnection";
 import { MockSocket } from "../__mocks__/ws";
 

@@ -23,7 +23,7 @@ import {
   FrameHandler,
   Multiplexer,
   Outbound,
-} from "rsocket-core";
+} from "@viglucciio/rsocket-core";
 import { WebsocketDuplexConnection } from "./WebsocketDuplexConnection";
 
 export type ClientOptions = {
