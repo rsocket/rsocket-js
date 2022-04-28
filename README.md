@@ -51,4 +51,4 @@ https://rsocket.io/guides/rsocket-js
 
 ## License
 
-TODO: add license
+See LICENSE file.
