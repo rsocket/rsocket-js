@@ -1,6 +1,7 @@
 {
   "name": "@rsocket/graphql-apollo-link",
   "version": "1.0.0-alpha.1",
+  "license": "Apache-2.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
