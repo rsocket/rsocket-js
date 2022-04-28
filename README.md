@@ -45,9 +45,11 @@ Packages are independently versioned.
 
 TODO: add `CONTRIBUTING.md`
 
-## Documentation
+## Documentation & Examples
 
-https://rsocket.io/guides/rsocket-js
+See [packages/rsocket-examples](https://github.com/rsocket/rsocket-js/tree/1.0.x-alpha/packages/rsocket-examples/src) for examples.
+
+Guides for `0.x.x` versions can be found on https://rsocket.io/guides/rsocket-js.
 
 ## License
 
