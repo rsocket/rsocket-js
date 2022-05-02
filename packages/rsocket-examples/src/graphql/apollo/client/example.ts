@@ -45,7 +45,7 @@ function makeApolloClient({ rsocketClient }) {
     cache: new InMemoryCache(),
     link: makeRSocketLink({
       rsocket: rsocketClient,
-      endpoint: "graphql",
+      route: "graphql",
     }),
   });
 }

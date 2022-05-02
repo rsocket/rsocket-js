@@ -40,7 +40,10 @@ export type SubscribeOperation = {
 };
 
 type SubscriptionLinkOptions = {
-  endpoint?: string;
+  /**
+   * The route that the RSocket server is listening for GraphQL messages on.
+   */
+  route?: string;
 };
 
 const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
@@ -60,10 +63,10 @@ export class SubscriptionClient {
       WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
       Buffer.from(APPLICATION_GRAPHQL_JSON)
     );
-    if (this.options?.endpoint) {
+    if (this.options?.route) {
       metadata.set(
         WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
-        encodeRoutes(this.options.endpoint)
+        encodeRoutes(this.options.route)
       );
     }
 

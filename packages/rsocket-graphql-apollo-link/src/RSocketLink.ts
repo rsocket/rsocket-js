@@ -22,12 +22,12 @@ import { RSocket } from "@rsocket/core";
 
 export type makeRSocketLinkConfig = {
   rsocket: RSocket;
-  endpoint?: string;
+  route?: string;
 };
 
 export const makeRSocketLink = ({
   rsocket,
-  endpoint,
+  route,
 }: makeRSocketLinkConfig) => {
   return split(
     ({ query }) => {
@@ -37,7 +37,7 @@ export const makeRSocketLink = ({
         definition.operation === "subscription"
       );
     },
-    new SubscriptionLink(rsocket, { endpoint }),
-    new QueryLink(rsocket, { endpoint })
+    new SubscriptionLink(rsocket, { route }),
+    new QueryLink(rsocket, { route })
   );
 };
