@@ -17,7 +17,8 @@
     "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts",
     "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts",
     "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts",
-    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/example.ts"
+    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/example.ts",
+    "start-client-server-apollo-graphql-spring": "ts-node -r tsconfig-paths/register src/graphql/apollo/spring-example.ts"
   },
   "dependencies": {
     "@apollo/client": "^3.5.10",
