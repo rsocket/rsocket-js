@@ -25,10 +25,7 @@ export type makeRSocketLinkConfig = {
   route?: string;
 };
 
-export const makeRSocketLink = ({
-  rsocket,
-  route,
-}: makeRSocketLinkConfig) => {
+export const makeRSocketLink = ({ rsocket, route }: makeRSocketLinkConfig) => {
   return split(
     ({ query }) => {
       const definition = getMainDefinition(query);
