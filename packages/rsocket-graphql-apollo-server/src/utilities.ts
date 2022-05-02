@@ -1,11 +1,10 @@
-import { Payload } from "@rsocket/core";
+import { Payload } from "rsocket-core";
 import {
   decodeCompositeMetadata,
   decodeRoutes,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
 import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
-import { print } from "graphql";
 
 const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
 
@@ -19,14 +18,7 @@ function hasGraphQLJsonMimeType(metadata: Map<string, any>) {
 export function parsePayloadForQuery(payload: Payload) {
   const { data } = payload;
   const decoded = data.toString();
-  const deserialized = JSON.parse(decoded);
-  const metadata = mapMetadata(payload);
-
-  const queryData = deserialized;
-  if (hasGraphQLJsonMimeType(metadata)) {
-    queryData.query = print(deserialized.query);
-  }
-  return queryData;
+  return JSON.parse(decoded);
 }
 
 export function mapMetadata(payload: Payload) {

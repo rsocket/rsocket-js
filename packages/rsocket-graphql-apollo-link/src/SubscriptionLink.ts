@@ -26,6 +26,11 @@ import {
 } from "@apollo/client/core";
 import { MAX_REQUEST_COUNT, Payload, RSocket } from "@rsocket/core";
 import { ExecutionResult, print } from "graphql";
+import {
+  encodeCompositeMetadata,
+  encodeRoutes,
+  WellKnownMimeType,
+} from "rsocket-composite-metadata";
 
 export type SubscribeOperation = {
   query: String;
@@ -34,17 +39,40 @@ export type SubscribeOperation = {
   extensions: Record<string, any>;
 };
 
+type SubscriptionLinkOptions = {
+  endpoint?: string;
+};
+
+const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
+
 export class SubscriptionClient {
-  constructor(public readonly client: RSocket) {}
+  constructor(
+    public readonly client: RSocket,
+    private readonly options: SubscriptionLinkOptions
+  ) {}
 
   subscribe<Data = Record<string, unknown>, Extensions = unknown>(
     operation: SubscribeOperation,
     observer: Observer<ExecutionResult<Data, Extensions>>
   ): () => void {
+    const metadata = new Map<WellKnownMimeType, Buffer>();
+    metadata.set(
+      WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
+      Buffer.from(APPLICATION_GRAPHQL_JSON)
+    );
+    if (this.options?.endpoint) {
+      metadata.set(
+        WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+        encodeRoutes(this.options.endpoint)
+      );
+    }
+
+    const encodedMetadata = encodeCompositeMetadata(metadata);
+
     let requestStream = this.client.requestStream(
-      // TODO: should include metadata mimetype data
       {
         data: Buffer.from(JSON.stringify(operation)),
+        metadata: encodedMetadata,
       },
       MAX_REQUEST_COUNT,
       {
@@ -75,9 +103,12 @@ export class SubscriptionClient {
 
 export class SubscriptionLink extends ApolloLink {
   private client: SubscriptionClient;
-  constructor(client: RSocket) {
+  constructor(
+    client: RSocket,
+    private readonly options: SubscriptionLinkOptions
+  ) {
     super();
-    this.client = new SubscriptionClient(client);
+    this.client = new SubscriptionClient(client, options);
   }
 
   public request(operation: Operation): Observable<FetchResult> | null {

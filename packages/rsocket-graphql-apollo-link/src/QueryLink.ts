@@ -22,38 +22,54 @@ import {
   Observable,
   Operation,
 } from "@apollo/client/core";
-import { Payload, RSocket } from "@rsocket/core";
+import { Payload, RSocket } from "rsocket-core";
 import {
   encodeCompositeMetadata,
+  encodeRoutes,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
+import { print } from "graphql";
 
 const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
 
+type QueryLinkOptions = {
+  endpoint?: string;
+};
+
 export class QueryLink extends ApolloLink {
-  constructor(public readonly client: RSocket) {
+  constructor(
+    public readonly client: RSocket,
+    public readonly options: QueryLinkOptions
+  ) {
     super();
   }
 
   public request(operation: Operation): Observable<FetchResult> | null {
+    const json = JSON.stringify({
+      ...operation,
+      // per spec query should be a string (https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md#example-1)
+      query: print(operation.query),
+    });
+    const encodedData = Buffer.from(json);
+
     const metadata = new Map<WellKnownMimeType, Buffer>();
     metadata.set(
       WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
       Buffer.from(APPLICATION_GRAPHQL_JSON)
     );
+    if (this.options?.endpoint) {
+      metadata.set(
+        WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+        encodeRoutes(this.options.endpoint)
+      );
+    }
+
     const encodedMetadata = encodeCompositeMetadata(metadata);
 
     return new Observable<FetchResult>((observer) => {
       this.client.requestResponse(
         {
-          // https://github.com/apollographql/apollo-client/blob/main/src/link/http/serializeFetchParameter.ts#L10
-          data: Buffer.from(
-            // TODO: should include metadata mimetype data
-            JSON.stringify({
-              ...operation,
-              query: operation.query,
-            })
-          ),
+          data: encodedData,
           metadata: encodedMetadata,
         },
         {
