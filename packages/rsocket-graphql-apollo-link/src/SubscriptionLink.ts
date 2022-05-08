@@ -46,8 +46,6 @@ type SubscriptionLinkOptions = {
   route?: string;
 };
 
-const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
-
 export class SubscriptionClient {
   constructor(
     public readonly client: RSocket,
@@ -61,7 +59,7 @@ export class SubscriptionClient {
     const metadata = new Map<WellKnownMimeType, Buffer>();
     metadata.set(
       WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
-      Buffer.from(APPLICATION_GRAPHQL_JSON)
+      Buffer.from(WellKnownMimeType.APPLICATION_JSON.toString())
     );
     if (this.options?.route) {
       metadata.set(

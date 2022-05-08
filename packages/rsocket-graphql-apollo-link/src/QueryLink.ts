@@ -30,8 +30,6 @@ import {
 } from "rsocket-composite-metadata";
 import { print } from "graphql";
 
-const APPLICATION_GRAPHQL_JSON = "application/graphql+json";
-
 type QueryLinkOptions = {
   /**
    * The route that the RSocket server is listening for GraphQL messages on.
@@ -58,7 +56,7 @@ export class QueryLink extends ApolloLink {
     const metadata = new Map<WellKnownMimeType, Buffer>();
     metadata.set(
       WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE,
-      Buffer.from(APPLICATION_GRAPHQL_JSON)
+      Buffer.from(WellKnownMimeType.APPLICATION_JSON.toString())
     );
     if (this.options?.route) {
       metadata.set(
