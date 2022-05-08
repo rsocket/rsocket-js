@@ -28,8 +28,7 @@ let rsocketClient: RSocket;
 function makeRSocketConnector() {
   return new RSocketConnector({
     setup: {
-      // TODO: dataMimeType value should come from WellKnownMimeType
-      dataMimeType: "application/graphql+json",
+      dataMimeType: WellKnownMimeType.APPLICATION_JSON.toString(),
       metadataMimeType:
         WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.toString(),
     },
