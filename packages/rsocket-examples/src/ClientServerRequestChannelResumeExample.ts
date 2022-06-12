@@ -33,7 +33,7 @@ async function main() {
   const server = new RSocketServer({
     transport: new TcpServerTransport({
       listenOptions: {
-        port: 8000,
+        port: 8001,
       },
     }),
     acceptor: {
