@@ -1,6 +1,6 @@
 {
   "name": "rsocket-examples",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "license": "Apache-2.0",
   "private": true,
   "files": [
@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@apollo/client": "^3.5.10",
-    "rsocket-adapter-rxjs": "^1.0.0-alpha.1",
-    "rsocket-composite-metadata": "^1.0.0-alpha.1",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.2",
+    "rsocket-composite-metadata": "^1.0.0-alpha.2",
     "rsocket-core": "^1.0.0-alpha.1",
     "rsocket-tcp-client": "^1.0.0-alpha.1",
     "rsocket-tcp-server": "^1.0.0-alpha.1",
