@@ -170,14 +170,14 @@ export function encodeCustomMetadataHeader(
   customMime: string,
   metadataLength: number
 ): Buffer {
+  // allocate one byte + the length of the mimetype
   const metadataHeader: Buffer = Buffer.allocUnsafe(4 + customMime.length);
-  // reserve 1 byte for the customMime length
-  // /!\ careful not to read that first byte, which is random at this point
-  // int writerIndexInitial = metadataHeader.writerIndex();
-  // metadataHeader.writerIndex(writerIndexInitial + 1);
+
+  // fill the buffer to clear previous memory
+  metadataHeader.fill(0);
 
   // write the custom mime in UTF8 but validate it is all ASCII-compatible
-  // (which produces the right result since ASCII chars are still encoded on 1 byte in UTF8)
+  // (which produces the correct result since ASCII chars are still encoded on 1 byte in UTF8)
   const customMimeLength: number = metadataHeader.write(customMime, 1);
   if (!isAscii(metadataHeader, 1)) {
     throw new Error("Custom mime type must be US_ASCII characters only");

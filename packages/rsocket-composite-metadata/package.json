@@ -16,7 +16,7 @@
     "clean": "rimraf -rf ./dist",
     "compile": "tsc -p tsconfig.build.json",
     "prepublishOnly": "yarn run build",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "yarn jest"
   },
   "dependencies": {
     "rsocket-core": "^1.0.0-alpha.1"
