@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`encodeWellKnownMetadataHeader encodes the header as per spec 1`] = `
+Array [
+  133,
+  0,
+  0,
+  16,
+]
+`;
