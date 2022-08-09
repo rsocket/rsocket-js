@@ -1,6 +1,6 @@
 {
   "name": "rsocket-messaging",
-  "version": "1.0.0-alpha-rxjs-adapter-optional-metadata.0",
+  "version": "1.0.0-alpha.3",
   "license": "Apache-2.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -19,8 +19,8 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "rsocket-composite-metadata": "^1.0.0-alpha-rxjs-adapter-optional-metadata.0",
-    "rsocket-core": "^1.0.0-alpha-rxjs-adapter-optional-metadata.0"
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
