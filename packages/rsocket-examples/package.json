@@ -1,6 +1,6 @@
 {
   "name": "rsocket-examples",
-  "version": "1.0.0-alpha-rxjs-adapter-optional-metadata.0",
+  "version": "1.0.0-alpha.3",
   "license": "Apache-2.0",
   "private": true,
   "files": [
@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "@apollo/client": "^3.5.10",
-    "rsocket-adapter-rxjs": "^1.0.0-alpha.2",
-    "rsocket-composite-metadata": "^1.0.0-alpha.2",
-    "rsocket-core": "^1.0.0-alpha.1",
-    "rsocket-tcp-client": "^1.0.0-alpha.1",
-    "rsocket-tcp-server": "^1.0.0-alpha.1",
-    "rsocket-websocket-client": "^1.0.0-alpha.1",
-    "rsocket-websocket-server": "^1.0.0-alpha.1",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.3",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-tcp-client": "^1.0.0-alpha.3",
+    "rsocket-tcp-server": "^1.0.0-alpha.3",
+    "rsocket-websocket-client": "^1.0.0-alpha.3",
+    "rsocket-websocket-server": "^1.0.0-alpha.3",
     "graphql-tag": "^2.12.6",
     "graphql-subscriptions": "^2.0.0",
     "ws": "~8.2.3"
