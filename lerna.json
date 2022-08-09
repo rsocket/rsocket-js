@@ -11,7 +11,7 @@
     },
     "version": {
       "push": false,
-      "allowBranch": ["main", "1.0.x-alpha", "feature/rxjs-adapter-optional-metadata"]
+      "allowBranch": ["main", "1.0.x-alpha"]
     }
   }
 }
