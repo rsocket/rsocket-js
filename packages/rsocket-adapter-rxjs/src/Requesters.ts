@@ -136,6 +136,7 @@ export function requestChannel<TData, RData>(
   rsocket: RSocket,
   metadata?: Map<string | number | WellKnownMimeType, Buffer>
 ) => Observable<RData> {
+  let once = false;
   const [firstValueObservable, restValuesObservable] = partition(
     datas.pipe(
       share({
@@ -143,7 +144,14 @@ export function requestChannel<TData, RData>(
         resetOnRefCountZero: true,
       })
     ),
-    (_value, index) => index === 0
+    (_value) => {
+      const previous = once;
+      if (!previous) {
+        once = true;
+      }
+
+      return !previous;
+    }
   );
 
   return (
