@@ -12,6 +12,12 @@ ex: `rsocket-adapter-rxjs@1.0.0-alpha.1`
 
 Lerna will not push the git tags after creation. You should push the git tags once you are confident in your changes.
 
+### Example
+
+```
+lerna version prerelease --sign-git-commit
+```
+
 ## Publishing
 
 The `Test, Build, Release` Workflow on GitHub can be run to [manually trigger](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow) publishing of packages to NPM. This workflow will only publish versions which do not already exist on NPM.
