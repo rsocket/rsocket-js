@@ -19,7 +19,7 @@ import { TcpClientTransport } from "rsocket-tcp-client";
 import { TcpServerTransport } from "rsocket-tcp-server";
 import { exit } from "process";
 import { makeRSocketLink } from "rsocket-graphql-apollo-link";
-import { ApolloServer } from "rsocket-graphql-apollo-server";
+import { RSocketApolloServer } from "rsocket-graphql-apollo-server";
 import {
   ApolloClient,
   InMemoryCache,
@@ -30,8 +30,9 @@ import { resolvers } from "./resolvers";
 import { DocumentNode } from "@apollo/client";
 import * as fs from "fs";
 import path from "path";
+import { RSocketApolloGraphlQLPlugin } from "rsocket-graphql-apollo-server/src/RSocketApolloGraphlQLPlugin";
 
-let apolloServer: ApolloServer;
+let apolloServer: RSocketApolloServer;
 let rsocketClient: RSocket;
 
 function readSchema() {
@@ -66,25 +67,13 @@ function makeRSocketConnector() {
 }
 
 function makeApolloServer({ typeDefs, resolvers }) {
-  const server = new ApolloServer({
+  const plugin = new RSocketApolloGraphlQLPlugin({ makeRSocketServer });
+  const server = new RSocketApolloServer({
     typeDefs,
     resolvers,
-    plugins: [
-      {
-        async serverWillStart() {
-          let rSocketServer = makeRSocketServer({
-            handler: server.getHandler(),
-          });
-          let closeable = await rSocketServer.bind();
-          return {
-            async drainServer() {
-              closeable.close();
-            },
-          };
-        },
-      },
-    ],
+    plugins: [() => plugin],
   });
+  plugin.setApolloServer(server);
   return server;
 }
 

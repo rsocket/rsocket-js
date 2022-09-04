@@ -1,1 +1,1 @@
-export { ApolloServer } from "./ApolloServer";
+export { RSocketApolloServer } from "./RSocketApolloServer";

@@ -24,7 +24,7 @@ export interface RSocketContext {
   payload: Payload;
 }
 
-export class ApolloServer<
+export class RSocketApolloServer<
   ContextFunctionParams = RSocketContext
 > extends ApolloServerBase<ContextFunctionParams> {
   private readonly schema: GraphQLSchema;
