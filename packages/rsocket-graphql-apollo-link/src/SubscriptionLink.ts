@@ -46,7 +46,7 @@ type SubscriptionLinkOptions = {
   route?: string;
 };
 
-export class SubscriptionClient {
+class SubscriptionClient {
   constructor(
     public readonly client: RSocket,
     private readonly options: SubscriptionLinkOptions

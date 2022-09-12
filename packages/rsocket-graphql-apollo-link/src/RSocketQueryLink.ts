@@ -37,7 +37,7 @@ type QueryLinkOptions = {
   route?: string;
 };
 
-export class QueryLink extends ApolloLink {
+export class RSocketQueryLink extends ApolloLink {
   constructor(
     public readonly client: RSocket,
     public readonly options: QueryLinkOptions

@@ -15,5 +15,5 @@
  */
 
 export { makeRSocketLink, makeRSocketLinkConfig } from "./RSocketLink";
-export { QueryLink } from "./QueryLink";
+export { RSocketQueryLink } from "./RSocketQueryLink";
 export { SubscriptionLink } from "./SubscriptionLink";
