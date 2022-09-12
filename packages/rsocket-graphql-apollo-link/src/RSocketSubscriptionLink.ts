@@ -32,7 +32,7 @@ import {
   WellKnownMimeType,
 } from "rsocket-composite-metadata";
 
-export type SubscribeOperation = {
+type SubscribeOperation = {
   query: String;
   variables: Record<string, any>;
   operationName: string;
@@ -102,7 +102,7 @@ class SubscriptionClient {
   }
 }
 
-export class SubscriptionLink extends ApolloLink {
+export class RSocketSubscriptionLink extends ApolloLink {
   private client: SubscriptionClient;
   constructor(
     client: RSocket,

@@ -17,7 +17,7 @@
 import { split } from "@apollo/client/core";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { RSocketQueryLink } from "./RSocketQueryLink";
-import { SubscriptionLink } from "./SubscriptionLink";
+import { RSocketSubscriptionLink } from "./RSocketSubscriptionLink";
 import { RSocket } from "rsocket-core";
 
 export type makeRSocketLinkConfig = {
@@ -34,7 +34,7 @@ export const makeRSocketLink = ({ rsocket, route }: makeRSocketLinkConfig) => {
         definition.operation === "subscription"
       );
     },
-    new SubscriptionLink(rsocket, { route }),
+    new RSocketSubscriptionLink(rsocket, { route }),
     new RSocketQueryLink(rsocket, { route })
   );
 };
