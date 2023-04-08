@@ -1,31 +1,34 @@
 {
-  "name": "@rsocket/examples",
-  "version": "1.0.0-alpha.1",
+  "name": "rsocket-examples",
+  "version": "1.0.0-alpha.4",
+  "license": "Apache-2.0",
   "private": true,
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "clean": "rimraf -rf ./dist",
     "start-client-request-channel": "ts-node -r tsconfig-paths/register src/ClientRequestChannelExample.ts",
     "start-client-server-request-channel-resume": "ts-node -r tsconfig-paths/register src/ClientServerRequestChannelResumeExample.ts",
     "start-client-request-fnf-with-lease": "ts-node -r tsconfig-paths/register src/ClienRequestFnfnWithLeaseExampleTcp.ts",
+    "start-client-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientCompositeMetadataRouteExample.ts",
     "start-client-server-request-stream-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestStreamExampleTCP.ts",
     "start-client-server-request-stream-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestStreamExampleWebSocket.ts",
     "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleTcp.ts",
     "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts",
     "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts",
-    "start-client-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientCompositeMetadataRouteExample.ts",
-    "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts"
+    "start-client-server-rxjs-messaging-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/RxjsMessagingCompositeMetadataRouteExample.ts",
+    "start-client-server-rxjs-requester-responder": "ts-node -r tsconfig-paths/register src/rxjs/RxjsRequesterResponderExample.ts"
   },
   "dependencies": {
-    "@rsocket/adapter-rxjs": "^1.0.0-alpha.1",
-    "@rsocket/composite-metadata": "^1.0.0-alpha.1",
-    "@rsocket/core": "^1.0.0-alpha.1",
-    "@rsocket/transport-tcp-client": "^1.0.0-alpha.1",
-    "@rsocket/transport-tcp-server": "^1.0.0-alpha.1",
-    "@rsocket/transport-websocket-client": "^1.0.0-alpha.1",
-    "@rsocket/transport-websocket-server": "^1.0.0-alpha.1",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-tcp-client": "^1.0.0-alpha.3",
+    "rsocket-tcp-server": "^1.0.0-alpha.3",
+    "rsocket-websocket-client": "^1.0.0-alpha.3",
+    "rsocket-websocket-server": "^1.0.0-alpha.3",
     "ws": "~8.2.3"
   },
   "devDependencies": {

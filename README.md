@@ -1,11 +1,3 @@
-## Under Development
-
-**This branch is a work in progress rewrite of rsocket-js from [Flow](https://flow.org/) to [TypeScript](https://www.typescriptlang.org/). Please see [#158](https://github.com/rsocket/rsocket-js/issues/158).**
-
-**You SHOULD NOT leverage any artifacts published from this branch as all are considered unstable.**
-
-**Please see the [master](https://github.com/rsocket/rsocket-js/tree/master) branch for source used to publish the latest `0.x.x` versions on NPM.**
-
 # [rsocket-js](https://github.com/rsocket/rsocket-js)
 
 [![Build](https://github.com/rsocket/rsocket-js/actions/workflows/build.yml/badge.svg?branch=1.0.x)](https://github.com/rsocket/rsocket-js/actions/workflows/build.yml)
@@ -26,18 +18,39 @@ protocol intended for use in browsers and/or Node.js. From [rsocket.io](http://r
 > - event subscription (infinite stream of many)
 > - channel (bi-directional streams)
 
-## Install
+## Status
 
-TODO: add install instructions
+This branch contains a rewrite (with significant changes) of rsocket-js from [Flow](https://flow.org/) to [TypeScript](https://www.typescriptlang.org/). Please see [#158](https://github.com/rsocket/rsocket-js/issues/158) for additional details.
+
+The artifacts published from this branch are considered UNSTABLE and may be subject to breaking changes while in preview.
+
+**Please see the [master](https://github.com/rsocket/rsocket-js/tree/master) branch for sources related to `0.x.x` versions.**
+
+## Installation
+
+Individual packages published from this monorepo are distributed via NPM.
+
+Packages are independently versioned.
+
+- [rsocket-core](https://www.npmjs.com/package/rsocket-core)
+- [rsocket-messaging](https://www.npmjs.com/package/rsocket-messaging)
+- [rsocket-composite-metadata](https://www.npmjs.com/package/rsocket-composite-metadata)
+- [rsocket-tcp-client](https://www.npmjs.com/package/rsocket-tcp-client)
+- [rsocket-tcp-server](https://www.npmjs.com/package/rsocket-tcp-server)
+- [rsocket-websocket-client](https://www.npmjs.com/package/rsocket-websocket-client)
+- [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
+- [rsocket-adapter-rxjs](https://www.npmjs.com/package/rsocket-adapter-rxjs)
 
 ## Contributing
 
 TODO: add `CONTRIBUTING.md`
 
-## Documentation
+## Documentation & Examples
 
-https://rsocket.io/guides/rsocket-js
+See [packages/rsocket-examples](https://github.com/rsocket/rsocket-js/tree/1.0.x-alpha/packages/rsocket-examples/src) for examples.
+
+Guides for `0.x.x` versions can be found on https://rsocket.io/guides/rsocket-js.
 
 ## License
 
-TODO: add license
+See LICENSE file.

@@ -96,6 +96,10 @@ yarn-error.log
 # and uncomment the following lines
 # .pnp.*
 
+### npm ###
+# the project uses Yarn so we will not check in package-lock files
+package-lock.json
+
 ### macOS ###
 # General
 .DS_Store

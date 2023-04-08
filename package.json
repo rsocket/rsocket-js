@@ -2,6 +2,7 @@
   "name": "rsocket-js",
   "description": "A JavaScript implementation of the RSocket protocol (https://github.com/rsocket/rsocket).",
   "private": true,
+  "license": "Apache-2.0",
   "workspaces": [
     "packages/*"
   ],
@@ -17,15 +18,15 @@
   "devDependencies": {
     "@types/jest": "^27.0.3",
     "@types/node": "^17.0.5",
+    "@typescript-eslint/parser": "^5.8.0",
     "eslint": "~8.5.0",
     "eslint-plugin-import": "~2.25.3",
-    "@typescript-eslint/parser": "^5.8.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "prettier": "^2.5.1",
     "jest": "^27.4.5",
     "jest-config": "^27.4.5",
     "jest-mock-extended": "^2.0.4",
     "lerna": "^4.0.0",
+    "prettier": "^2.5.1",
     "sinon": "^12.0.1",
     "ts-jest": "^27.1.2",
     "typescript": "~4.5.4"

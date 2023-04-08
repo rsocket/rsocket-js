@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-import { RSocketConnector, RSocketServer } from "@rsocket/core";
-import { Codec, RSocketRequester, RSocketResponder } from "@rsocket/messaging";
-import {
-  RxRequestersFactory,
-  RxRespondersFactory,
-} from "@rsocket/adapter-rxjs";
-import { TcpClientTransport } from "@rsocket/transport-tcp-client";
-import { TcpServerTransport } from "@rsocket/transport-tcp-server";
+import { RSocketConnector, RSocketServer } from "rsocket-core";
+import { Codec, RSocketRequester, RSocketResponder } from "rsocket-messaging";
+import { RxRequestersFactory, RxRespondersFactory } from "rsocket-adapter-rxjs";
+import { TcpClientTransport } from "rsocket-tcp-client";
+import { TcpServerTransport } from "rsocket-tcp-server";
 import { exit } from "process";
 import {
   firstValueFrom,
   map,
   Observable,
+  of,
   tap,
   timer,
   interval,
@@ -40,6 +38,7 @@ class EchoService {
   handleEchoRequestResponse(data: string): Observable<string> {
     return timer(1000).pipe(map(() => `Echo: ${data}`));
   }
+
   handleEchoRequestStream(data: string): Observable<string> {
     return interval(1000).pipe(
       map(() => `RxEchoService Echo: ${data}`),
@@ -48,6 +47,7 @@ class EchoService {
       })
     );
   }
+
   handleEchoRequestChannel(datas: Observable<string>): Observable<string> {
     datas
       .pipe(
@@ -62,6 +62,11 @@ class EchoService {
         Logger.info(`[server] sending: ${value}`);
       })
     );
+  }
+
+  handleLogFireAndForget(data: string): Observable<void> {
+    Logger.info(`[server] received: ${data}`);
+    return of(null);
   }
 }
 
@@ -78,6 +83,13 @@ function makeServer() {
       accept: async () => {
         const echoService = new EchoService();
         return RSocketResponder.builder()
+          .route(
+            "EchoService.log",
+            RxRespondersFactory.fireAndForget(
+              echoService.handleLogFireAndForget,
+              stringCodec
+            )
+          )
           .route(
             "EchoService.echo",
             RxRespondersFactory.requestResponse(
@@ -114,6 +126,25 @@ function makeConnector() {
         port: 9090,
       },
     }),
+  });
+}
+
+async function fireAndForget(rsocket: RSocketRequester, route: string = "") {
+  return new Promise((resolve, reject) => {
+    rsocket
+      .route(route)
+      .request(RxRequestersFactory.fireAndForget("Hello World", stringCodec))
+      .subscribe({
+        complete() {
+          // give server a chance to handle before continuing
+          setTimeout(() => {
+            resolve(null);
+          }, 100);
+        },
+        error(err) {
+          reject(err);
+        },
+      });
   });
 }
 
@@ -183,6 +214,7 @@ class StringCodec implements Codec<string> {
   decode(buffer: Buffer): string {
     return buffer.toString();
   }
+
   encode(entity: string): Buffer {
     return Buffer.from(entity);
   }
@@ -197,6 +229,10 @@ async function main() {
   serverCloseable = await server.bind();
   const rsocket = await connector.connect();
   const requester = RSocketRequester.wrap(rsocket);
+
+  Logger.info(`----- Fire And Forget -----`);
+
+  await fireAndForget(requester, "EchoService.log");
 
   Logger.info(`----- Request Response -----`);
 

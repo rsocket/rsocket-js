@@ -1,0 +1,30 @@
+{
+  "name": "rsocket-examples-websocket-simple-server",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "^16.17.0"
+  },
+  "dependencies": {
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-tcp-client": "^1.0.0-alpha.3",
+    "rsocket-tcp-server": "^1.0.0-alpha.3",
+    "rsocket-websocket-client": "^1.0.0-alpha.3",
+    "rsocket-websocket-server": "^1.0.0-alpha.3",
+    "ws": "~8.2.3"
+  },
+  "devDependencies": {
+
+  }
+}
