@@ -126,7 +126,7 @@ async function main() {
 
           payloadsReceived++;
 
-          // request 5 more payloads event 5th payload, until a max total payloads received
+          // request 5 more payloads every 5th payload, until a max total payloads received
           if (payloadsReceived % 2 == 0 && payloadsReceived < maxPayloads) {
             requester.request(2);
           } else if (payloadsReceived >= maxPayloads) {
