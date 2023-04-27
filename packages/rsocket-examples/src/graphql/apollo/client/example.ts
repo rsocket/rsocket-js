@@ -17,11 +17,12 @@
 import { RSocket, RSocketConnector } from "rsocket-core";
 import { makeRSocketLink } from "rsocket-graphql-apollo-link";
 import { WebsocketClientTransport } from "rsocket-websocket-client";
-import { ApolloClient, InMemoryCache } from "@apollo/client/core";
+import { ApolloClient, InMemoryCache, NormalizedCacheObject } from "@apollo/client/core";
 import gql from "graphql-tag";
 import WebSocket from "ws";
 import { exit } from "process";
 import { WellKnownMimeType } from "rsocket-composite-metadata";
+import { DocumentNode } from "@apollo/client";
 
 let rsocketClient: RSocket;
 
@@ -46,6 +47,17 @@ function makeApolloClient({ rsocketClient }) {
       rsocket: rsocketClient,
       route: "graphql",
     }),
+  });
+}
+
+function subcribe(
+  client: ApolloClient<NormalizedCacheObject>,
+  variables: Record<any, any>,
+  query: DocumentNode
+) {
+  return client.subscribe({
+    variables,
+    query,
   });
 }
 
@@ -81,6 +93,28 @@ async function main() {
   });
 
   console.log(echo);
+
+  await new Promise((resolve, reject) => {
+    let subscription = subcribe(
+      apolloClient,
+      {},
+      gql`
+        subscription greetings {
+          greetings
+        }
+      `
+    ).subscribe({
+      next(data) {
+        console.log("subscription event:", data);
+      },
+      error(err) {
+        console.log(`subscription error: ${err}`);
+      },
+      complete() {
+        resolve(null);
+      },
+    });
+  });
 }
 
 main()
