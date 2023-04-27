@@ -37,7 +37,7 @@ import {
 } from "./Frames";
 
 export const FLAGS_MASK = 0x3ff; // low 10 bits
-export const FRAME_TYPE_OFFFSET = 10; // frame type is offset 10 bytes within the uint16 containing type + flags
+export const FRAME_TYPE_OFFSET = 10; // frame type is offset 10 bytes within the uint16 containing type + flags
 
 export const MAX_CODE = 0x7fffffff; // uint31
 export const MAX_KEEPALIVE = 0x7fffffff; // uint31
@@ -176,7 +176,7 @@ export function deserializeFrame(buffer: Buffer): Frame {
   // );
   const typeAndFlags = buffer.readUInt16BE(offset);
   offset += 2;
-  const type = typeAndFlags >>> FRAME_TYPE_OFFFSET; // keep highest 6 bits
+  const type = typeAndFlags >>> FRAME_TYPE_OFFSET; // keep highest 6 bits
   const flags = typeAndFlags & FLAGS_MASK; // keep lowest 10 bits
   switch (type) {
     case FrameTypes.SETUP:
@@ -1096,7 +1096,7 @@ function writeHeader(frame: Frame, buffer: Buffer): number {
   const offset = buffer.writeInt32BE(frame.streamId, 0);
   // shift frame to high 6 bits, extract lowest 10 bits from flags
   return buffer.writeUInt16BE(
-    (frame.type << FRAME_TYPE_OFFFSET) | (frame.flags & FLAGS_MASK),
+    (frame.type << FRAME_TYPE_OFFSET) | (frame.flags & FLAGS_MASK),
     offset
   );
 }
