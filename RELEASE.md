@@ -8,7 +8,7 @@ How to publish new releases for this project.
 
 You can either set versions in the `package.json` files manually, or use the `lerna version` command to set them via the Lerna CLI. When setting versions manually, you will also need to set the git tags for each package and version.  For this reason, it is recommended you use the `lerna version` command, which will create these tags automatically.
 
-ex: `@rsocket/adapter-rxjs@1.0.0-alpha.1`
+ex: `rsocket-adapter-rxjs@1.0.0-alpha.1`
 
 Lerna will not push the git tags after creation. You should push the git tags once you are confident in your changes.
 
