@@ -40,6 +40,8 @@ Packages are independently versioned.
 - [rsocket-websocket-client](https://www.npmjs.com/package/rsocket-websocket-client)
 - [rsocket-websocket-server](https://www.npmjs.com/package/rsocket-websocket-server)
 - [rsocket-adapter-rxjs](https://www.npmjs.com/package/rsocket-adapter-rxjs)
+- [rsocket-graphql-apollo-link](https://www.npmjs.com/package/rsocket-graphql-apollo-link)
+- [rsocket-graphql-apollo-server](https://www.npmjs.com/package/rsocket-graphql-apollo-server)
 
 ## Contributing
 
