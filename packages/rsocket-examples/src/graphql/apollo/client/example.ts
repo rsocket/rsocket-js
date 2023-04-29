@@ -17,7 +17,11 @@
 import { RSocket, RSocketConnector } from "rsocket-core";
 import { makeRSocketLink } from "rsocket-graphql-apollo-link";
 import { WebsocketClientTransport } from "rsocket-websocket-client";
-import { ApolloClient, InMemoryCache, NormalizedCacheObject } from "@apollo/client/core";
+import {
+  ApolloClient,
+  InMemoryCache,
+  NormalizedCacheObject,
+} from "@apollo/client/core";
 import gql from "graphql-tag";
 import WebSocket from "ws";
 import { exit } from "process";
