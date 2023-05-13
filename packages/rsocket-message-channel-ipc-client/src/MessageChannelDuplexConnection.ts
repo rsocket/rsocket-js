@@ -10,7 +10,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrame,
-} from "@rsocket/rsocket-core";
+} from "rsocket-core";
 
 export class MessageChannelDuplexConnection
   extends Deferred

@@ -8,7 +8,7 @@ import {
   Multiplexer,
   Outbound,
   ServerTransport,
-} from "@rsocket/rsocket-core";
+} from "rsocket-core";
 import { MessageChannelDuplexConnection } from "./MessageChannelDuplexConnection";
 import { MessagePortMain } from "electron";
 

@@ -11,7 +11,7 @@ import {
   Multiplexer,
   Outbound,
   serializeFrame,
-} from "@rsocket/rsocket-core";
+} from "rsocket-core";
 import { MessagePortAdapter } from "./MessageChannelServerTransport";
 
 export class MessageChannelDuplexConnection

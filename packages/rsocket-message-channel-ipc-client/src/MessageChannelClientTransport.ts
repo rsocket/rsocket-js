@@ -7,7 +7,7 @@ import {
   FrameHandler,
   Multiplexer,
   Outbound,
-} from "@rsocket/rsocket-core";
+} from "rsocket-core";
 import { MessageChannelDuplexConnection } from "./MessageChannelDuplexConnection";
 
 export type ClientOptions = {

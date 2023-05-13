@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/rsocket-message-channel-ipc-client",
+  "name": "rsocket-message-channel-ipc-client",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -14,7 +14,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@rsocket/rsocket-core": "^1.0.0"
+    "rsocket-core": "^1.0.0"
   },
   "devDependencies": {
     "electron": "^14.0.1",
