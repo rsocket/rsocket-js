@@ -21,14 +21,11 @@ import {
   Payload,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/core";
-import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
-import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
+} from "rsocket-core";
 import { exit } from "process";
-import WebSocket from "ws";
 import Logger from "./shared/logger";
-import { TcpServerTransport } from "@rsocket/transport-tcp-server";
-import { TcpClientTransport } from "@rsocket/transport-tcp-client";
+import { TcpServerTransport } from "rsocket-tcp-server";
+import { TcpClientTransport } from "rsocket-tcp-client";
 
 function makeServer() {
   return new RSocketServer({
