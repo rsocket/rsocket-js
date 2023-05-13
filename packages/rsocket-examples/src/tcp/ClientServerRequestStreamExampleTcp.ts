@@ -22,19 +22,17 @@ import {
   RSocketConnector,
   RSocketServer,
 } from "rsocket-core";
-import { WebsocketClientTransport } from "rsocket-websocket-client";
-import { WebsocketServerTransport } from "rsocket-websocket-server";
 import { exit } from "process";
-import WebSocket from "ws";
-import Logger from "./shared/logger";
+import Logger from "../shared/logger";
+import { TcpServerTransport } from "rsocket-tcp-server";
+import { TcpClientTransport } from "rsocket-tcp-client";
 
 function makeServer() {
   return new RSocketServer({
-    transport: new WebsocketServerTransport({
-      wsCreator: (options) => {
-        return new WebSocket.Server({
-          port: 8080,
-        });
+    transport: new TcpServerTransport({
+      listenOptions: {
+        port: 9090,
+        host: "127.0.0.1",
       },
     }),
     acceptor: {
@@ -92,10 +90,16 @@ function makeServer() {
 }
 
 function makeConnector() {
+  const connectorConnectionOptions = {
+    host: "127.0.0.1",
+    port: 9090,
+  };
+  console.log(
+    `Creating connector to ${JSON.stringify(connectorConnectionOptions)}`
+  );
   return new RSocketConnector({
-    transport: new WebsocketClientTransport({
-      url: "ws://localhost:8080",
-      wsCreator: (url) => new WebSocket(url) as any,
+    transport: new TcpClientTransport({
+      connectionOptions: connectorConnectionOptions,
     }),
   });
 }
@@ -156,5 +160,5 @@ main()
     exit(1);
   })
   .finally(() => {
-    serverCloseable.close();
+    serverCloseable?.close();
   });
