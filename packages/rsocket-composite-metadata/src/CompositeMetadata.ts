@@ -1,4 +1,20 @@
-import { readUInt24BE, writeUInt24BE } from "@rsocket/core";
+/*
+ * Copyright 2021-2022 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { readUInt24BE, writeUInt24BE } from "rsocket-core";
 import { WellKnownMimeType } from "./WellKnownMimeType";
 
 export class CompositeMetadata implements Iterable<Entry> {
@@ -154,14 +170,14 @@ export function encodeCustomMetadataHeader(
   customMime: string,
   metadataLength: number
 ): Buffer {
+  // allocate one byte + the length of the mimetype
   const metadataHeader: Buffer = Buffer.allocUnsafe(4 + customMime.length);
-  // reserve 1 byte for the customMime length
-  // /!\ careful not to read that first byte, which is random at this point
-  // int writerIndexInitial = metadataHeader.writerIndex();
-  // metadataHeader.writerIndex(writerIndexInitial + 1);
+
+  // fill the buffer to clear previous memory
+  metadataHeader.fill(0);
 
   // write the custom mime in UTF8 but validate it is all ASCII-compatible
-  // (which produces the right result since ASCII chars are still encoded on 1 byte in UTF8)
+  // (which produces the correct result since ASCII chars are still encoded on 1 byte in UTF8)
   const customMimeLength: number = metadataHeader.write(customMime, 1);
   if (!isAscii(metadataHeader, 1)) {
     throw new Error("Custom mime type must be US_ASCII characters only");

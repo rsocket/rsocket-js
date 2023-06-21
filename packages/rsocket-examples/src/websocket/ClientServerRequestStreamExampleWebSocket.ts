@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021-2022 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import {
   OnExtensionSubscriber,
   OnNextSubscriber,
@@ -5,12 +21,12 @@ import {
   Payload,
   RSocketConnector,
   RSocketServer,
-} from "@rsocket/core";
-import { WebsocketClientTransport } from "@rsocket/transport-websocket-client";
-import { WebsocketServerTransport } from "@rsocket/transport-websocket-server";
+} from "rsocket-core";
+import { WebsocketClientTransport } from "rsocket-websocket-client";
+import { WebsocketServerTransport } from "rsocket-websocket-server";
 import { exit } from "process";
 import WebSocket from "ws";
-import Logger from "./shared/logger";
+import Logger from "../shared/logger";
 
 function makeServer() {
   return new RSocketServer({
@@ -110,7 +126,7 @@ async function main() {
 
           payloadsReceived++;
 
-          // request 5 more payloads event 5th payload, until a max total payloads received
+          // request 5 more payloads every 5th payload, until a max total payloads received
           if (payloadsReceived % 2 == 0 && payloadsReceived < maxPayloads) {
             requester.request(2);
           } else if (payloadsReceived >= maxPayloads) {

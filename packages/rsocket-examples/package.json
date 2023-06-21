@@ -1,35 +1,46 @@
 {
-  "name": "@rsocket/examples",
-  "version": "0.1.0",
+  "name": "rsocket-examples",
+  "version": "1.0.0-alpha.4",
+  "license": "Apache-2.0",
+  "private": true,
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "clean": "rimraf -rf ./dist",
     "start-client-request-channel": "ts-node -r tsconfig-paths/register src/ClientRequestChannelExample.ts",
     "start-client-server-request-channel-resume": "ts-node -r tsconfig-paths/register src/ClientServerRequestChannelResumeExample.ts",
-    "start-client-request-fnf-with-lease": "ts-node -r tsconfig-paths/register src/ClienRequestFnfnWithLeaseExampleTcp.ts",
-    "start-client-server-request-stream-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestStreamExampleWebSocket.ts",
-    "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleTcp.ts",
-    "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/ClientServerRequestResponseExampleWebSocket.ts",
+    "start-client-request-fnf-with-lease": "ts-node -r tsconfig-paths/register src/tcp/ClienRequestFnfnWithLeaseExampleTcp.ts",
+    "start-client-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientCompositeMetadataRouteExample.ts",
+    "start-client-server-request-stream-tcp": "ts-node -r tsconfig-paths/register src/tcp/ClientServerRequestStreamExampleTcp.ts",
+    "start-client-server-request-stream-websocket": "ts-node -r tsconfig-paths/register src/websocket/ClientServerRequestStreamExampleWebSocket.ts",
+    "start-client-server-request-response-tcp": "ts-node -r tsconfig-paths/register src/tcp/ClientServerRequestResponseExampleTcp.ts",
+    "start-client-server-request-response-websocket": "ts-node -r tsconfig-paths/register src/websocket/ClientServerRequestResponseExampleWebSocket.ts",
     "start-client-server-composite-metadata-route": "ts-node -r tsconfig-paths/register src/ClientServerCompositeMetadataRouteExample.ts",
-    "start-client-server-rx-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/ClientServerCompositeMetadataRouteExample.ts",
-    "start-client-server-async-composite-metadata-route": "ts-node -r tsconfig-paths/register src/async/ClientServerCompositeMetadataRouteExample.ts"
+    "start-client-server-async-composite-metadata-route": "ts-node -r tsconfig-paths/register src/async/ClientServerCompositeMetadataRouteExample.ts",
+    "start-client-server-rxjs-messaging-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/RxjsMessagingCompositeMetadataRouteExample.ts",
+    "start-client-server-rxjs-requester-responder": "ts-node -r tsconfig-paths/register src/rxjs/RxjsRequesterResponderExample.ts",
+    "start-client-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/client/example.ts",
+    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/client-server/example.ts"
   },
   "dependencies": {
-    "ws": "~8.2.3",
-    "@rsocket/core": "^1.0.0",
-    "@rsocket/composite-metadata": "^1.0.0",
-    "@rsocket/adapter-rxjs": "^1.0.0",
-    "@rsocket/transport-websocket-client": "^1.0.0",
-    "@rsocket/transport-tcp-client": "^1.0.0",
-    "@rsocket/transport-websocket-server": "^1.0.0",
-    "@rsocket/transport-tcp-server": "^1.0.0"
+    "@apollo/client": "^3.5.10",
+    "graphql-tag": "^2.12.6",
+    "graphql-subscriptions": "^2.0.0",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-tcp-client": "^1.0.0-alpha.3",
+    "rsocket-tcp-server": "^1.0.0-alpha.3",
+    "rsocket-websocket-client": "^1.0.0-alpha.3",
+    "rsocket-websocket-server": "^1.0.0-alpha.3",
+    "ws": "~8.2.3"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
-    "typescript": "~4.5.2",
     "ts-node": "~10.4.0",
-    "tsconfig-paths": "~3.11.0"
+    "tsconfig-paths": "~3.11.0",
+    "typescript": "~4.5.2"
   }
 }

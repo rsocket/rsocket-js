@@ -1,11 +1,16 @@
 {
-  "name": "@rsocket/core",
-  "version": "1.0.0",
+  "name": "rsocket-core",
+  "version": "1.0.0-alpha.3",
+  "license": "Apache-2.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "yarn run clean && yarn run compile",
     "clean": "rimraf -rf ./dist",
@@ -13,7 +18,6 @@
     "prepublishOnly": "yarn run build",
     "test": "yarn jest"
   },
-  "dependencies": {},
   "devDependencies": {
     "rimraf": "~3.0.2",
     "typescript": "~4.5.2"

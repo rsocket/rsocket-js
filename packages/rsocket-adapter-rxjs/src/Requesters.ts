@@ -1,4 +1,5 @@
-/** Copyright (c) Facebook, Inc. and its affiliates.
+/*
+ * Copyright 2021-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -11,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 "use strict";
@@ -19,7 +19,7 @@
 import {
   encodeCompositeMetadata,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
 import {
   Cancellable,
   OnExtensionSubscriber,
@@ -27,8 +27,8 @@ import {
   OnTerminalSubscriber,
   Requestable,
   RSocket,
-} from "@rsocket/core";
-import { Codec } from "@rsocket/messaging";
+} from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 import {
   asyncScheduler,
   concatMap,
@@ -48,21 +48,23 @@ export function fireAndForget<TData>(
   inputCodec: Codec<TData>
 ): (
   rsocket: RSocket,
-  metadata: Map<string | number | WellKnownMimeType, Buffer>
+  metadata?: Map<string | number | WellKnownMimeType, Buffer>
 ) => Observable<void> {
   return (
     rsocket: RSocket,
-    metadata: Map<string | number | WellKnownMimeType, Buffer>
-  ) =>
-    new RSocketPublisherToObservable((s) =>
+    metadata?: Map<string | number | WellKnownMimeType, Buffer>
+  ) => {
+    const encodedMetadata = metadata ? encodeCompositeMetadata(metadata) : null;
+    return new RSocketPublisherToObservable((s) =>
       rsocket.fireAndForget(
         {
           data: data ? inputCodec.encode(data) : Buffer.allocUnsafe(0),
-          metadata: encodeCompositeMetadata(metadata),
+          metadata: encodedMetadata,
         },
         s
       )
     );
+  };
 }
 
 export function requestResponse<TData, RData>(
@@ -71,23 +73,25 @@ export function requestResponse<TData, RData>(
   outputCodec: Codec<RData>
 ): (
   rsocket: RSocket,
-  metadata: Map<string | number | WellKnownMimeType, Buffer>
+  metadata?: Map<string | number | WellKnownMimeType, Buffer>
 ) => Observable<RData> {
   return (
     rsocket: RSocket,
-    metadata: Map<string | number | WellKnownMimeType, Buffer>
-  ) =>
-    new RSocketPublisherToObservable(
+    metadata?: Map<string | number | WellKnownMimeType, Buffer>
+  ) => {
+    const encodedMetadata = metadata ? encodeCompositeMetadata(metadata) : null;
+    return new RSocketPublisherToObservable(
       (s) =>
         rsocket.requestResponse(
           {
             data: data ? inputCodec.encode(data) : Buffer.allocUnsafe(0),
-            metadata: encodeCompositeMetadata(metadata),
+            metadata: encodedMetadata,
           },
           s
         ),
       outputCodec
     );
+  };
 }
 
 export function requestStream<TData, RData>(
@@ -98,18 +102,19 @@ export function requestStream<TData, RData>(
   scheduler: SchedulerLike = asyncScheduler
 ): (
   rsocket: RSocket,
-  metadata: Map<string | number | WellKnownMimeType, Buffer>
+  metadata?: Map<string | number | WellKnownMimeType, Buffer>
 ) => Observable<RData> {
   return (
     rsocket: RSocket,
-    metadata: Map<string | number | WellKnownMimeType, Buffer>
-  ) =>
-    new RSocketPublisherToPrefetchingObservable(
+    metadata?: Map<string | number | WellKnownMimeType, Buffer>
+  ) => {
+    const encodedMetadata = metadata ? encodeCompositeMetadata(metadata) : null;
+    return new RSocketPublisherToPrefetchingObservable(
       (s, n) =>
         rsocket.requestStream(
           {
             data: data ? inputCodec.encode(data) : Buffer.allocUnsafe(0),
-            metadata: encodeCompositeMetadata(metadata),
+            metadata: encodedMetadata,
           },
           n,
           s
@@ -118,6 +123,7 @@ export function requestStream<TData, RData>(
       outputCodec,
       scheduler
     );
+  };
 }
 
 export function requestChannel<TData, RData>(
@@ -128,49 +134,59 @@ export function requestChannel<TData, RData>(
   scheduler: SchedulerLike = asyncScheduler
 ): (
   rsocket: RSocket,
-  metadata: Map<string | number | WellKnownMimeType, Buffer>
+  metadata?: Map<string | number | WellKnownMimeType, Buffer>
 ) => Observable<RData> {
-  const [firstValueObservable, restValuestObservable] = partition(
+  let once = false;
+  const [firstValueObservable, restValuesObservable] = partition(
     datas.pipe(
       share({
         connector: () => new Subject(),
         resetOnRefCountZero: true,
       })
     ),
-    (_value, index) => index === 0
+    (_value) => {
+      const previous = once;
+      if (!previous) {
+        once = true;
+      }
+
+      return !previous;
+    }
   );
 
   return (
     rsocket: RSocket,
-    metadata: Map<string | number | WellKnownMimeType, Buffer>
-  ) =>
-    firstValueObservable.pipe(
+    metadata?: Map<string | number | WellKnownMimeType, Buffer>
+  ) => {
+    const encodedMetadata = metadata ? encodeCompositeMetadata(metadata) : null;
+    return firstValueObservable.pipe(
       take(1),
-      concatMap(
-        (firstValue) =>
-          new Observer2BufferingSubscriberToPublisher2PrefetchingObservable(
-            (
-              s: OnTerminalSubscriber &
-                OnNextSubscriber &
-                OnExtensionSubscriber &
-                Requestable &
-                Cancellable
-            ) =>
-              rsocket.requestChannel(
-                {
-                  data: inputCodec.encode(firstValue),
-                  metadata: encodeCompositeMetadata(metadata),
-                },
-                prefetch,
-                false,
-                s
-              ),
-            prefetch,
-            restValuestObservable,
-            inputCodec,
-            outputCodec,
-            scheduler
-          ) as Observable<RData>
-      )
+      concatMap((firstValue) => {
+        return new Observer2BufferingSubscriberToPublisher2PrefetchingObservable(
+          (
+            s: OnTerminalSubscriber &
+              OnNextSubscriber &
+              OnExtensionSubscriber &
+              Requestable &
+              Cancellable
+          ) => {
+            return rsocket.requestChannel(
+              {
+                data: inputCodec.encode(firstValue),
+                metadata: encodedMetadata,
+              },
+              prefetch,
+              false,
+              s
+            );
+          },
+          prefetch,
+          restValuesObservable,
+          inputCodec,
+          outputCodec,
+          scheduler
+        ) as Observable<RData>;
+      })
     );
+  };
 }

@@ -1,6 +1,6 @@
-import { Codec } from "@rsocket/messaging";
+import { Codec } from "rsocket-messaging";
 import { mock } from "jest-mock-extended";
-import { RSocket } from "@rsocket/core";
+import { RSocket } from "rsocket-core";
 import { fireAndForget } from "../../lib/requesters";
 
 class StringCodec implements Codec<string> {

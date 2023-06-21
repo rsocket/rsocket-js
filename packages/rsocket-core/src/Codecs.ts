@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021-2022 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 "use strict";
 
 import {
@@ -21,7 +37,7 @@ import {
 } from "./Frames";
 
 export const FLAGS_MASK = 0x3ff; // low 10 bits
-export const FRAME_TYPE_OFFFSET = 10; // frame type is offset 10 bytes within the uint16 containing type + flags
+export const FRAME_TYPE_OFFSET = 10; // frame type is offset 10 bytes within the uint16 containing type + flags
 
 export const MAX_CODE = 0x7fffffff; // uint31
 export const MAX_KEEPALIVE = 0x7fffffff; // uint31
@@ -160,7 +176,7 @@ export function deserializeFrame(buffer: Buffer): Frame {
   // );
   const typeAndFlags = buffer.readUInt16BE(offset);
   offset += 2;
-  const type = typeAndFlags >>> FRAME_TYPE_OFFFSET; // keep highest 6 bits
+  const type = typeAndFlags >>> FRAME_TYPE_OFFSET; // keep highest 6 bits
   const flags = typeAndFlags & FLAGS_MASK; // keep lowest 10 bits
   switch (type) {
     case FrameTypes.SETUP:
@@ -1080,7 +1096,7 @@ function writeHeader(frame: Frame, buffer: Buffer): number {
   const offset = buffer.writeInt32BE(frame.streamId, 0);
   // shift frame to high 6 bits, extract lowest 10 bits from flags
   return buffer.writeUInt16BE(
-    (frame.type << FRAME_TYPE_OFFFSET) | (frame.flags & FLAGS_MASK),
+    (frame.type << FRAME_TYPE_OFFSET) | (frame.flags & FLAGS_MASK),
     offset
   );
 }

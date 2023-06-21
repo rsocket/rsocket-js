@@ -1,20 +1,25 @@
 {
-  "name": "@rsocket/composite-metadata",
-  "version": "1.0.0",
+  "name": "rsocket-composite-metadata",
+  "version": "1.0.0-alpha.3",
+  "license": "Apache-2.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "yarn run clean && yarn run compile",
     "clean": "rimraf -rf ./dist",
     "compile": "tsc -p tsconfig.build.json",
     "prepublishOnly": "yarn run build",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "yarn jest"
   },
   "dependencies": {
-    "@rsocket/core": "^1.0.0"
+    "rsocket-core": "^1.0.0-alpha.3"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",

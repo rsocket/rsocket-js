@@ -1,11 +1,17 @@
 {
-  "name": "@rsocket/transport-websocket-server",
-  "version": "1.0.0",
+  "name": "rsocket-websocket-server",
+  "version": "1.0.0-alpha.3",
+  "license": "Apache-2.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "yarn run clean && yarn run compile",
     "clean": "rimraf -rf ./dist",
@@ -14,7 +20,7 @@
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
-    "@rsocket/core": "^1.0.0",
+    "rsocket-core": "^1.0.0-alpha.3",
     "ws": "~8.2.3"
   },
   "devDependencies": {

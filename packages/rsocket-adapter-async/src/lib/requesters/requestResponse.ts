@@ -1,9 +1,9 @@
-import { Codec } from "@rsocket/messaging";
-import { Payload, RSocket } from "@rsocket/core";
+import { Codec } from "rsocket-messaging";
+import { Payload, RSocket } from "rsocket-core";
 import {
   encodeCompositeMetadata,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
 
 export default function requestResponse<TData, RData>(
   data: TData,

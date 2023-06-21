@@ -1,4 +1,5 @@
-/** Copyright (c) Facebook, Inc. and its affiliates.
+/*
+ * Copyright 2021-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -11,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 "use strict";
@@ -21,7 +21,7 @@ import {
   decodeRoutes,
   encodeRoutes,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
 import {
   Cancellable,
   ErrorCodes,
@@ -33,7 +33,7 @@ import {
   Requestable,
   RSocket,
   RSocketError,
-} from "@rsocket/core";
+} from "rsocket-core";
 
 export * as DefaultRespondersFactory from "./DefaultResponders";
 

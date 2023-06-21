@@ -5,8 +5,8 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Requestable,
-} from "@rsocket/core";
-import { Codec } from "@rsocket/messaging";
+} from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 import BufferingForwardingSubscriber from "../lib/BufferingForwardingSubscriber";
 import { Buffer } from "buffer";
 

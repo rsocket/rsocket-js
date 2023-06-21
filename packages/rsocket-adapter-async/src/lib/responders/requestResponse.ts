@@ -1,4 +1,4 @@
-import { Codec } from "@rsocket/messaging";
+import { Codec } from "rsocket-messaging";
 import {
   Cancellable,
   FrameTypes,
@@ -6,7 +6,7 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
-} from "@rsocket/core";
+} from "rsocket-core";
 
 export default function requestResponse<IN, OUT>(
   handler: (data: IN) => Promise<OUT>,

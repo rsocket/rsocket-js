@@ -3,7 +3,7 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
-} from "@rsocket/core";
+} from "rsocket-core";
 
 export default class BufferingForwardingSubscriber<T>
   implements OnNextSubscriber, OnTerminalSubscriber, OnExtensionSubscriber

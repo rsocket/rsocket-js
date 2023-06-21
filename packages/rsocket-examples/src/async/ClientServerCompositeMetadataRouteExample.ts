@@ -1,17 +1,17 @@
-import { RSocketConnector, RSocketServer } from "@rsocket/core";
+import { RSocketConnector, RSocketServer } from "rsocket-core";
 import {
   Codec,
   DefaultRespondersFactory,
   RSocketRequester,
   RSocketResponder,
-} from "@rsocket/messaging";
-import { RxRespondersFactory } from "@rsocket/adapter-rxjs";
+} from "rsocket-messaging";
+import { RxRespondersFactory } from "rsocket-adapter-rxjs";
 import {
   AsyncRequestersFactory,
   AsyncRespondersFactory,
-} from "@rsocket/adapter-async";
-import { TcpClientTransport } from "@rsocket/transport-tcp-client";
-import { TcpServerTransport } from "@rsocket/transport-tcp-server";
+} from "rsocket-adapter-async";
+import { TcpClientTransport } from "rsocket-tcp-client";
+import { TcpServerTransport } from "rsocket-tcp-server";
 import { exit } from "process";
 import { interval, map, Observable, take, tap, timer } from "rxjs";
 import { eachValueFrom } from "rxjs-for-await";

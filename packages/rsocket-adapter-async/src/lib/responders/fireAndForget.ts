@@ -3,8 +3,8 @@ import {
   FrameTypes,
   OnTerminalSubscriber,
   Payload,
-} from "@rsocket/core";
-import { Codec } from "@rsocket/messaging";
+} from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 
 export default function fireAndForget<IN>(
   handler: (data: IN) => Promise<void>,

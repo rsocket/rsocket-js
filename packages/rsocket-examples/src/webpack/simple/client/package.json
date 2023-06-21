@@ -1,0 +1,31 @@
+{
+  "name": "rsocket-examples-websocket-simple-client",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "serve": "webpack serve"
+  },
+  "engines": {
+    "node": "^16.17.0"
+  },
+  "devDependencies": {
+    "buffer": "^6.0.3",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-websocket-client": "^1.0.0-alpha.3",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.0"
+  },
+  "dependencies": {
+    "html-webpack-plugin": "^5.5.0"
+  }
+}

@@ -1,4 +1,4 @@
-import { Codec } from "@rsocket/messaging";
+import { Codec } from "rsocket-messaging";
 import {
   Cancellable,
   FrameTypes,
@@ -7,7 +7,7 @@ import {
   OnTerminalSubscriber,
   Payload,
   Requestable,
-} from "@rsocket/core";
+} from "rsocket-core";
 
 export default function requestStream<IN, OUT>(
   handler: (data: IN) => AsyncIterable<OUT>,

@@ -1,5 +1,5 @@
 {
-  "name": "@rsocket/adapter-async",
+  "name": "rsocket-adapter-async",
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -14,10 +14,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@rsocket/composite-metadata": "^1.0.0",
-    "@rsocket/core": "^1.0.0",
-    "@rsocket/messaging": "^1.0.0",
-    "@rsocket/adapter-rxjs": "^1.0.0",
+    "rsocket-composite-metadata": "^1.0.0-alpha.3",
+    "rsocket-core": "^1.0.0-alpha.3",
+    "rsocket-messaging": "^1.0.0-alpha.3",
+    "rsocket-adapter-rxjs": "^1.0.0-alpha.3",
     "rxjs": "^7.4.0",
     "rxjs-for-await": "^1.0.0"
   },

@@ -1,7 +1,7 @@
 import SubscribingAsyncIterator from "../lib/SubscribingAsyncIterator";
 import { mock } from "jest-mock-extended";
-import { Cancellable, Requestable } from "@rsocket/core";
-import { Codec } from "@rsocket/messaging";
+import { Cancellable, Requestable } from "rsocket-core";
+import { Codec } from "rsocket-messaging";
 
 jest.useFakeTimers();
 

@@ -1,5 +1,5 @@
 import { from } from "rxjs";
-import { Codec } from "@rsocket/messaging";
+import { Codec } from "rsocket-messaging";
 import {
   Cancellable,
   FrameTypes,
@@ -8,8 +8,8 @@ import {
   OnTerminalSubscriber,
   Payload,
   Requestable,
-} from "@rsocket/core";
-import { RxRespondersFactory } from "@rsocket/adapter-rxjs";
+} from "rsocket-core";
+import { RxRespondersFactory } from "rsocket-adapter-rxjs";
 import { eachValueFrom } from "rxjs-for-await";
 
 export default function requestChannel<IN, OUT>(

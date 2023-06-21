@@ -6,7 +6,7 @@ import {
   OnTerminalSubscriber,
   Payload,
   Requestable,
-} from "@rsocket/core";
+} from "rsocket-core";
 import { Codec } from "./index";
 
 export type DefaultResponderHandlerSignature<T> = (

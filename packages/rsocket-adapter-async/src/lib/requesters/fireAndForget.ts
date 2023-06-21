@@ -1,9 +1,9 @@
-import { Codec } from "@rsocket/messaging";
-import { RSocket } from "@rsocket/core";
+import { Codec } from "rsocket-messaging";
+import { RSocket } from "rsocket-core";
 import {
   encodeCompositeMetadata,
   WellKnownMimeType,
-} from "@rsocket/composite-metadata";
+} from "rsocket-composite-metadata";
 
 export default function fireAndForget<TData>(
   data: TData,
