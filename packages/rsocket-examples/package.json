@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.5.10",
+    "graphql": "^16.0.0",
     "graphql-tag": "^2.12.6",
     "graphql-subscriptions": "^2.0.0",
     "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
