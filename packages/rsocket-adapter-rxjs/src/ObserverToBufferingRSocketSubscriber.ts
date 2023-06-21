@@ -23,15 +23,14 @@ import {
 } from "rsocket-core";
 import { Codec } from "rsocket-messaging";
 import { Observer, Subscription } from "rxjs";
-import { applyMixins } from "./Utils";
 
 interface ObserverToBufferingRSocketSubscriber<T>
   extends Subscription,
-    Array<T>,
     Observer<T>,
     Cancellable,
     Requestable,
     OnExtensionSubscriber {}
+
 class ObserverToBufferingRSocketSubscriber<T>
   extends Subscription
   implements Observer<T>, Cancellable, Requestable, OnExtensionSubscriber
@@ -39,6 +38,7 @@ class ObserverToBufferingRSocketSubscriber<T>
   protected wip: number = 0;
   private e: Error;
   private done: boolean;
+  private stack: T[];
 
   constructor(
     protected requested: number,
@@ -48,6 +48,7 @@ class ObserverToBufferingRSocketSubscriber<T>
     protected readonly inputCodec: Codec<T>
   ) {
     super();
+    this.stack = [];
   }
 
   request(n: number) {
@@ -78,7 +79,7 @@ class ObserverToBufferingRSocketSubscriber<T>
   ): void {}
 
   next(value: T) {
-    this.push(value);
+    this.stack.push(value);
 
     this.drain();
   }
@@ -117,7 +118,7 @@ class ObserverToBufferingRSocketSubscriber<T>
       let requested = this.requested;
       let delivered = 0;
       while (delivered < requested) {
-        const next = this.shift();
+        const next = this.stack.shift();
 
         if (next == undefined) {
           if (this.done) {
@@ -136,7 +137,7 @@ class ObserverToBufferingRSocketSubscriber<T>
           break;
         }
 
-        const isTerminated = this.length == 0 && this.done;
+        const isTerminated = this.stack.length == 0 && this.done;
         this.subscriber.onNext(
           {
             data: this.inputCodec.encode(next),
@@ -161,7 +162,5 @@ class ObserverToBufferingRSocketSubscriber<T>
     }
   }
 }
-
-applyMixins(ObserverToBufferingRSocketSubscriber, [Array]);
 
 export default ObserverToBufferingRSocketSubscriber;
