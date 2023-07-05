@@ -92,7 +92,7 @@ class Observer2BufferingSubscriberToPublisher2PrefetchingObservable<In, Out>
     scheduler: SchedulerLike = asyncScheduler
   ) {
     super(exchangeFunction, prefetch, outputCodec, scheduler);
-    ObserverToBufferingRSocketSubscriber.call(this, 0, undefined, inputCodec);
+    this.init(0, undefined, inputCodec);
   }
 
   _subscribe(s: Subscriber<Out>): TeardownLogic {

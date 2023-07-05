@@ -74,12 +74,7 @@ class RSocketPublisher2PrefetchingObservableToObserver2BufferingRSocketSubscribe
     scheduler: SchedulerLike = asyncScheduler
   ) {
     super(() => subscriber, prefetch, outputCodec, scheduler);
-    ObserverToBufferingRSocketSubscriber.call(
-      this,
-      requested,
-      subscriber,
-      inputCodec
-    );
+    this.init(requested, subscriber, inputCodec);
   }
 
   protected _subscribe(observer: Subscriber<any>): TeardownLogic {

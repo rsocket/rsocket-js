@@ -36,18 +36,33 @@ class ObserverToBufferingRSocketSubscriber<T>
   extends Subscription
   implements Observer<T>, Cancellable, Requestable, OnExtensionSubscriber
 {
-  protected wip: number = 0;
+  protected requested: number;
+  protected subscriber: OnTerminalSubscriber &
+    OnNextSubscriber &
+    OnExtensionSubscriber;
+  protected inputCodec: Codec<T>;
+  protected wip: number;
   private e: Error;
   private done: boolean;
 
   constructor(
-    protected requested: number,
-    protected readonly subscriber: OnTerminalSubscriber &
-      OnNextSubscriber &
-      OnExtensionSubscriber,
-    protected readonly inputCodec: Codec<T>
+    requested: number,
+    subscriber: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber,
+    inputCodec: Codec<T>
   ) {
     super();
+    this.init(requested, subscriber, inputCodec);
+  }
+
+  protected init(
+    requested: number,
+    subscriber: OnTerminalSubscriber & OnNextSubscriber & OnExtensionSubscriber,
+    inputCodec: Codec<T>
+  ) {
+    this.requested = requested;
+    this.subscriber = subscriber;
+    this.inputCodec = inputCodec;
+    this.wip = 0;
   }
 
   request(n: number) {
