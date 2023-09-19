@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RSocket Webpack Example</title>
+  </head>
+  <body>
+    <h1>RSocket Webpack Example</h1>
+    <label>Message:</label>
+    <input type="text" id="input-field" />
+    <button id="send-button">send</button>
+    <div id="output" style="margin-top: 20px;"></div>
+    <script>
+      (function() {
+        var state = 'CONNECTING';
+        var outputDiv = document.querySelector("#output");
+        var _rsocket = null;
+
+        function sendMessage(message) {
+          if (state !== 'CONNECTED') return;
+          const bufferData = rsocket.createBuffer(message || "");
+          _rsocket.requestResponse(
+            {
+              data: bufferData,
+            },
+            {
+              onError: function (e) {
+                console.error(e);
+              },
+              onNext: function(payload, isComplete) {
+                const div = document.createElement("div");
+                div.textContent = `[${new Date().toISOString()}] payload[data: ${
+                  payload.data
+                }; metadata: ${payload.metadata}]|${isComplete}`;
+                outputDiv.appendChild(div);
+              },
+              onComplete: function() {
+                const div = document.createElement("div");
+                div.textContent = `Stream completed...`;
+                outputDiv.appendChild(div);
+              },
+              onExtension: function() {},
+            }
+          );
+        }
+
+        var sendButton = document.querySelector("#send-button");
+        sendButton.addEventListener("click", function() {
+          var input = document.querySelector("#input-field");
+          var value = input.value;
+          if (!value.length) return;
+          sendMessage(value);
+        });
+
+        rsocket
+          .connect({
+            url: "ws://localhost:9090",
+          })
+          .then(function (_r) {
+            state = 'CONNECTED';
+            _rsocket = _r;
+          })
+          .catch(function (err) {
+            if (err) {
+              console.error("failed to connect rsocket: " + err.message)
+            }
+            else {
+              console.error("failed to connect rsocket!")
+            }
+          });
+      })();
+    </script>
+  </body>
+</html>
