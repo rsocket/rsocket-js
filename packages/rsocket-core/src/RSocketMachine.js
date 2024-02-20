@@ -58,6 +58,7 @@ import {
   ResponderLeaseHandler,
   Disposable,
 } from './RSocketLease';
+import RSocketError from './RSocketError';
 
 type Role = 'CLIENT' | 'SERVER';
 
@@ -867,7 +868,10 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   _sendStreamError(streamId: number, err: Error): void {
     this._subscriptions.delete(streamId);
     this._connection.sendOne({
-      code: err instanceof RSocketError ? err.errorCode : ERROR_CODES.APPLICATION_ERROR,
+      code:
+        err instanceof RSocketError
+          ? err.errorCode
+          : ERROR_CODES.APPLICATION_ERROR,
       flags: 0,
       message: err.message,
       streamId,
@@ -942,12 +946,4 @@ function deserializeMetadataPushPayload<D, M>(
     data: null,
     metadata: serializers.metadata.deserialize(frame.metadata),
   };
-}
-
-export class RSocketError extends Error {
-  +errorCode: number;
-  constructor(errorCode: number, message: string) {
-    super(message);
-    this.errorCode = errorCode;
-  }
 }

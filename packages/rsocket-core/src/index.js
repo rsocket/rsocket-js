@@ -39,6 +39,10 @@ import RSocketServer from './RSocketServer';
 
 export {RSocketServer};
 
+import RSocketError from './RSocketError';
+
+export {RSocketError};
+
 import RSocketResumableTransport from './RSocketResumableTransport';
 
 export {RSocketResumableTransport};
