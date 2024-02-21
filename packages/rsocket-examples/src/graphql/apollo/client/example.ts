@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { RSocket, RSocketConnector } from "rsocket-core";
-import { makeRSocketLink } from "rsocket-graphql-apollo-link";
-import { WebsocketClientTransport } from "rsocket-websocket-client";
+import { RSocket, RSocketConnector } from "@rsocket/core";
+import { makeRSocketLink } from "@rsocket/graphql-apollo-link";
+import { WebsocketClientTransport } from "@rsocket/websocket-client";
 import {
   ApolloClient,
   InMemoryCache,
@@ -25,7 +25,7 @@ import {
 import gql from "graphql-tag";
 import WebSocket from "ws";
 import { exit } from "process";
-import { WellKnownMimeType } from "rsocket-composite-metadata";
+import { WellKnownMimeType } from "@rsocket/composite-metadata";
 import { DocumentNode } from "@apollo/client";
 
 let rsocketClient: RSocket;

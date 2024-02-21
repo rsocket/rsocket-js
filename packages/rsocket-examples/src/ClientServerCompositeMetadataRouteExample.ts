@@ -24,16 +24,16 @@ import {
   RSocketConnector,
   RSocketError,
   RSocketServer,
-} from "rsocket-core";
-import { TcpClientTransport } from "rsocket-tcp-client";
-import { TcpServerTransport } from "rsocket-tcp-server";
+} from "@rsocket/core";
+import { TcpClientTransport } from "@rsocket/tcp-client";
+import { TcpServerTransport } from "@rsocket/tcp-server";
 import {
   decodeCompositeMetadata,
   decodeRoutes,
   encodeCompositeMetadata,
   encodeRoute,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
+} from "@rsocket/composite-metadata";
 import { exit } from "process";
 import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
 import Logger from "./shared/logger";

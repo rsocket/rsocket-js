@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { RSocket, RSocketConnector } from "rsocket-core";
-import { TcpClientTransport } from "rsocket-tcp-client";
+import { RSocket, RSocketConnector } from "@rsocket/core";
+import { TcpClientTransport } from "@rsocket/tcp-client";
 import { exit } from "process";
 
 let serverCloseable;

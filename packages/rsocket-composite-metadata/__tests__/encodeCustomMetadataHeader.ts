@@ -1,4 +1,4 @@
-import { encodeCustomMetadataHeader } from "rsocket-composite-metadata";
+import { encodeCustomMetadataHeader } from "@rsocket/composite-metadata";
 import { hex } from "./test-utils/hex";
 
 describe("encodeCustomMetadataHeader", () => {

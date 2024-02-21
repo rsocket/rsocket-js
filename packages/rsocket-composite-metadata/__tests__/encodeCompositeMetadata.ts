@@ -1,8 +1,8 @@
 import {
   encodeCompositeMetadata,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
-import { readUInt24BE } from "rsocket-core";
+} from "@rsocket/composite-metadata";
+import { readUInt24BE } from "@rsocket/core";
 
 describe("encodeCompositeMetadata encodes the metadata", () => {
   describe("when given a map", () => {
