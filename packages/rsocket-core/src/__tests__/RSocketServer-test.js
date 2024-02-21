@@ -31,6 +31,7 @@ import {genMockConnection} from 'MockDuplexConnection';
 import {genMockSubscriber} from 'MockFlowableSubscriber';
 import {genMockPublisher} from 'MockFlowableSubscription';
 import {Single, Flowable} from 'rsocket-flowable';
+import RSocketError from '../RSocketError';
 
 jest.useFakeTimers();
 
@@ -220,6 +221,56 @@ describe('RSocketServer', () => {
         code: ERROR_CODES.APPLICATION_ERROR,
         flags: 0,
         message: 'No like',
+        streamId: 1,
+        type: FRAME_TYPES.ERROR,
+      });
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it('sends custom error code if request handler throws RSocketError', () => {
+      console.error = jest.fn();
+      const transport = genMockTransportServer();
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {
+            requestResponse: () => {
+              throw new RSocketError(1234, 'Custom Error');
+            },
+          };
+        },
+        transport,
+      });
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      jest.runOnlyPendingTimers();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.REQUEST_RESPONSE,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        streamId: 1,
+      });
+      expect(connection.sendOne.mock.calls.length).toBe(1);
+      expect(connection.sendOne.mock.frame).toEqual({
+        code: 1234,
+        flags: 0,
+        message: 'Custom Error',
         streamId: 1,
         type: FRAME_TYPES.ERROR,
       });

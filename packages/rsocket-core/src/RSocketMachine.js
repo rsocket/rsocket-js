@@ -58,6 +58,7 @@ import {
   ResponderLeaseHandler,
   Disposable,
 } from './RSocketLease';
+import RSocketError from './RSocketError';
 
 type Role = 'CLIENT' | 'SERVER';
 
@@ -443,7 +444,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
                     this._sendStreamComplete(streamId);
                   },
                   onError: error => {
-                    this._sendStreamError(streamId, error.message);
+                    this._sendStreamError(streamId, error);
                   },
                   //Subscriber methods
                   onNext: payload => {
@@ -677,7 +678,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     if (this._isRequest(frame.type)) {
       const leaseError = this._useLeaseOrError(this._responderLeaseHandler);
       if (leaseError) {
-        this._sendStreamError(streamId, leaseError);
+        this._sendStreamError(streamId, new Error(leaseError));
         return;
       }
     }
@@ -758,7 +759,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       onComplete: payload => {
         this._sendStreamPayload(streamId, payload, true);
       },
-      onError: error => this._sendStreamError(streamId, error.message),
+      onError: error => this._sendStreamError(streamId, error),
       onSubscribe: cancel => {
         const subscription = {
           cancel,
@@ -773,7 +774,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     const payload = this._deserializePayload(frame);
     this._requestHandler.requestStream(payload).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
-      onError: error => this._sendStreamError(streamId, error.message),
+      onError: error => this._sendStreamError(streamId, error),
       onNext: payload => this._sendStreamPayload(streamId, payload),
       onSubscribe: subscription => {
         this._subscriptions.set(streamId, subscription);
@@ -835,7 +836,7 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
 
     this._requestHandler.requestChannel(framesToPayloads).subscribe({
       onComplete: () => this._sendStreamComplete(streamId),
-      onError: error => this._sendStreamError(streamId, error.message),
+      onError: error => this._sendStreamError(streamId, error),
       onNext: payload => this._sendStreamPayload(streamId, payload),
       onSubscribe: subscription => {
         this._subscriptions.set(streamId, subscription);
@@ -864,16 +865,19 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
     });
   }
 
-  _sendStreamError(streamId: number, errorMessage: string): void {
+  _sendStreamError(streamId: number, err: Error): void {
     this._subscriptions.delete(streamId);
     this._connection.sendOne({
-      code: ERROR_CODES.APPLICATION_ERROR,
+      code:
+        err instanceof RSocketError
+          ? err.errorCode
+          : ERROR_CODES.APPLICATION_ERROR,
       flags: 0,
-      message: errorMessage,
+      message: err.message,
       streamId,
       type: FRAME_TYPES.ERROR,
     });
-    const error = new Error(`terminated from the requester: ${errorMessage}`);
+    const error = new Error(`terminated from the requester: ${err.message}`);
     this._handleStreamError(streamId, error);
   }
 
