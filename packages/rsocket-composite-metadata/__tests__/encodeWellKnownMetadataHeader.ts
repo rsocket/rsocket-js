@@ -1,7 +1,7 @@
 import {
   encodeWellKnownMetadataHeader,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
+} from "@rsocket/composite-metadata";
 
 describe("encodeWellKnownMetadataHeader", () => {
   it("encodes the header as per spec", () => {
