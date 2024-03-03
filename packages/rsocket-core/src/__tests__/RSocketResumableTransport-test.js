@@ -687,4 +687,59 @@ describe('RSocketResumableTransport', () => {
       expect(currentTransport.sendOne.mock.calls.length).toBe(0);
     });
   });
+
+  describe('post-connect() APIs', () => {
+    beforeEach(() => {
+      resumableTransport.connect();
+      currentTransport.mock.connect();
+    });
+
+    describe('close()', () => {
+      describe('given an error', () => {
+        it('closes the transport', () => {
+          resumableTransport.close(new Error());
+          expect(currentTransport.close.mock.calls.length).toBe(1);
+        });
+
+        it('sets the status to ERROR with the given error', () => {
+          const error = new Error();
+          resumableTransport.close(error);
+          expect(resumableStatus.kind).toBe('ERROR');
+          expect(resumableStatus.error).toBe(error);
+        });
+
+        it('calls receive.onError with the given error', () => {
+          const onError = jest.fn();
+          const onSubscribe = subscription =>
+            subscription.request(Number.MAX_SAFE_INTEGER);
+          resumableTransport.receive().subscribe({onError, onSubscribe});
+          const error = new Error();
+          resumableTransport.close(error);
+          expect(onError.mock.calls.length).toBe(1);
+          expect(onError.mock.calls[0][0]).toBe(error);
+        });
+      });
+
+      describe('not given an error', () => {
+        it('closes the transport', () => {
+          resumableTransport.close();
+          expect(currentTransport.close.mock.calls.length).toBe(1);
+        });
+
+        it('sets the status to CLOSED', () => {
+          resumableTransport.close();
+          expect(resumableStatus.kind).toBe('CLOSED');
+        });
+
+        it('calls receive.onComplete', () => {
+          const onComplete = jest.fn();
+          const onSubscribe = subscription =>
+            subscription.request(Number.MAX_SAFE_INTEGER);
+          resumableTransport.receive().subscribe({onComplete, onSubscribe});
+          resumableTransport.close();
+          expect(onComplete.mock.calls.length).toBe(1);
+        });
+      });
+    });
+  });
 });

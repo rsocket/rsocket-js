@@ -37,8 +37,8 @@ export class ReassemblyDuplexConnection implements DuplexConnection {
       .lift(actual => new ReassemblySubscriber(actual));
   }
 
-  close(): void {
-    this._source.close();
+  close(error?: Error): void {
+    this._source.close(error);
   }
 
   connect(): void {

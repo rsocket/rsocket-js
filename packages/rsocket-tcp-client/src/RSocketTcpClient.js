@@ -59,8 +59,8 @@ export class RSocketTcpConnection implements DuplexConnection {
     }
   }
 
-  close(): void {
-    this._close();
+  close(error?: Error): void {
+    this._close(error);
   }
 
   connect(): void {
