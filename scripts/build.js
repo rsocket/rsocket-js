@@ -35,7 +35,9 @@ const BUILD_DIR = 'build';
 const SRC_DIR = 'src';
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PACKAGES_DIR = path.resolve(ROOT_DIR, 'packages');
-const JS_FILES_PATTERN = path.resolve(PACKAGES_DIR, '**/*.js');
+const JS_FILES_PATTERN = path.resolve(PACKAGES_DIR, '**/*.js')
+    .split(path.sep)
+    .join(path.posix.sep);
 const IGNORE_PATTERN = '**/__(mocks|snapshots|tests)__/**';
 const FLOW_EXTENSION = '.flow';
 
@@ -103,7 +105,7 @@ function buildPackage(pkg) {
   const pattern = path.resolve(srcDir, '**/*');
   const files = glob.sync(pattern, {nodir: true});
 
-  files.forEach((file) => buildFile(file, true));
+  files.forEach((file) => buildFile(file, false));
   process.stdout.write(`${chalk.green('=>')} ${path.basename(pkg)} (npm)\n`);
 }
 
@@ -115,14 +117,20 @@ function buildFile(file, silent) {
   const destPath = path.resolve(packageBuildPath, relativeToSrcPath);
 
   mkdirp.sync(path.dirname(destPath));
-  if (micromatch.isMatch(file, IGNORE_PATTERN)) {
+
+  const isIgnored = micromatch.isMatch(file, IGNORE_PATTERN);
+  // normalize paths to using posix format
+  const normalizedPath = file.split(path.sep).join(path.posix.sep);
+  const isJS = micromatch.isMatch(normalizedPath, JS_FILES_PATTERN);
+
+  if (isIgnored) {
     silent ||
       process.stdout.write(
         chalk.dim('  \u2022 ') +
           path.relative(PACKAGES_DIR, file) +
           ' (ignore)\n'
       );
-  } else if (!micromatch.isMatch(file, JS_FILES_PATTERN)) {
+  } else if (isJS === false) {
     fs.createReadStream(file).pipe(fs.createWriteStream(destPath));
     silent ||
       process.stdout.write(
