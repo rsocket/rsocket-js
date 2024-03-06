@@ -151,3 +151,35 @@ Pass `--help` to see configuration options.
 ## License
 By contributing to rsocket-js, you agree that your contributions will be
 licensed under the LICENSE file in the root directory of this source tree.
+
+## Releasing
+
+### Step 1: Build
+
+To release a new version you first need to build the various packages.
+
+```bash
+yarn run build
+```
+
+Before continuing you should validate the build output is as expected.
+
+### Step 2: Bump versions
+
+You can bump versions using the `lerna version` command, and selecting an appropriate next version.
+
+Note: `lerna version` will create and push new git tags.
+
+## Step 3: Publishing
+
+You can publish the locally built packages to npm using the following command.
+
+From the Lerna docs:
+
+> Lerna will compare the version of every package in the repository with the version of it that is published to npm. For
+> each package that has a version that is greater than the published version, Lerna will publish that package to npm.
+
+```bash
+lerna publish from-package
+```
+
