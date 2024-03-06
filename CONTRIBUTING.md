@@ -148,10 +148,6 @@ node packages/rsocket-tck/build/index.js
 
 Pass `--help` to see configuration options.
 
-## License
-By contributing to rsocket-js, you agree that your contributions will be
-licensed under the LICENSE file in the root directory of this source tree.
-
 ## Releasing
 
 ### Step 1: Build
@@ -183,3 +179,6 @@ From the Lerna docs:
 lerna publish from-package
 ```
 
+## License
+By contributing to rsocket-js, you agree that your contributions will be
+licensed under the LICENSE file in the root directory of this source tree.
