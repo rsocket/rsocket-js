@@ -2,19 +2,19 @@
   "name": "rsocket-examples",
   "private": true,
   "description": "RSocket examples",
-  "version": "0.0.28",
+  "version": "0.0.29-alpha.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/rsocket/rsocket-js.git"
   },
   "license": "BSD-3-Clause",
   "dependencies": {
-    "rsocket-core": "^0.0.28",
-    "rsocket-flowable": "^0.0.28",
-    "rsocket-tcp-server": "^0.0.28",
-    "rsocket-types": "^0.0.28",
-    "rsocket-websocket-client": "^0.0.28",
-    "rsocket-websocket-server": "^0.0.28",
+    "rsocket-core": "^0.0.29-alpha.0",
+    "rsocket-flowable": "^0.0.29-alpha.0",
+    "rsocket-tcp-server": "^0.0.29-alpha.0",
+    "rsocket-types": "^0.0.29-alpha.0",
+    "rsocket-websocket-client": "^0.0.29-alpha.0",
+    "rsocket-websocket-server": "^0.0.29-alpha.0",
     "ws": "^7.4.3"
   }
 }
