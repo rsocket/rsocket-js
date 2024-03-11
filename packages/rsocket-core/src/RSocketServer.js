@@ -21,7 +21,9 @@ import type {
   DuplexConnection,
   Frame,
   FrameWithData,
+  SetupFrame,
   Payload,
+  SetupPayload,
   ReactiveSocket,
   PartialResponder,
 } from 'rsocket-types';
@@ -54,7 +56,7 @@ export interface TransportServer {
 export type ServerConfig<D, M> = {|
   getRequestHandler: (
     socket: ReactiveSocket<D, M>,
-    payload: Payload<D, M>,
+    payload: SetupPayload<D, M>,
   ) => PartialResponder<D, M>,
   serializers?: PayloadSerializers<D, M>,
   transport: TransportServer,
@@ -180,7 +182,7 @@ export default class RSocketServer<D, M> {
               try {
                 const requestHandler = this._config.getRequestHandler(
                   serverMachine,
-                  deserializePayload(serializers, frame),
+                  deserializeSetupPayload(serializers, frame),
                 );
                 serverMachine.setRequestHandler(requestHandler);
                 this._connections.add(serverMachine);
@@ -275,5 +277,19 @@ function deserializePayload<D, M>(
   return {
     data: serializers.data.deserialize(frame.data),
     metadata: serializers.metadata.deserialize(frame.metadata),
+  };
+}
+
+function deserializeSetupPayload<D, M>(
+  serializers: PayloadSerializers<D, M>,
+  frame: SetupFrame,
+): SetupPayload<D, M> {
+  return {
+    data: serializers.data.deserialize(frame.data),
+    metadata: serializers.metadata.deserialize(frame.metadata),
+    keepAlive: frame.keepAlive,
+    lifetime: frame.lifetime,
+    metadataMimeType: frame.metadataMimeType,
+    dataMimeType: frame.dataMimeType,
   };
 }
