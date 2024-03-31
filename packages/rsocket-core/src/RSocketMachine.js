@@ -784,13 +784,14 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
   }
 
   _handleRequestChannel(streamId: number, frame: RequestChannelFrame): void {
+    const payload = this._deserializePayload(frame);
     const existingSubscription = this._subscriptions.get(streamId);
     if (existingSubscription) {
       //Likely a duplicate REQUEST_CHANNEL frame, ignore per spec
       return;
     }
 
-    const payloads = new Flowable(subscriber => {
+    const payloads = new Flowable<Payload<D, M>>(subscriber => {
       let firstRequest = true;
 
       subscriber.onSubscribe({
@@ -823,15 +824,13 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
           //critically, if n is 0 now, that's okay because we eagerly decremented it
           if (firstRequest && n >= 0) {
             firstRequest = false;
-            //release the initial frame we received in frame form due to map operator
-            subscriber.onNext(frame);
+            //release the initial payload we received in frame form due to map operator
+            subscriber.onNext(payload);
           }
         },
       });
     }, MAX_REQUEST_N);
-    const framesToPayloads = new FlowableProcessor(payloads, frame =>
-      this._deserializePayload(frame),
-    );
+    const framesToPayloads = new FlowableProcessor(payloads);
     this._receivers.set(streamId, framesToPayloads);
 
     this._requestHandler.requestChannel(framesToPayloads).subscribe({
@@ -892,13 +891,14 @@ class RSocketMachineImpl<D, M> implements RSocketMachine<D, M> {
       flags |= FLAGS.COMPLETE;
       this._subscriptions.delete(streamId);
     }
+    let metadata;
     if (payload.metadata !== undefined &&
         payload.metadata !== null) {
       // eslint-disable-next-line no-bitwise
       flags |= FLAGS.METADATA;
+      metadata = this._serializers.metadata.serialize(payload.metadata);
     }
     const data = this._serializers.data.serialize(payload.data);
-    const metadata = this._serializers.metadata.serialize(payload.metadata);
     this._connection.sendOne({
       data,
       flags,

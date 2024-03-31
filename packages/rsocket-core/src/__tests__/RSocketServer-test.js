@@ -142,6 +142,69 @@ describe('RSocketServer', () => {
   });
 
   describe('RequestHandler', () => {
+    it('deserializes and serializes the channel\'s payload.data', () => {
+      console.error = jest.fn();
+      const transport = genMockTransportServer();
+
+      const makePayload = (data) => ({
+        type: FRAME_TYPES.PAYLOAD,
+        streamId: 1,
+        flags: 32, // next bit - invoke onNext
+        data,
+      });
+
+      const server = new RSocketServer({
+        getRequestHandler: () => {
+          return {
+            requestChannel: (incomingFlowable) => {
+              // If the payload.data has 'name', reply with custom response
+              return incomingFlowable.map(payload => {
+                if (payload && payload.data && payload.data.name) {
+                  return { data: { say: 'hello ' + payload.data.name } };
+                } else {
+                  return payload;
+                }
+              });
+            },
+          };
+        },
+        serializers:JsonSerializers,
+        transport,
+      });
+      
+      server.start();
+      transport.mock.connect();
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.SETUP,
+        data: undefined,
+        dataMimeType: '<dataMimeType>',
+        flags: 0,
+        keepAlive: 42,
+        lifetime: 2017,
+        metadata: undefined,
+        metadataMimeType: '<metadataMimeType>',
+        resumeToken: null,
+        streamId: 0,
+        majorVersion: 1,
+        minorVersion: 0,
+      });
+      connection.receive.mock.publisher.onNext({
+        type: FRAME_TYPES.REQUEST_CHANNEL,
+        flags: 0,
+        requestN: 100,
+        streamId: 1,
+        // data along with first REQUEST_CHANNEL frame
+        data: JSON.stringify({ name: 'Alex' }),
+      });
+      // data as separate PAYLOAD frame
+      connection.receive.mock.publisher.onNext(makePayload(JSON.stringify({ name: 'Bob' })));
+      jest.runOnlyPendingTimers();
+
+      expect(connection.sendOne.mock.calls.length).toBe(3);
+      expect(connection.sendOne.mock.calls[1][0]).toEqual(makePayload(JSON.stringify({ say: 'hello Alex' })));
+      expect(connection.sendOne.mock.calls[2][0]).toEqual(makePayload(JSON.stringify({ say: 'hello Bob' })));
+    });
+
     it('sends error if getRequestHandler throws', () => {
       const transport = genMockTransportServer();
       const server = new RSocketServer({
