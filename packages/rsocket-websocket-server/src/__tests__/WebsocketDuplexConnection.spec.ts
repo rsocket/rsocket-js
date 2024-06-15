@@ -1,20 +1,23 @@
 import { mock } from "jest-mock-extended";
-import {
-  Demultiplexer,
-  Deserializer,
-  Flags,
-  Frame,
-  FrameHandler,
-  FrameTypes,
-  Multiplexer,
-  serializeFrame,
-  SetupFrame,
-} from "rsocket-core";
+import { Demultiplexer, Frame, FrameHandler, Multiplexer } from "rsocket-core";
 import { WebsocketDuplexConnection } from "../WebsocketDuplexConnection";
-// import { MockSocket } from "../__mocks__/ws";
 import { Duplex } from "stream";
 
-// const deserializer = mock<Deserializer>();
+function makeDuplexStub() {
+  const listeners = {
+    close: [],
+  };
+  return mock<Duplex>({
+    on(event, cb) {
+      listeners[event]?.push(cb);
+      return this;
+    },
+    destroy(error?: Error) {
+      listeners.close.forEach((cb) => cb(error));
+      return this;
+    },
+  });
+}
 
 describe("WebsocketDuplexConnection", function () {
   describe("when closed", () => {
@@ -125,69 +128,55 @@ describe("WebsocketDuplexConnection", function () {
       expect(onCloseCallback).toBeCalledTimes(1);
       expect(onCloseCallback).toBeCalledWith(error);
     });
-    //
-    // it("subsequent calls to close result in only a single invocation of onClose", () => {
-    //   const socketStub = mock<WebSocket>();
-    //   const multiplexerDemultiplexer = mock<
-    //     Multiplexer & Demultiplexer & FrameHandler
-    //   >();
-    //   const connection = new WebsocketDuplexConnection(
-    //     socketStub,
-    //     deserializer,
-    //     () => multiplexerDemultiplexer
-    //   );
-    //   const onCloseCallback = jest.fn();
-    //   const error = new Error();
-    //   connection.onClose(onCloseCallback);
-    //   connection.close(error);
-    //   connection.close(error);
-    //
-    //   expect(onCloseCallback).toBeCalledTimes(1);
-    //   expect(onCloseCallback).toBeCalledWith(error);
-    // });
-    //
-    // it("the onClose callback is called with an error when the socket is closed unexpectedly", () => {
-    //   const socket = new MockSocket() as unknown as WebSocket;
-    //   const multiplexerDemultiplexer = mock<
-    //     Multiplexer & Demultiplexer & FrameHandler
-    //   >();
-    //   const connection = new WebsocketDuplexConnection(
-    //     socket,
-    //     deserializer,
-    //     () => multiplexerDemultiplexer
-    //   );
-    //   const onCloseCallback = jest.fn();
-    //
-    //   connection.onClose(onCloseCallback);
-    //   (socket as unknown as MockSocket).mock.close({});
-    //
-    //   expect(onCloseCallback).toBeCalledTimes(1);
-    //   expect(onCloseCallback).toHaveBeenCalledWith(
-    //     new Error("WebsocketDuplexConnection: Socket closed unexpectedly.")
-    //   );
-    // });
-    //
-    // it("the onClose callback is called with an error when the socket is closed with an error", () => {
-    //   const socket = new MockSocket() as unknown as WebSocket;
-    //   const multiplexerDemultiplexer = mock<
-    //     Multiplexer & Demultiplexer & FrameHandler
-    //   >();
-    //   const connection = new WebsocketDuplexConnection(
-    //     socket,
-    //     deserializer,
-    //     () => multiplexerDemultiplexer
-    //   );
-    //   const onCloseCallback = jest.fn();
-    //   const expectedError = new Error(
-    //     "WebsocketDuplexConnection: Test error 1"
-    //   );
-    //
-    //   connection.onClose(onCloseCallback);
-    //   (socket as unknown as MockSocket).mock.error({ error: expectedError });
-    //
-    //   expect(onCloseCallback).toBeCalledTimes(1);
-    //   expect(onCloseCallback).toHaveBeenCalledWith(expectedError);
-    // });
+
+    it("subsequent calls to close result in only a single invocation of onClose", () => {
+      // arrange
+      const socketStub = mock<Duplex>();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const frame = mock<Frame>();
+      const connection = new WebsocketDuplexConnection(
+        socketStub,
+        frame,
+        () => multiplexerDemultiplexer
+      );
+      const onCloseCallback = jest.fn();
+      const error = new Error();
+      connection.onClose(onCloseCallback);
+
+      // act
+      connection.close(error);
+      connection.close(error);
+
+      // assert
+      expect(onCloseCallback).toBeCalledTimes(1);
+      expect(onCloseCallback).toBeCalledWith(error);
+    });
+
+    it("the onClose callback is called with an error when the socket is destroyed unexpectedly", () => {
+      // arrange
+
+      const socketStub = makeDuplexStub();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const frame = mock<Frame>();
+      const connection = new WebsocketDuplexConnection(
+        socketStub,
+        frame,
+        () => multiplexerDemultiplexer
+      );
+      const onCloseCallback = jest.fn();
+
+      connection.onClose(onCloseCallback);
+      (socketStub as unknown as Duplex).destroy(new Error("simulated error"));
+
+      expect(onCloseCallback).toBeCalledTimes(1);
+      expect(onCloseCallback).toHaveBeenCalledWith(
+        new Error("WebsocketDuplexConnection: Socket closed unexpectedly.")
+      );
+    });
   });
 
   // describe("send()", () => {
