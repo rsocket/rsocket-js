@@ -234,8 +234,13 @@ class WSDuplexConnection implements DuplexConnection {
     });
   }
 
-  close(): void {
-    this._socket.emit('close');
+  close(error?: Error): void {
+    if (error) {
+      this._socket.emit('error', error);
+    } else {
+      this._socket.emit('close');
+    }
+
     this._socket.close();
   }
 

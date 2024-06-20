@@ -118,10 +118,11 @@ export interface DuplexConnection {
   receive(): Flowable<Frame>,
 
   /**
-   * Close the underlying connection, emitting `onComplete` on the receive()
-   * Publisher.
+   * Close the underlying connection, optionally providing an error as reason.
+   * If an error is passed, emits `onError` on the receive() Publisher.
+   * If no error is passed, emits `onComplete` on the receive() Publisher.
    */
-  close(): void,
+  close(error?: Error): void,
 
   /**
    * Open the underlying connection. Throws if the connection is already in

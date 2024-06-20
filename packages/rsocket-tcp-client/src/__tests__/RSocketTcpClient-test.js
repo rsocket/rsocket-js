@@ -98,29 +98,62 @@ describe('RSocketTcpClient', () => {
     });
 
     describe('close()', () => {
-      it('closes the socket', () => {
-        client.close();
-        expect(socket.end.mock.calls.length).toBe(1);
-      });
-
-      it('sets the status to CLOSED', () => {
-        let status;
-        client.connectionStatus().subscribe({
-          onNext: _status => (status = _status),
-          onSubscribe: subscription =>
-            subscription.request(Number.MAX_SAFE_INTEGER),
+      describe('given an error', () => {
+        it('closes the socket', () => {
+          client.close(new Error());
+          expect(socket.end.mock.calls.length).toBe(1);
         });
-        client.close();
-        expect(status.kind).toBe('CLOSED');
+
+        it('sets the status to ERROR with the given error', () => {
+          let status;
+          client.connectionStatus().subscribe({
+            onNext: _status => (status = _status),
+            onSubscribe: subscription =>
+              subscription.request(Number.MAX_SAFE_INTEGER),
+          });
+          const error = new Error();
+          client.close(error);
+          expect(status.kind).toBe('ERROR');
+          expect(status.error).toBe(error);
+        });
+
+        it('calls receive.onError with the given error', () => {
+          const onError = jest.fn();
+          const onSubscribe = subscription =>
+            subscription.request(Number.MAX_SAFE_INTEGER);
+          client.receive().subscribe({onError, onSubscribe});
+          const error = new Error();
+          client.close(error);
+          expect(onError.mock.calls.length).toBe(1);
+          expect(onError.mock.calls[0][0]).toBe(error);
+        });
       });
 
-      it('calls receive.onComplete', () => {
-        const onComplete = jest.fn();
-        const onSubscribe = subscription =>
-          subscription.request(Number.MAX_SAFE_INTEGER);
-        client.receive().subscribe({onComplete, onSubscribe});
-        client.close();
-        expect(onComplete.mock.calls.length).toBe(1);
+      describe('not given an error', () => {
+        it('closes the socket', () => {
+          client.close();
+          expect(socket.end.mock.calls.length).toBe(1);
+        });
+
+        it('sets the status to CLOSED', () => {
+          let status;
+          client.connectionStatus().subscribe({
+            onNext: _status => (status = _status),
+            onSubscribe: subscription =>
+              subscription.request(Number.MAX_SAFE_INTEGER),
+          });
+          client.close();
+          expect(status.kind).toBe('CLOSED');
+        });
+
+        it('calls receive.onComplete', () => {
+          const onComplete = jest.fn();
+          const onSubscribe = subscription =>
+            subscription.request(Number.MAX_SAFE_INTEGER);
+          client.receive().subscribe({onComplete, onSubscribe});
+          client.close();
+          expect(onComplete.mock.calls.length).toBe(1);
+        });
       });
     });
 
