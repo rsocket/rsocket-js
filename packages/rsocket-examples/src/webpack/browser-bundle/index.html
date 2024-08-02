@@ -15,7 +15,7 @@
         var state = 'CONNECTING';
         var outputDiv = document.querySelector("#output");
         var _rsocket = null;
-        var erorrColor = '#eb4034';
+        var errorColor = '#eb4034';
         var infoColor = '#348CEBFF';
         var messageColor = '#2ccd20';
 
@@ -23,7 +23,7 @@
           if (state !== 'CONNECTED') {
             const div = document.createElement("div");
             div.textContent = `[${new Date().toISOString()}] not connected. cannot send messages!`;
-            div.style.color = erorrColor;
+            div.style.color = errorColor;
             outputDiv.appendChild(div);
             return;
           }
@@ -61,7 +61,7 @@
           if (!value.length) {
             const div = document.createElement("div");
             div.textContent = `[${new Date().toISOString()}] please include a message!`;
-            div.style.color = erorrColor;
+            div.style.color = errorColor;
             outputDiv.appendChild(div);
             return;
           }
@@ -85,7 +85,7 @@
             outputDiv.appendChild(div);
           })
           .catch(function (err) {
-            const erorrMessage = err?.message || "failed to connect to rsocket! check the console for more details.";
+            const errorMessage = err?.message || "failed to connect to rsocket! check the console for more details.";
             if (err) {
               console.error("failed to connect rsocket: " + err.message)
             }
@@ -93,8 +93,8 @@
               console.error("failed to connect rsocket!")
             }
             const div = document.createElement("div");
-            div.textContent = `[${new Date().toISOString()}] ${erorrMessage}`;
-            div.style.color = erorrColor;
+            div.textContent = `[${new Date().toISOString()}] ${errorMessage}`;
+            div.style.color = errorColor;
             outputDiv.appendChild(div);
           });
       })();
