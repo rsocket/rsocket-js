@@ -26,3 +26,41 @@ __index.html__
 Note: `index.html` does not show how to load the built `rsocket.js` file as that will be up to you/your implementation to decide.
 
 Note: when running the `serve` npm script webpack will automatically host the `index.html` file and inject the `rsocket.js` script into the `<head/>` block.
+
+## Run the server
+
+**Open a terminal:**
+
+Open a terminal in the `simple/server` directory one level up from this README.
+
+**Install dependencies:**
+
+```bash
+npm install
+```
+
+**Run the server:**
+
+```bash
+npm run start
+```
+
+## Run the client
+
+**Open a terminal in this folder and install dependencies:**
+
+```bash
+npm install
+```
+
+**Run the NPM server script:**
+
+```
+npm run serve
+```
+
+The above script will run the webpack dev server, which will first compile the "app" and then host the index.html.
+
+**Open in browser:**
+
+Visit [localhost:9000](http://localhost:9000).

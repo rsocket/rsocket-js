@@ -19,11 +19,11 @@ const server = new RSocketServer({
           () =>
             responderStream.onNext(
               {
-                data: Buffer.concat([Buffer.from("Echo: "), payload.data]),
+                data: Buffer.concat([Buffer.from("ECHO: "), payload.data]),
               },
               true
             ),
-          1000
+          100
         );
         return {
           cancel: () => {
