@@ -21,7 +21,9 @@
     "start-client-server-rxjs-messaging-composite-metadata-route": "ts-node -r tsconfig-paths/register src/rxjs/RxjsMessagingCompositeMetadataRouteExample.ts",
     "start-client-server-rxjs-requester-responder": "ts-node -r tsconfig-paths/register src/rxjs/RxjsRequesterResponderExample.ts",
     "start-client-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/client/example.ts",
-    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/client-server/example.ts"
+    "start-client-server-apollo-graphql": "ts-node -r tsconfig-paths/register src/graphql/apollo/client-server/example.ts",
+    "start-client-server-composite-metadata-auth-example-client": "ts-node -r tsconfig-paths/register src/composite-metadata/bearer-token-auth/client.ts",
+    "start-client-server-composite-metadata-auth-example-server": "ts-node -r tsconfig-paths/register src/composite-metadata/bearer-token-auth/server.ts"
   },
   "dependencies": {
     "@apollo/client": "^3.5.10",
