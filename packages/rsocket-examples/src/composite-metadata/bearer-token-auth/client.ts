@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Payload, RSocket, RSocketConnector } from 'rsocket-core'
+import { Payload, RSocket, RSocketConnector } from "rsocket-core";
 import { TcpClientTransport } from "rsocket-tcp-client";
 import {
   encodeBearerAuthMetadata,
