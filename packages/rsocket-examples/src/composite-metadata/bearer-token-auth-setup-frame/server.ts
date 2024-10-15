@@ -21,22 +21,24 @@ import {
   OnNextSubscriber,
   OnTerminalSubscriber,
   Payload,
+  RSocket,
   RSocketError,
   RSocketServer,
-} from "rsocket-core";
-import { TcpServerTransport } from "rsocket-tcp-server";
+  SetupPayload,
+} from 'rsocket-core'
+import { TcpServerTransport } from 'rsocket-tcp-server'
 import {
   decodeAuthMetadata,
   decodeCompositeMetadata,
   decodeRoutes,
   WellKnownAuthType,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
-import { exit } from "process";
-import Logger from "../../shared/logger";
-import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
-import MESSAGE_RSOCKET_AUTHENTICATION = WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION;
-import BEARER = WellKnownAuthType.BEARER;
+} from 'rsocket-composite-metadata'
+import { exit } from 'process'
+import Logger from '../../shared/logger'
+import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING
+import MESSAGE_RSOCKET_AUTHENTICATION = WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION
+import BEARER = WellKnownAuthType.BEARER
 
 let serverCloseable: Closeable;
 
@@ -108,6 +110,14 @@ class EchoService {
 }
 
 class AuthService {
+  getUserContextForToken(mappedMetaData: Map<string, any>) {
+    const authContext = mappedMetaData.get(
+      MESSAGE_RSOCKET_AUTHENTICATION.toString()
+    );
+    const authToken = authContext.payload.toString();
+    return tokenToUserContext[authToken];
+  }
+
   handleWhoAmIRequestResponse(
     responderStream: OnTerminalSubscriber &
       OnNextSubscriber &
@@ -116,11 +126,7 @@ class AuthService {
     mappedMetaData: Map<string, any>
   ) {
     const timeout = setTimeout(() => {
-      const authContext = mappedMetaData.get(
-        MESSAGE_RSOCKET_AUTHENTICATION.toString()
-      );
-      const authToken = authContext.payload.toString();
-      const userContext = tokenToUserContext[authToken];
+      const userContext = this.getUserContextForToken(mappedMetaData);
       if (!userContext) {
         responderStream.onError(
           new RSocketError(
@@ -183,9 +189,23 @@ function makeServer() {
       },
     }),
     acceptor: {
-      accept: async () => {
+      accept: async (payload: SetupPayload, remotePeer: RSocket) => {
         const echoService = new EchoService();
         const authService = new AuthService();
+        const setupMetaData = mapMetaData(payload);
+        const authError = authMiddleware(setupMetaData);
+        if (authError) {
+          Logger.error(
+            `Auth error during setup. Peer will be closed. Caused by: ${authError}`
+          );
+          remotePeer.close(authError);
+          return {};
+        }
+        const userContext = authService.getUserContextForToken(setupMetaData);
+        Logger.info(`User connected... ${JSON.stringify(userContext)}`);
+        remotePeer.onClose(() => {
+          Logger.info(`User disconnected... ${JSON.stringify(userContext)}`);
+        });
         return {
           requestResponse: (
             payload: Payload,
@@ -201,13 +221,6 @@ function makeServer() {
               },
               onExtension() {},
             };
-
-            const authError = authMiddleware(mappedMetaData);
-            if (authError) {
-              Logger.error(`Auth error: ${authError}`);
-              responderStream.onError(authError);
-              return defaultSubscriber;
-            }
 
             const route = mappedMetaData.get(
               MESSAGE_RSOCKET_ROUTING.toString()
