@@ -25,20 +25,20 @@ import {
   RSocketError,
   RSocketServer,
   SetupPayload,
-} from 'rsocket-core'
-import { TcpServerTransport } from 'rsocket-tcp-server'
+} from "rsocket-core";
+import { TcpServerTransport } from "rsocket-tcp-server";
 import {
   decodeAuthMetadata,
   decodeCompositeMetadata,
   decodeRoutes,
   WellKnownAuthType,
   WellKnownMimeType,
-} from 'rsocket-composite-metadata'
-import { exit } from 'process'
-import Logger from '../../shared/logger'
-import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING
-import MESSAGE_RSOCKET_AUTHENTICATION = WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION
-import BEARER = WellKnownAuthType.BEARER
+} from "rsocket-composite-metadata";
+import { exit } from "process";
+import Logger from "../../shared/logger";
+import MESSAGE_RSOCKET_ROUTING = WellKnownMimeType.MESSAGE_RSOCKET_ROUTING;
+import MESSAGE_RSOCKET_AUTHENTICATION = WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION;
+import BEARER = WellKnownAuthType.BEARER;
 
 let serverCloseable: Closeable;
 
