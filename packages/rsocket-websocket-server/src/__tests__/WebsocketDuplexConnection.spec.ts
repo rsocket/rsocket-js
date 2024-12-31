@@ -105,7 +105,7 @@ describe("WebsocketDuplexConnection", function () {
       expect(onCloseCallback).toBeCalledWith();
     });
 
-    it("when closed with an error it calls the onClose callback when one is registered", () => {
+    it("with an error it calls the onClose callback when one is registered", () => {
       // arrange
       const socketStub = mock<Duplex>();
       const multiplexerDemultiplexer = mock<
