@@ -199,6 +199,25 @@ describe("WebsocketDuplexConnection", function () {
     });
   });
 
+  describe("when open", () => {
+    it("declares availability as 1", () => {
+      // arrange
+      const socketStub = mock<Duplex>();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const frame = mock<Frame>();
+      const connection = new WebsocketDuplexConnection(
+        socketStub,
+        frame,
+        () => multiplexerDemultiplexer
+      );
+
+      // assert
+      expect(connection.availability).toEqual(1);
+    });
+  });
+
   // describe("send()", () => {
   //   const setupFrame = {
   //     type: FrameTypes.SETUP,
