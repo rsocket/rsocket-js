@@ -177,6 +177,26 @@ describe("WebsocketDuplexConnection", function () {
         new Error("WebsocketDuplexConnection: Socket closed unexpectedly.")
       );
     });
+
+    it("declares availability as 0", () => {
+      // arrange
+      const socketStub = mock<Duplex>();
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const frame = mock<Frame>();
+      const connection = new WebsocketDuplexConnection(
+        socketStub,
+        frame,
+        () => multiplexerDemultiplexer
+      );
+
+      // act
+      connection.close();
+
+      // assert
+      expect(connection.availability).toEqual(0);
+    });
   });
 
   // describe("send()", () => {

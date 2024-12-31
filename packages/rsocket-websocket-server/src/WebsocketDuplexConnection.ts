@@ -55,7 +55,7 @@ export class WebsocketDuplexConnection
   }
 
   get availability(): number {
-    return this.websocketDuplex.destroyed ? 0 : 1;
+    return this.done ? 0 : 1;
   }
 
   close(error?: Error) {
