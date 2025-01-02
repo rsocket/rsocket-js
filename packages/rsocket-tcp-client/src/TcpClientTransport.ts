@@ -23,7 +23,7 @@ import {
   FrameHandler,
   Multiplexer,
   Outbound,
-} from "rsocket-core";
+} from "@rsocket/core";
 import net, { SocketConnectOpts } from "net";
 import { TcpDuplexConnection } from "./TcpDuplexConnection";
 

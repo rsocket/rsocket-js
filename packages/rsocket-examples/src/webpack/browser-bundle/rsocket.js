@@ -1,5 +1,5 @@
-import { RSocketConnector } from "rsocket-core";
-import { WebsocketClientTransport } from "rsocket-websocket-client";
+import { RSocketConnector } from "@rsocket/core";
+import { WebsocketClientTransport } from "@rsocket/websocket-client";
 
 export async function connect(transportOptions) {
   const connector = new RSocketConnector({

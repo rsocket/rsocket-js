@@ -24,10 +24,10 @@ import {
   RSocket,
   RSocketConnector,
   RSocketServer,
-} from "rsocket-core";
+} from "@rsocket/core";
 import { exit } from "process";
-import { TcpClientTransport } from "rsocket-tcp-client";
-import { TcpServerTransport } from "rsocket-tcp-server";
+import { TcpClientTransport } from "@rsocket/tcp-client";
+import { TcpServerTransport } from "@rsocket/tcp-server";
 
 async function main() {
   const server = new RSocketServer({

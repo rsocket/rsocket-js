@@ -1,5 +1,5 @@
-import { RSocketConnector } from "rsocket-core";
-import { WebsocketClientTransport } from "rsocket-websocket-client";
+import { RSocketConnector } from "@rsocket/core";
+import { WebsocketClientTransport } from "@rsocket/websocket-client";
 
 (async () => {
   const outputDiv = document.querySelector("#output");

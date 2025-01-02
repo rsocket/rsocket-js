@@ -18,7 +18,7 @@ import { split } from "@apollo/client/core";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { RSocketQueryLink } from "./RSocketQueryLink";
 import { RSocketSubscriptionLink } from "./RSocketSubscriptionLink";
-import { RSocket } from "rsocket-core";
+import { RSocket } from "@rsocket/core";
 
 export type makeRSocketLinkConfig = {
   rsocket: RSocket;

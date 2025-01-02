@@ -22,12 +22,12 @@ import {
   Observable,
   Operation,
 } from "@apollo/client/core";
-import { Payload, RSocket } from "rsocket-core";
+import { Payload, RSocket } from "@rsocket/core";
 import {
   encodeCompositeMetadata,
   encodeRoutes,
   WellKnownMimeType,
-} from "rsocket-composite-metadata";
+} from "@rsocket/composite-metadata";
 import { print } from "graphql";
 
 type QueryLinkOptions = {

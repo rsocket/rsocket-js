@@ -6,7 +6,7 @@ import {
   Payload,
   Requestable,
   RSocket,
-} from "rsocket-core";
+} from "@rsocket/core";
 import {
   ApolloServerBase,
   GraphQLOptions,

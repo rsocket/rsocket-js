@@ -1,5 +1,5 @@
-const { RSocketServer } = require("rsocket-core");
-const { WebsocketServerTransport } = require("rsocket-websocket-server");
+const { RSocketServer } = require("@rsocket/core");
+const { WebsocketServerTransport } = require("@rsocket/websocket-server");
 const WebSocket = require("ws");
 
 const port = 9090;
