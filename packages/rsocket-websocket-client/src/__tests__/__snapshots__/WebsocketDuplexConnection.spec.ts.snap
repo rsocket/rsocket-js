@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`WebsocketDuplexConnection when receiving data when buffer contains a single frame deserializes received frames and calls the configured handler 1`] = `
-Object {
-  "data": Object {
-    "data": Array [
+{
+  "data": {
+    "data": [
       104,
       101,
       108,
@@ -23,8 +23,8 @@ Object {
   "keepAlive": 60000,
   "lifetime": 300000,
   "majorVersion": 1,
-  "metadata": Object {
-    "data": Array [
+  "metadata": {
+    "data": [
       104,
       101,
       108,
