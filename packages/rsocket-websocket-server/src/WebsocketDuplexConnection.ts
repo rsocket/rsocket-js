@@ -24,14 +24,12 @@ import {
   FrameHandler,
   Multiplexer,
   Outbound,
-  serializeFrame,
-} from "rsocket-core";
-import { Duplex } from "stream";
+  serializeFrame
+} from 'rsocket-core';
+import { Duplex } from 'stream';
+import WebSocket from 'ws';
 
-export class WebsocketDuplexConnection
-  extends Deferred
-  implements DuplexConnection, Outbound
-{
+export class WebsocketDuplexConnection extends Deferred implements DuplexConnection, Outbound {
   readonly multiplexerDemultiplexer: Multiplexer & Demultiplexer & FrameHandler;
 
   constructor(
@@ -40,18 +38,16 @@ export class WebsocketDuplexConnection
     multiplexerDemultiplexerFactory: (
       frame: Frame,
       outbound: Outbound & Closeable
-    ) => Multiplexer & Demultiplexer & FrameHandler
+    ) => Multiplexer & Demultiplexer & FrameHandler,
+    private rawSocket: WebSocket.WebSocket
   ) {
     super();
 
-    websocketDuplex.on("close", this.handleClosed);
-    websocketDuplex.on("error", this.handleError);
-    websocketDuplex.on("data", this.handleMessage);
+    websocketDuplex.on('close', this.handleClosed);
+    websocketDuplex.on('error', this.handleError);
+    websocketDuplex.on('data', this.handleMessage);
 
-    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(
-      frame,
-      this
-    );
+    this.multiplexerDemultiplexer = multiplexerDemultiplexerFactory(frame, this);
   }
 
   get availability(): number {
@@ -77,32 +73,40 @@ export class WebsocketDuplexConnection
       return;
     }
 
-    //   if (__DEV__) {
-    //     if (this._options.debug) {
-    //       console.log(printFrame(frame));
-    //     }
-    //   }
-    const buffer =
-      /* this._options.lengthPrefixedFrames
-          ? serializeFrameWithLength(frame, this._encoders)
-          :*/ serializeFrame(frame);
-    // if (!this._socket) {
-    //   throw new Error(
-    //     "RSocketWebSocketClient: Cannot send frame, not connected."
-    //   );
-    // }
-    this.websocketDuplex.write(buffer);
+    try {
+      //   if (__DEV__) {
+      //     if (this._options.debug) {
+      //       console.log(printFrame(frame));
+      //     }
+      //   }
+      const buffer =
+        /* this._options.lengthPrefixedFrames
+        ? serializeFrameWithLength(frame, this._encoders)
+        :*/ serializeFrame(frame);
+      // if (!this._socket) {
+      //   throw new Error(
+      //     "RSocketWebSocketClient: Cannot send frame, not connected."
+      //   );
+      // }
+
+      // Work around for this issue
+      // https://github.com/websockets/ws/issues/1515
+      if (this.rawSocket.readyState == this.rawSocket.CLOSING || this.rawSocket.readyState == this.rawSocket.CLOSED) {
+        this.close(new Error('WebSocket is closing'));
+        return;
+      }
+
+      this.websocketDuplex.write(buffer);
+    } catch (ex) {
+      this.close(new Error(ex.reason || `Could not write to WebSocket duplex connection: ${ex}`));
+    }
   }
 
-  private handleClosed = (e: CloseEvent): void => {
-    this.close(
-      new Error(
-        e.reason || "WebsocketDuplexConnection: Socket closed unexpectedly."
-      )
-    );
+  private handleClosed = (e: WebSocket.CloseEvent): void => {
+    this.close(new Error(e.reason || 'WebsocketDuplexConnection: Socket closed unexpectedly.'));
   };
 
-  private handleError = (e: ErrorEvent): void => {
+  private handleError = (e: WebSocket.ErrorEvent): void => {
     this.close(e.error);
   };
 
@@ -125,23 +129,27 @@ export class WebsocketDuplexConnection
 
   static create(
     socket: Duplex,
-    connectionAcceptor: (
-      frame: Frame,
-      connection: DuplexConnection
-    ) => Promise<void>,
+    connectionAcceptor: (frame: Frame, connection: DuplexConnection) => Promise<void>,
     multiplexerDemultiplexerFactory: (
       frame: Frame,
       outbound: Outbound & Closeable
-    ) => Multiplexer & Demultiplexer & FrameHandler
+    ) => Multiplexer & Demultiplexer & FrameHandler,
+    rawSocket: WebSocket.WebSocket
   ): void {
     // TODO: timeout on no data?
-    socket.once("data", async (buffer) => {
-      const frame = deserializeFrame(buffer);
-      const connection = new WebsocketDuplexConnection(
-        socket,
-        frame,
-        multiplexerDemultiplexerFactory
-      );
+    socket.once('data', async (buffer) => {
+      let frame: Frame | undefined = undefined;
+      try {
+        frame = deserializeFrame(buffer);
+        if (!frame) {
+          throw new Error(`Unable to deserialize frame`);
+        }
+      } catch (ex) {
+        // The initial frame should always be parsable
+        return socket.end();
+      }
+
+      const connection = new WebsocketDuplexConnection(socket, frame, multiplexerDemultiplexerFactory, rawSocket);
       if (connection.done) {
         return;
       }

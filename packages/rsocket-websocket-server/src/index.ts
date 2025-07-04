@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
-"use strict";
+'use strict';
 
-export * from "./WebsocketServerTransport";
+export * from './WebsocketServerTransport';
+export * from './WebsocketDuplexConnection';
