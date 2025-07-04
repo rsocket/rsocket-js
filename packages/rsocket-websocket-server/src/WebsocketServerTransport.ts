@@ -38,6 +38,11 @@ export type SocketOptions = {
 export type ServerOptions = SocketOptions & {
   wsCreator?: SocketFactory;
   debug?: boolean;
+  /**
+   * If enabled the ServerCloseable will not close the WebSocket
+   * server. The server should be closed externally.
+   */
+  externallyCloseServer?: boolean;
 };
 
 const defaultFactory: SocketFactory = (options: SocketOptions) => {
@@ -52,7 +57,7 @@ export class WebsocketServerTransport implements ServerTransport {
   private readonly port: number;
   private readonly factory: SocketFactory;
 
-  constructor(options: ServerOptions) {
+  constructor(private options: ServerOptions) {
     this.host = options.host;
     this.port = options.port;
     this.factory = options.wsCreator ?? defaultFactory;
@@ -69,7 +74,7 @@ export class WebsocketServerTransport implements ServerTransport {
     ) => Multiplexer & Demultiplexer & FrameHandler
   ): Promise<Closeable> {
     const websocketServer: Server = await this.connectServer();
-    const serverCloseable = new ServerCloseable(websocketServer);
+    const serverCloseable = new ServerCloseable(websocketServer, this.options.externallyCloseServer);
 
     const connectionListener = (websocket: WebSocket) => {
       websocket.binaryType = "nodebuffer";
@@ -111,7 +116,7 @@ export class WebsocketServerTransport implements ServerTransport {
 }
 
 class ServerCloseable extends Deferred {
-  constructor(private readonly server: Server) {
+  constructor(private readonly server: Server, private externallyCloseServer?: boolean) {
     super();
   }
 
@@ -121,7 +126,9 @@ class ServerCloseable extends Deferred {
       return;
     }
 
-    this.server.close();
+    if (!this.externallyCloseServer) {
+      this.server.close();
+    }
     super.close();
   }
 }
