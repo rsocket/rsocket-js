@@ -15,7 +15,7 @@ module.exports = {
     app: "./src/app.js",
   },
   output: {
-    filename: "[name].js", // [name] will be replaced by 'app' or 'library'
+    filename: "[name].js", // [name] will be replaced by 'app' or 'rsocket'
     path: path.resolve(__dirname, "dist"),
   },
   devtool: "source-map",

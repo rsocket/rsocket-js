@@ -1,9 +1,9 @@
-var state = "CONNECTING";
-var outputDiv = document.querySelector("#output");
-var _rsocket = null;
-var errorColor = "#eb4034";
-var infoColor = "#348CEBFF";
-var messageColor = "#2ccd20";
+let state = "CONNECTING";
+let outputDiv = document.querySelector("#output");
+let _rsocket = null;
+let errorColor = "#eb4034";
+let infoColor = "#348CEBFF";
+let messageColor = "#2ccd20";
 
 function sendMessage(message) {
   if (state !== "CONNECTED") {
@@ -40,10 +40,10 @@ function sendMessage(message) {
   );
 }
 
-var sendButton = document.querySelector("#send-button");
+let sendButton = document.querySelector("#send-button");
 sendButton.addEventListener("click", function () {
-  var input = document.querySelector("#input-field");
-  var value = input.value;
+  let input = document.querySelector("#input-field");
+  let value = input.value;
   if (!value.length) {
     const div = document.createElement("div");
     div.textContent = `[${new Date().toISOString()}] please include a message!`;
