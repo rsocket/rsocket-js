@@ -15,6 +15,24 @@ import { MockSocket } from "../__mocks__/ws";
 const deserializer = mock<Deserializer>();
 
 describe("WebsocketDuplexConnection", function () {
+  it("reports availability based on open/close status", () => {
+    const socket = new MockSocket() as unknown as WebSocket;
+    const multiplexerDemultiplexer = mock<
+      Multiplexer & Demultiplexer & FrameHandler
+    >();
+    const connection = new WebsocketDuplexConnection(
+      socket,
+      deserializer,
+      () => multiplexerDemultiplexer
+    );
+
+    expect(connection.availability).toEqual(1);
+
+    connection.close();
+
+    expect(connection.availability).toEqual(0);
+  });
+
   describe("when closed", () => {
     it("removes listeners from the underlying socket event emitter", () => {
       // arrange
@@ -179,6 +197,22 @@ describe("WebsocketDuplexConnection", function () {
 
       expect(onCloseCallback).toBeCalledTimes(1);
       expect(onCloseCallback).toHaveBeenCalledWith(expectedError);
+    });
+
+    it("reports 0 availability", () => {
+      const socket = new MockSocket() as unknown as WebSocket;
+      const multiplexerDemultiplexer = mock<
+        Multiplexer & Demultiplexer & FrameHandler
+      >();
+      const connection = new WebsocketDuplexConnection(
+        socket,
+        deserializer,
+        () => multiplexerDemultiplexer
+      );
+
+      connection.close();
+
+      expect(connection.availability).toEqual(0);
     });
   });
 
