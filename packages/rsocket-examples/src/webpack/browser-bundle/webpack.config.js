@@ -3,11 +3,19 @@ const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
-  entry: "./rsocket.js",
   mode: "development",
+  entry: {
+    rsocket: {
+      import: "./src/rsocket.js",
+      library: {
+        type: "window",
+        name: "rsocket",
+      },
+    },
+    app: "./src/app.js",
+  },
   output: {
-    filename: "rsocket.js",
-    library: "rsocket",
+    filename: "[name].js", // [name] will be replaced by 'app' or 'library'
     path: path.resolve(__dirname, "dist"),
   },
   devtool: "source-map",
@@ -25,8 +33,8 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "./index.html",
-      inject: "head",
+      template: "./src/index.html",
+      inject: "footer",
       scriptLoading: "blocking",
     }),
     new webpack.ProvidePlugin({

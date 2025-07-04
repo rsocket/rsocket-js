@@ -12,7 +12,7 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": "^16.17.0"
+    "node": "^18"
   },
   "dependencies": {
     "rsocket-adapter-rxjs": "^1.0.0-alpha.4",
@@ -22,7 +22,7 @@
     "rsocket-tcp-server": "^1.0.0-alpha.3",
     "rsocket-websocket-client": "^1.0.0-alpha.3",
     "rsocket-websocket-server": "^1.0.0-alpha.3",
-    "ws": "~8.2.3"
+    "ws": "^8.18"
   },
   "devDependencies": {
 

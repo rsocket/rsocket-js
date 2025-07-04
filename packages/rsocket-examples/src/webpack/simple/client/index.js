@@ -11,7 +11,15 @@ import { WebsocketClientTransport } from "rsocket-websocket-client";
     }),
   });
 
-  const rsocket = await connector.connect();
+  let rsocket = null;
+  try {
+    rsocket = await connector.connect();
+  } catch (e) {
+    const div = document.createElement("div");
+    div.textContent = "Failed to connect to server! Is it running?";
+    outputDiv.appendChild(div);
+    return;
+  }
 
   rsocket.requestResponse(
     {

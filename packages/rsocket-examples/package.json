@@ -39,7 +39,7 @@
     "rsocket-tcp-server": "^1.0.0-alpha.3",
     "rsocket-websocket-client": "^1.0.0-alpha.3",
     "rsocket-websocket-server": "^1.0.0-alpha.3",
-    "ws": "~8.2.3"
+    "ws": "^8.18"
   },
   "devDependencies": {
     "rimraf": "~3.0.2",
