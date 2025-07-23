@@ -200,7 +200,7 @@ export class LeaseHandler implements LeaseManager {
   ) {}
 
   handle(frame: LeaseFrame): void {
-    this.expirationTime = frame.ttl + Date.now();
+    this.expirationTime = frame.ttl + performance.now();
     this.availableLease = frame.requestCount;
 
     while (this.availableLease > 0 && this.pendingRequests.length > 0) {
@@ -213,7 +213,7 @@ export class LeaseHandler implements LeaseManager {
 
   requestLease(handler: StreamFrameHandler & StreamLifecycleHandler): void {
     const availableLease = this.availableLease;
-    if (availableLease > 0 && Date.now() < this.expirationTime) {
+    if (availableLease > 0 && performance.now() < this.expirationTime) {
       this.availableLease = availableLease - 1;
       this.multiplexer.createRequestStream(handler);
       return;
@@ -414,7 +414,7 @@ export class KeepAliveHandler implements FrameHandler {
   }
 
   handle(frame: KeepAliveFrame): void {
-    this.keepAliveLastReceivedMillis = Date.now();
+    this.keepAliveLastReceivedMillis = performance.now();
     if (Flags.hasRespond(frame.flags)) {
       this.outbound.send({
         type: FrameTypes.KEEPALIVE,
@@ -431,7 +431,7 @@ export class KeepAliveHandler implements FrameHandler {
       return;
     }
 
-    this.keepAliveLastReceivedMillis = Date.now();
+    this.keepAliveLastReceivedMillis = performance.now();
     this.state = KeepAliveHandlerStates.Running;
     this.activeTimeout = setTimeout(
       this.timeoutCheck.bind(this),
@@ -454,7 +454,7 @@ export class KeepAliveHandler implements FrameHandler {
   }
 
   private timeoutCheck() {
-    const now = Date.now();
+    const now = performance.now();
     const noKeepAliveDuration = now - this.keepAliveLastReceivedMillis;
     if (noKeepAliveDuration >= this.keepAliveTimeoutDuration) {
       this.connection.close(
