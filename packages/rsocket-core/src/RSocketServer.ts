@@ -69,6 +69,7 @@ export class RSocketServer {
     this.acceptor = config.acceptor;
     this.transport = config.transport;
     this.lease = config.lease;
+    this.fragmentation = config.fragmentation;
     this.serverSideKeepAlive = config.serverSideKeepAlive;
     this.sessionStore = config.resume ? {} : undefined;
     this.sessionTimeout = config.resume?.sessionTimeout ?? undefined;
@@ -154,7 +155,7 @@ export class RSocketServer {
               );
               const streamsHandler = new DefaultStreamRequestHandler(
                 responder,
-                0
+                this.fragmentation?.maxOutboundFragmentSize ?? 0,
               );
 
               connection.onClose((e) => {
